@@ -757,7 +757,7 @@ public sealed partial class GameSession : Core.Network.Session {
                 LastOnlineTime = DateTime.UtcNow.ToEpochSeconds(),
                 MapId = 0,
                 Channel = -1,
-                Async = true,
+                Async = false,
             });
 
             Party.CheckDisband();
@@ -794,10 +794,6 @@ public sealed partial class GameSession : Core.Network.Session {
             Interlocked.Exchange(ref gameDisposeState, 2);
         }
         return;
-
-        void TrySaveComponent(GameStorage.Request db, Action<GameStorage.Request> action) {
-            try { action(db); } catch (Exception ex) { Logger.Error(ex, "Error saving component for {Player}", PlayerName); }
-        }
 
         void SafeDispose(IDisposable? disp) {
             if (disp == null) return;
@@ -853,6 +849,11 @@ public sealed partial class GameSession : Core.Network.Session {
 
     public void MigrationSave() {
         if (preMigrationSaved) return;
+        preMigrationSaved = true;
+        SavePlayerState();
+    }
+
+    private void SavePlayerState() {
         try {
             AcquireLock(AccountId, 5);
             using GameStorage.Request db = GameStorage.Context();
@@ -870,9 +871,8 @@ public sealed partial class GameSession : Core.Network.Session {
             TrySaveComponent(db, Dungeon.Save);
             db.Commit();
             db.SaveChanges();
-            preMigrationSaved = true;
         } catch (Exception ex) {
-            Logger.Error(ex, "MigrationSave failed AccountId={AccountId} CharacterId={CharacterId}", AccountId, CharacterId);
+            Logger.Error(ex, "SavePlayerState failed AccountId={AccountId} CharacterId={CharacterId}", AccountId, CharacterId);
         } finally {
             ReleaseLock(AccountId);
         }

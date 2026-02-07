@@ -46,9 +46,15 @@ public class QuitHandler : PacketHandler<GameSession> {
             MigrateOutResponse response = World.MigrateOut(request);
             var endpoint = new IPEndPoint(IPAddress.Parse(response.IpAddress), response.Port);
             session.Send(MigrationPacket.GameToLogin(endpoint, response.Token));
-        } catch (RpcException) {
+            // Do NOT disconnect here — let the client close the TCP connection after
+            // receiving the migration packet. Calling Disconnect() immediately would
+            // set disconnecting=1, causing SendWorker to drop the queued packet.
+            // The natural TCP close will trigger the full Dispose chain (leave field,
+            // update PlayerInfo, save state, etc.).
+        } catch (RpcException ex) {
+            Logger.Error(ex, "MigrateOut failed for account={AccountId} char={CharacterId}",
+                session.AccountId, session.CharacterId);
             session.Send(MigrationPacket.GameToLoginError(s_move_err_default));
-        } finally {
             session.Disconnect();
         }
     }

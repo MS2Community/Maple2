@@ -206,18 +206,45 @@ public abstract class Session : IDisposable {
 
     private async Task WriteRecvPipe(Socket socket, PipeWriter writer) {
         try {
-            FlushResult result;
+            FlushResult result = default;
             do {
+                if (disposed) break;
+
                 Memory<byte> memory = writer.GetMemory();
-                int bytesRead = await socket.ReceiveAsync(memory, SocketFlags.None);
-                if (bytesRead <= 0) {
+                int bytesRead;
+
+                try {
+                    bytesRead = await socket.ReceiveAsync(memory, SocketFlags.None);
+                } catch (SocketException sockEx) when (sockEx.ErrorCode == 995 || sockEx.ErrorCode == 10004) {
+                    // 995: Operation aborted (thread exit/app request)
+                    // 10004: Interrupted system call
+                    // These are expected when closing the session
+                    Logger.Debug("Socket closed during receive (code {ErrorCode}) account={AccountId} char={CharacterId}",
+                        sockEx.ErrorCode, AccountId, CharacterId);
                     break;
                 }
 
-                writer.Advance(bytesRead);
+                if (bytesRead <= 0 || disposed) {
+                    break;
+                }
 
-                result = await writer.FlushAsync();
+                // Check if writer was completed before advancing
+                try {
+                    writer.Advance(bytesRead);
+                    result = await writer.FlushAsync();
+                } catch (InvalidOperationException) when (disposed) {
+                    // Writer was completed/disposed during advance or flush
+                    Logger.Debug("Pipe writer completed during operation account={AccountId} char={CharacterId}", AccountId, CharacterId);
+                    break;
+                } catch (ArgumentOutOfRangeException) when (disposed) {
+                    // Invalid byte count during disposal
+                    Logger.Debug("Pipe writer advance failed during disposal account={AccountId} char={CharacterId}", AccountId, CharacterId);
+                    break;
+                }
             } while (!disposed && !result.IsCompleted);
+        } catch (Exception ex) when (disposed) {
+            // Suppress exceptions if we're already disposed
+            Logger.Debug(ex, "WriteRecvPipe exception during disposal account={AccountId} char={CharacterId}", AccountId, CharacterId);
         } catch (Exception ex) {
             Logger.Debug(ex, "WriteRecvPipe exception account={AccountId} char={CharacterId}", AccountId, CharacterId);
             Disconnect();
@@ -319,6 +346,10 @@ public abstract class Session : IDisposable {
             if (writeTask.IsFaulted) {
                 throw writeTask.Exception?.GetBaseException() ?? new Exception("Write task faulted");
             }
+        } catch (Exception ex) when (ex.InnerException is IOException or SocketException || ex is IOException or SocketException) {
+            // Expected when client closes the connection (e.g., during migration)
+            Logger.Debug("SendRaw connection closed account={AccountId} char={CharacterId}", AccountId, CharacterId);
+            Disconnect();
         } catch (Exception ex) {
             Logger.Warning(ex, "[LIFECYCLE] SendRaw write failed account={AccountId} char={CharacterId}", AccountId, CharacterId);
             Disconnect();

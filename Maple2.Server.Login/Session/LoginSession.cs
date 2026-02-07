@@ -12,6 +12,7 @@ using Maple2.Server.Core.Constants;
 using Maple2.Server.Core.Network;
 using Maple2.Server.Core.Packets;
 using Maple2.Server.World.Service;
+using Serilog;
 using static Maple2.Model.Error.CharacterCreateError;
 using WorldClient = Maple2.Server.World.Service.World.WorldClient;
 
@@ -166,9 +167,11 @@ public class LoginSession : Core.Network.Session {
         try {
             Server.OnDisconnected(this);
             State = SessionState.Disconnected;
-            Complete();
-        } finally {
+
+            // Call base.Dispose to stop network operations first
             base.Dispose(disposing);
+        } catch (Exception ex) {
+            Log.Logger.Debug(ex, "Error during LoginSession disposal");
         }
     }
     #endregion
