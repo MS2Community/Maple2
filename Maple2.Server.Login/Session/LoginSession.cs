@@ -166,12 +166,16 @@ public class LoginSession : Core.Network.Session {
 
         try {
             Server.OnDisconnected(this);
-            State = SessionState.Disconnected;
+        } catch (Exception ex) {
+            Logger.Debug(ex, "Error during LoginSession.OnDisconnected");
+        }
 
-            // Call base.Dispose to stop network operations first
+        State = SessionState.Disconnected;
+
+        try {
             base.Dispose(disposing);
         } catch (Exception ex) {
-            Log.Logger.Debug(ex, "Error during LoginSession disposal");
+            Logger.Debug(ex, "Error during LoginSession base disposal");
         }
     }
     #endregion
