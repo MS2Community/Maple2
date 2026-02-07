@@ -12,7 +12,6 @@ using Maple2.Server.Core.Constants;
 using Maple2.Server.Core.Network;
 using Maple2.Server.Core.Packets;
 using Maple2.Server.World.Service;
-using Serilog;
 using static Maple2.Model.Error.CharacterCreateError;
 using WorldClient = Maple2.Server.World.Service.World.WorldClient;
 
