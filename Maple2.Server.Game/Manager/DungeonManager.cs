@@ -609,6 +609,7 @@ public class DungeonManager {
         } catch (RpcException ex) {
             session.Send(MigrationPacket.GameToGameError(MigrationError.s_move_err_default));
             session.Send(NoticePacket.Disconnect(new InterfaceText(ex.Message)));
+        } finally {
             session.Disconnect();
         }
     }
