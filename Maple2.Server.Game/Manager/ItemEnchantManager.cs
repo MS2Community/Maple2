@@ -228,6 +228,19 @@ public class ItemEnchantManager {
             return false;
         }
 
+        void ApplyEnchantStats() {
+            // GetBasicOptions() again to ensure rates match those in table.
+            // This *MUST* be called before incrementing Enchants.
+            foreach ((BasicAttribute attribute, BasicOption option) in GetEnchant(session, upgradeItem).BasicOptions) {
+                if (upgradeItem.Enchant.BasicOptions.TryGetValue(attribute, out BasicOption existing)) {
+                    upgradeItem.Enchant.BasicOptions[attribute] = option + existing;
+                } else {
+                    upgradeItem.Enchant.BasicOptions[attribute] = option;
+                }
+            }
+            upgradeItem.Enchant.Enchants++;
+        }
+
         switch (Type) {
             case EnchantType.Ophelia:
                 float roll = Random.Shared.NextSingle() * MaxRate;
@@ -236,16 +249,7 @@ public class ItemEnchantManager {
                 logger.Debug("Enchant result: {Roll} / {Total} = {Result}", roll, totalRate, enchantResult.ToString());
 
                 if (enchantResult == EnchantResult.Success) {
-                    // GetBasicOptions() again to ensure rates match those in table.
-                    // This *MUST* be called before incrementing Enchants.
-                    foreach ((BasicAttribute attribute, BasicOption option) in GetEnchant(session, upgradeItem).BasicOptions) {
-                        if (upgradeItem.Enchant.BasicOptions.TryGetValue(attribute, out BasicOption existing)) {
-                            upgradeItem.Enchant.BasicOptions[attribute] = option + existing;
-                        } else {
-                            upgradeItem.Enchant.BasicOptions[attribute] = option;
-                        }
-                    }
-                    upgradeItem.Enchant.Enchants++;
+                    ApplyEnchantStats();
 
                     session.ConditionUpdate(ConditionType.enchant_result, codeLong: (int) EnchantResult.Success, targetLong: upgradeItem.Enchant.Enchants);
                     session.Send(ItemEnchantPacket.Success(upgradeItem, attributeDeltas));
@@ -261,12 +265,7 @@ public class ItemEnchantManager {
                 upgradeItem.Enchant.EnchantExp += GainExp[enchants];
                 if (upgradeItem.Enchant.EnchantExp >= MaxExp) {
                     upgradeItem.Enchant.EnchantExp = 0;
-                    // GetBasicOptions() again to ensure rates match those in table.
-                    // This *MUST* be called before incrementing Enchants.
-                    foreach ((BasicAttribute attribute, BasicOption option) in GetEnchant(session, upgradeItem).BasicOptions) {
-                        upgradeItem.Enchant.BasicOptions[attribute] = option;
-                    }
-                    upgradeItem.Enchant.Enchants++;
+                    ApplyEnchantStats();
 
                     session.ConditionUpdate(ConditionType.enchant_result, codeLong: (int) EnchantResult.Success, targetLong: upgradeItem.Enchant.Enchants);
                     session.Send(ItemEnchantPacket.Success(upgradeItem, attributeDeltas));
