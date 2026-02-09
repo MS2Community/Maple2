@@ -183,7 +183,7 @@ public static class Constant {
     #endregion
 
     #region Account
-    public static readonly bool AutoRegister = true;
+    public static readonly bool AutoRegister = false;
     public static readonly bool BlockLoginWithMismatchedMachineId = false;
     public static readonly int DefaultMaxCharacters = 4;
     #endregion
