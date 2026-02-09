@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using DotRecast.Core.Numerics;
 using DotRecast.Detour.Crowd;
 using Maple2.Database.Storage;
 using Maple2.Model.Common;
@@ -16,6 +17,7 @@ using Maple2.Server.Game.Session;
 using Maple2.Server.Game.Util;
 using Maple2.Tools;
 using Maple2.Tools.Collision;
+using Maple2.Tools.DotRecast;
 using Maple2.Tools.Extensions;
 using Maple2.Tools.VectorMath;
 using Serilog;
@@ -103,10 +105,33 @@ public partial class FieldManager {
     }
 
     public FieldNpc? SpawnNpc(NpcMetadata npc, Vector3 position, Vector3 rotation, FieldMobSpawn? owner = null, SpawnPointNPC? spawnPointNpc = null, string spawnAnimation = "") {
-        DtCrowdAgent agent = Navigation.AddAgent(npc, position);
+        // Apply random offset if SpawnRadius is set
+        Vector3 spawnPosition = position;
+        if (spawnPointNpc?.SpawnRadius > 0) {
+            float angle = Random.Shared.NextSingle() * MathF.PI * 2;
+            float distance = Random.Shared.NextSingle() * spawnPointNpc.SpawnRadius;
+            Vector3 offset = new Vector3(
+                MathF.Cos(angle) * distance,
+                MathF.Sin(angle) * distance,
+                0
+            );
+            Vector3 randomizedPosition = position + offset;
+
+            // Validate and snap to nearest valid navmesh position
+            if (FindNearestPoly(randomizedPosition, out long nearestRef, out RcVec3f validPosition) && nearestRef != 0) {
+                spawnPosition = DotRecastHelper.FromNavMeshSpace(validPosition);
+                logger.Debug("[SpawnNpc] Applied spawn radius {Radius} to NPC {NpcId} at SpawnPoint {SpawnPointId}, offset: {Offset}, snapped from {Original} to {Final}",
+                    spawnPointNpc.SpawnRadius, npc.Id, spawnPointNpc.SpawnPointId, offset, randomizedPosition, spawnPosition);
+            } else {
+                logger.Warning("[SpawnNpc] Randomized position {Position} invalid for NPC {NpcId}, using original spawn point {Original}",
+                    randomizedPosition, npc.Id, position);
+                spawnPosition = position;
+            }
+        }
+
+        DtCrowdAgent agent = Navigation.AddAgent(npc, spawnPosition);
 
         AnimationMetadata? animation = NpcMetadata.GetAnimation(npc.Model.Name);
-        Vector3 spawnPosition = position;
         var fieldNpc = new FieldNpc(this, NextLocalId(), agent, new Npc(npc, animation), npc.AiPath, patrolDataUUID: spawnPointNpc?.PatrolData, spawnAnimation: spawnAnimation) {
             Owner = owner,
             Position = spawnPosition,

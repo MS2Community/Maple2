@@ -287,30 +287,42 @@ public partial class TriggerContext {
             return;
         }
 
-        List<SpawnPointNPCListEntry> npcList = spawn.NpcList.OrderBy(_ => Random.Shared.Next()).Take(spawn.NpcCount).ToList();
+        DebugLog("[SpawnNpc] spawnId:{SpawnId}, SpawnRadius:{SpawnRadius}, NpcCount:{NpcCount}, Position:{Position}",
+            spawnId, spawn.SpawnRadius, spawn.NpcCount, spawn.Position);
 
-        foreach (SpawnPointNPCListEntry entry in npcList) {
-            if (!Field.NpcMetadata.TryGet(entry.NpcId, out NpcMetadata? npc)) {
-                logger.Error("[SpawnNpc] Invalid npcId:{NpcId}", entry.NpcId);
+        // NpcCount is the total number of NPCs that can exist at this spawn point.
+        // Each NpcList entry's Count is how many of that type can spawn.
+        // Build a pool of individual NPC ids from the list, shuffle, and take up to NpcCount.
+        List<int> npcPool = [];
+        foreach (SpawnPointNPCListEntry entry in spawn.NpcList) {
+            for (int j = 0; j < entry.Count; j++) {
+                npcPool.Add(entry.NpcId);
+            }
+        }
+
+        // Shuffle and cap at NpcCount
+        IEnumerable<int> npcIdsToSpawn = npcPool.OrderBy(_ => Random.Shared.Next()).Take(spawn.NpcCount);
+
+        foreach (int npcId in npcIdsToSpawn) {
+            if (!Field.NpcMetadata.TryGet(npcId, out NpcMetadata? npc)) {
+                logger.Error("[SpawnNpc] Invalid npcId:{NpcId}", npcId);
                 continue;
             }
 
-            for (int i = 0; i < entry.Count; i++) {
-                string spawnAnimationString = string.Empty;
-                if (!string.IsNullOrEmpty(spawn.SpawnAnimation) && useSpawnAnimation) {
-                    spawnAnimationString = spawn.SpawnAnimation;
-                }
-                FieldNpc? fieldNpc = Field.SpawnNpc(npc, spawn.Position, spawn.Rotation, spawnAnimation: spawnAnimationString);
-                if (fieldNpc == null) {
-                    logger.Error("[SpawnNpc] Failed to spawn npcId:{NpcId}", entry.NpcId);
-                    continue;
-                }
-
-                fieldNpc.SpawnPointId = spawnId;
-
-                Field.Broadcast(FieldPacket.AddNpc(fieldNpc));
-                Field.Broadcast(ProxyObjectPacket.AddNpc(fieldNpc));
+            string spawnAnimationString = string.Empty;
+            if (!string.IsNullOrEmpty(spawn.SpawnAnimation) && useSpawnAnimation) {
+                spawnAnimationString = spawn.SpawnAnimation;
             }
+            FieldNpc? fieldNpc = Field.SpawnNpc(npc, spawn.Position, spawn.Rotation, spawnPointNpc: spawn, spawnAnimation: spawnAnimationString);
+            if (fieldNpc == null) {
+                logger.Error("[SpawnNpc] Failed to spawn npcId:{NpcId}", npcId);
+                continue;
+            }
+
+            fieldNpc.SpawnPointId = spawnId;
+
+            Field.Broadcast(FieldPacket.AddNpc(fieldNpc));
+            Field.Broadcast(ProxyObjectPacket.AddNpc(fieldNpc));
         }
     }
 }
