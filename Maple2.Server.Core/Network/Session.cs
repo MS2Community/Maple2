@@ -52,6 +52,7 @@ public abstract class Session : IDisposable {
 
     // Send queue for non-blocking sends
     private readonly BlockingCollection<(byte[] packet, int length)> sendQueue = new(new ConcurrentQueue<(byte[], int)>());
+    private Thread sendWorkerThread = null!;
 
     public long AccountId { get; protected set; }
     public long CharacterId { get; protected set; }
@@ -85,11 +86,11 @@ public abstract class Session : IDisposable {
         recvCipher = new MapleCipher.Decryptor(VERSION, riv, BLOCK_IV);
 
         // Start send worker thread
-        var sendWorkerThread1 = new Thread(SendWorker) {
+        sendWorkerThread = new Thread(SendWorker) {
             Name = $"SendWorker-{name}",
             IsBackground = true,
         };
-        sendWorkerThread1.Start();
+        sendWorkerThread.Start();
     }
 
     ~Session() => Dispose(false);
@@ -133,6 +134,14 @@ public abstract class Session : IDisposable {
 
         if (Interlocked.Exchange(ref disconnecting, 1) == 1) return;
         Logger.Information("Disconnected {Session} at {Caller} in {FilePath} on line {LineNumber}", this, caller, filePath, line);
+
+        // Drain the send queue before disposing — ensures queued packets (e.g. migration)
+        // are delivered to the client before the connection is closed.
+        try { sendQueue.CompleteAdding(); } catch (ObjectDisposedException) { }
+        try { sendWorkerThread.Join(STOP_TIMEOUT); } catch (Exception ex) {
+            Logger.Debug(ex, "SendWorker drain join failed");
+        }
+
         Dispose();
     }
 
@@ -320,7 +329,7 @@ public abstract class Session : IDisposable {
     }
 
     private void SendRaw(ByteWriter packet) {
-        if (disposed || disconnecting == 1) return;
+        if (disposed) return;
 
         try {
             // Use async write with timeout to prevent indefinite blocking
@@ -359,12 +368,12 @@ public abstract class Session : IDisposable {
     private void SendWorker() {
         try {
             foreach ((byte[] packet, int length) in sendQueue.GetConsumingEnumerable()) {
-                if (disposed || disconnecting == 1) break;
+                if (disposed) break;
 
                 // Encrypt outside lock, then send with timeout
                 PoolByteWriter encryptedPacket;
                 lock (sendCipher) {
-                    if (disposed || disconnecting == 1) break;
+                    if (disposed) break;
                     encryptedPacket = sendCipher.Encrypt(packet, 0, length);
                 }
                 try {

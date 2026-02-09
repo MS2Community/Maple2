@@ -96,6 +96,7 @@ public class CharacterManagementHandler : PacketHandler<LoginSession> {
             MigrateOutResponse response = World.MigrateOut(request);
             var endpoint = new IPEndPoint(IPAddress.Parse(response.IpAddress), response.Port);
             session.Send(MigrationPacket.LoginToGame(endpoint, response.Token, character.MapId));
+            session.Disconnect();
         } catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable) {
             session.Send(MigrationPacket.LoginToGameError(s_move_err_no_server, ex.Message));
         } catch (RpcException ex) when (ex.StatusCode == StatusCode.ResourceExhausted) {

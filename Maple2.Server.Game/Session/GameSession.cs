@@ -702,6 +702,7 @@ public sealed partial class GameSession : Core.Network.Session {
         } catch (RpcException ex) {
             Send(MigrationPacket.GameToGameError(MigrationError.s_move_err_default));
             Send(NoticePacket.Disconnect(new InterfaceText(ex.Message)));
+        } finally {
             Disconnect();
         }
     }

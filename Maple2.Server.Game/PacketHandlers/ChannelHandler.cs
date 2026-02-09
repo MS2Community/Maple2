@@ -38,7 +38,6 @@ public class ChannelHandler : PacketHandler<GameSession> {
             var endpoint = new IPEndPoint(IPAddress.Parse(response.IpAddress), response.Port);
             session.Send(MigrationPacket.GameToGame(endpoint, response.Token, session.Field?.MapId ?? 0));
             session.State = SessionState.ChangeChannel;
-            session.Disconnect();
         } catch (RpcException ex) {
             Logger.Error(ex, "Failed to migrate to channel {Channel}", channel);
 
@@ -47,6 +46,8 @@ public class ChannelHandler : PacketHandler<GameSession> {
             // Update the client with the latest channel list.
             ChannelsResponse response = World.Channels(new ChannelsRequest());
             session.Send(ChannelPacket.Load(response.Channels));
+        } finally {
+            session.Disconnect();
         }
     }
 }
