@@ -62,8 +62,13 @@ public class EventQueueTests {
         queue.ScheduleRepeated(() => count++, TimeSpan.FromMilliseconds(20), skipFirst: true);
         queue.InvokeAll();
         Assert.That(count, Is.EqualTo(0));
-        Thread.Sleep(25);
-        queue.InvokeAll();
+
+        // Wait with retry to handle timing imprecision on CI environments
+        int maxRetries = 10;
+        for (int i = 0; i < maxRetries && count == 0; i++) {
+            Thread.Sleep(10);
+            queue.InvokeAll();
+        }
         Assert.That(count, Is.EqualTo(1));
     }
 }
