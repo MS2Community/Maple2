@@ -1,10 +1,13 @@
-﻿using Maple2.Database.Extensions;
+﻿using System.Text.Json;
+using Maple2.Database.Extensions;
 using Maple2.Database.Model;
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
 using Maple2.Model.Metadata;
 using Maple2.Server.Game.Manager.Config;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Logging;
 using Account = Maple2.Model.Game.Account;
 using Character = Maple2.Model.Game.Character;
@@ -207,6 +210,25 @@ public partial class GameStorage {
             return home;
         }
 
+        public (DateTime CharacterLastModified, DateTime AccountLastModified, DateTime UnlockLastModified)? GetLastModifiedTimestamps(long characterId) {
+            var result = Context.Character.Where(character => character.Id == characterId)
+                .Join(Context.Account, character => character.AccountId, account => account.Id, (character, account) => new {
+                    character,
+                    account,
+                })
+                .Join(Context.CharacterUnlock, @t => @t.character.Id, unlock => unlock.CharacterId, (@t, unlock) => new {
+                    CharacterLastModified = @t.character.LastModified,
+                    AccountLastModified = @t.account.LastModified,
+                    UnlockLastModified = unlock.LastModified,
+                })
+                .AsNoTracking()
+                .FirstOrDefault();
+            if (result == null) {
+                return null;
+            }
+            return (result.CharacterLastModified, result.AccountLastModified, result.UnlockLastModified);
+        }
+
         // We pass in objectId only for Player initialization.
         public Player? LoadPlayer(long accountId, long characterId, int objectId, short channel) {
             Context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
@@ -278,7 +300,7 @@ public partial class GameStorage {
         }
 
         public bool SavePlayer(Player player) {
-            Console.WriteLine($"> Begin Save... {Context.ContextId}");
+            Logger.LogInformation("> Begin Save... {ContextId}:{CharacterId}", Context.ContextId, player.Character.Id);
 
             Model.Account account = player.Account;
             account.Currency = new AccountCurrency {
@@ -314,8 +336,132 @@ public partial class GameStorage {
             unlock.CharacterId = character.Id;
             Context.Update(unlock);
 
-            Context.ChangeTracker.Entries().DisplayStates();
-            return Context.TrySaveChanges();
+            bool saved = false;
+            int attempt = 0;
+            const int maxAttempts = 5;
+
+            while (!saved && attempt < maxAttempts) {
+                try {
+                    attempt++;
+                    Context.SaveChanges();
+                    saved = true;
+                } catch (DbUpdateConcurrencyException ex) {
+                    Logger.LogWarning("> Concurrency conflict (attempt {Attempt}) for CharacterId={CharacterId}", attempt, player.Character.Id);
+                    foreach (EntityEntry entry in ex.Entries) {
+                        string entityName = entry.Metadata.ClrType.Name;
+                        if (entry.Entity is not Model.Account && entry.Entity is not Model.Character && entry.Entity is not CharacterUnlock) {
+                            // Intentionally re-throw for unsupported entity types as fail-fast behavior during development.
+                            // SavePlayer only handles concurrency conflicts for Account, Character, and CharacterUnlock.
+                            // If other entities are unexpectedly involved, this indicates a logic error that should be caught immediately.
+                            Logger.LogInformation("  Unsupported concurrency entity {EntityName}, rethrowing.", entityName);
+                            throw;
+                        }
+
+                        PropertyValues? databaseValues = entry.GetDatabaseValues();
+                        if (databaseValues == null) {
+                            Logger.LogInformation("  Entity {EntityName} appears deleted in DB. Aborting save.", entityName);
+                            return false;
+                        }
+                        PropertyValues proposedValues = entry.CurrentValues;
+
+                        Logger.LogWarning("  Diff for {EntityName}:", entityName);
+                        foreach (IProperty property in proposedValues.Properties) {
+                            if (property.IsConcurrencyToken) {
+                                object? originalValue = entry.OriginalValues[property];
+                                object? currentValue = proposedValues[property];
+                                object? databaseValue2 = databaseValues[property];
+                                Logger.LogError("    {PropertyName}: original='{S}' current='{FormatValue1}' db='{S1}' <concurrency token>", property.Name, FormatValue(originalValue), FormatValue(currentValue), FormatValue(databaseValue2));
+                                continue;
+                            }
+                            if (property.Name.Equals("Password", StringComparison.OrdinalIgnoreCase)) {
+                                continue;
+                            }
+
+                            object? proposedValue = proposedValues[property];
+                            object? databaseValue = databaseValues[property];
+
+                            // Handle CreationTime as immutable: always trust database value and suppress logging
+                            if (property.Name.Equals("CreationTime", StringComparison.OrdinalIgnoreCase)) {
+                                if (proposedValue is DateTime propCt && databaseValue is DateTime dbCt) {
+                                    // If they differ only by fractional seconds / timezone, normalize by taking db value
+                                    if (propCt != dbCt) {
+                                        proposedValues[property] = dbCt;
+                                    }
+                                } else if (databaseValue != null) {
+                                    proposedValues[property] = databaseValue; // non-DateTime edge case
+                                }
+                                continue; // don't log CreationTime differences
+                            }
+
+                            if (property.Name.Contains("CreationTime", StringComparison.OrdinalIgnoreCase) &&
+                                proposedValue is DateTime pvDt && pvDt == default &&
+                                databaseValue is DateTime dbDt && dbDt != default) {
+                                proposedValues[property] = databaseValue;
+                                continue;
+                            }
+
+                            if (IsJsonStructurallyEqual(property.Name, proposedValue, databaseValue)) {
+                                // Logger.LogWarning($"    {property.Name}: proposed and db are structurally equal JSON. proposed='{FormatValue(proposedValue)}' db='{FormatValue(databaseValue)}'");
+                                continue;
+                            }
+
+                            if (!Equals(proposedValue, databaseValue)) {
+                                Logger.LogInformation("    {PropertyName}: proposed='{S}' db='{FormatValue1}'", property.Name, FormatValue(proposedValue), FormatValue(databaseValue));
+                            }
+                        }
+
+                        entry.OriginalValues.SetValues(databaseValues);
+                    }
+                } catch (Exception ex) {
+                    Logger.LogError("> Save failed (non-concurrency) CharacterId={CharacterId} attempt={Attempt}\n{Exception}", player.Character.Id, attempt, ex);
+                    return false;
+                }
+            }
+            if (!saved) {
+                Logger.LogError("> Save failed after {MaxAttempts} attempts CharacterId={CharacterId}", maxAttempts, player.Character.Id);
+                return false;
+            }
+
+            // get updated values after save
+            (DateTime CharacterLastModified, DateTime AccountLastModified, DateTime UnlockLastModified)? newPlayer = GetLastModifiedTimestamps(character.Id);
+            if (newPlayer == null) {
+                Logger.LogError("> Save succeeded but failed to fetch updated timestamps CharacterId={CharacterId}", player.Character.Id);
+                return false;
+            }
+            player.Account.LastModified = newPlayer.Value.AccountLastModified;
+            player.Character.LastModified = newPlayer.Value.CharacterLastModified;
+            player.Unlock.LastModified = newPlayer.Value.UnlockLastModified;
+
+            Logger.LogInformation("> Save complete {ContextId}:{CharacterId}", Context.ContextId, player.Character.Id);
+            return true;
+        }
+
+        // Added helper methods for JSON diff suppression & formatting
+        private static readonly HashSet<string> JsonNoiseProperties = new(StringComparer.OrdinalIgnoreCase) {
+            "Cooldown",
+            "Currency",
+            "Experience",
+            "Mastery",
+            "Profile",
+        };
+
+        private static bool IsJsonStructurallyEqual(string propertyName, object? proposed, object? database) {
+            if (!JsonNoiseProperties.Contains(propertyName)) return false;
+            if (proposed == null && database == null) return true;
+            if (proposed == null || database == null) return false;
+            try {
+                string p = JsonSerializer.Serialize(proposed);
+                string d = JsonSerializer.Serialize(database);
+                return string.Equals(p, d, StringComparison.Ordinal);
+            } catch { return false; }
+        }
+
+        private static string FormatValue(object? value) {
+            if (value == null) return "<null>";
+            if (value is DateTime dt) return dt.ToString("O");
+            Type t = value.GetType();
+            if (t.IsPrimitive || value is string) return value.ToString() ?? string.Empty;
+            return t.Name;
         }
 
         public bool SaveCharacter(Character character) {

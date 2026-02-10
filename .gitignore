@@ -378,3 +378,5 @@ FodyWeavers.xsd
 /Maple2.Server.Game/DebugTriggers
 .idea/.idea.Maple2/.idea/AugmentWebviewStateStore.xml
 /.idea/.idea.Maple2/.idea
+.claude/settings.local.json
+.mcp.json
