@@ -37,23 +37,24 @@ public static class InGameRankPacket {
         return pWriter;
     }
 
-    public static ByteWriter GuildTrophy() {
+    public static ByteWriter GuildTrophy(IList<GuildTrophyRankInfo> rankInfos) {
         var pWriter = new ByteWriter();
         pWriter.Write<GameRankingType>(GameRankingType.GuildTrophy);
         pWriter.WriteInt(0);
         pWriter.WriteUnicodeStringWithLength(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-        pWriter.WriteInt(1); // count
+        pWriter.WriteInt(rankInfos.Count);
 
-        pWriter.WriteInt(0); // rank
-        pWriter.WriteLong(0); // guildId
-        pWriter.WriteUnicodeStringWithLength(string.Empty); // guildName
-        pWriter.WriteUnicodeStringWithLength(string.Empty); // guildEmblem
-        pWriter.WriteLong(); // guild leader id ?
-        pWriter.WriteInt(); // guild trophy total
-        pWriter.WriteInt(0); // guild trophy combat
-        pWriter.WriteInt(0); // guild trophy adventure
-        pWriter.WriteInt(0); // guild trophy lifestyle
-
+        foreach (GuildTrophyRankInfo info in rankInfos) {
+            pWriter.WriteInt(info.Rank);
+            pWriter.WriteLong(info.GuildId);
+            pWriter.WriteUnicodeStringWithLength(info.Name);
+            pWriter.WriteUnicodeStringWithLength(info.Emblem);
+            pWriter.WriteUnicodeStringWithLength(info.LeaderName);
+            pWriter.WriteInt(info.Trophy.Total);
+            pWriter.WriteInt(info.Trophy.Combat);
+            pWriter.WriteInt(info.Trophy.Adventure);
+            pWriter.WriteInt(info.Trophy.Lifestyle);
+        }
         return pWriter;
     }
 

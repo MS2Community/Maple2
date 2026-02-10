@@ -98,6 +98,120 @@ public partial class GameStorage {
                     Trophy: r.Trophy))
                 .ToList();
         }
+        public GuildTrophyRankInfo? GetGuildTrophyRankInfo(long guildId) {
+            var guild = Context.Guild
+                .Where(g => g.Id == guildId)
+                .Select(g => new { g.Id, g.Name, g.Emblem, g.LeaderId })
+                .FirstOrDefault();
+            if (guild == null) {
+                return null;
+            }
+
+            string leaderName = Context.Character
+                .Where(c => c.Id == guild.LeaderId)
+                .Select(c => c.Name)
+                .FirstOrDefault() ?? string.Empty;
+
+            AchievementInfo guildTrophy = ComputeGuildTrophy(guildId);
+
+            // Compute all guild totals to determine rank
+            var allGuildIds = Context.Guild.Select(g => g.Id).ToList();
+            var guildTotals = new List<(long GuildId, int Total)>();
+            foreach (long id in allGuildIds) {
+                AchievementInfo info = ComputeGuildTrophy(id);
+                guildTotals.Add((id, info.Total));
+            }
+
+            guildTotals = guildTotals.OrderByDescending(g => g.Total).ToList();
+            int rank = guildTotals.FindIndex(g => g.GuildId == guildId) + 1;
+            if (rank == 0) {
+                rank = guildTotals.Count + 1;
+            }
+
+            return new GuildTrophyRankInfo(
+                Rank: rank,
+                GuildId: guild.Id,
+                Name: guild.Name,
+                Emblem: guild.Emblem,
+                LeaderName: leaderName,
+                Trophy: guildTrophy);
+        }
+
+        public GuildTrophyRankInfo? GetGuildTrophyRankInfo(string guildName) {
+            long? guildId = Context.Guild
+                .Where(g => g.Name == guildName)
+                .Select(g => (long?) g.Id)
+                .FirstOrDefault();
+            if (guildId == null) {
+                return null;
+            }
+
+            return GetGuildTrophyRankInfo(guildId.Value);
+        }
+
+        public long GetGuildIdByCharacterId(long characterId) {
+            return Context.GuildMember
+                .Where(m => m.CharacterId == characterId)
+                .Select(m => m.GuildId)
+                .FirstOrDefault();
+        }
+
+        public IList<GuildTrophyRankInfo> GetGuildTrophyRankings() {
+            // Read guild data with Select projection to avoid EF tracking issues
+            var guilds = Context.Guild
+                .Select(g => new { g.Id, g.Name, g.Emblem, g.LeaderId })
+                .ToList();
+
+            // Batch lookup leader names
+            var leaderIds = guilds.Select(g => g.LeaderId).Distinct().ToList();
+            var leaderNames = Context.Character
+                .Where(c => leaderIds.Contains(c.Id))
+                .Select(c => new { c.Id, c.Name })
+                .ToDictionary(c => c.Id, c => c.Name);
+
+            var rankings = new List<GuildTrophyRankInfo>();
+            foreach (var guild in guilds) {
+                AchievementInfo trophy = ComputeGuildTrophy(guild.Id);
+                if (trophy.Total <= 0) {
+                    continue;
+                }
+                string leaderName = leaderNames.GetValueOrDefault(guild.LeaderId, string.Empty);
+                rankings.Add(new GuildTrophyRankInfo(0, guild.Id, guild.Name, guild.Emblem, leaderName, trophy));
+            }
+
+            return rankings
+                .OrderByDescending(r => r.Trophy.Total)
+                .Select((r, index) => new GuildTrophyRankInfo(
+                    Rank: index + 1,
+                    GuildId: r.GuildId,
+                    Name: r.Name,
+                    Emblem: r.Emblem,
+                    LeaderName: r.LeaderName,
+                    Trophy: r.Trophy))
+                .Take(200)
+                .ToList();
+        }
+
+        private AchievementInfo ComputeGuildTrophy(long guildId) {
+            // Get all member character IDs and their account IDs via Select projection
+            var members = Context.GuildMember
+                .Where(m => m.GuildId == guildId)
+                .Select(m => m.CharacterId)
+                .ToList();
+
+            // Batch lookup account IDs
+            var characterInfo = Context.Character
+                .Where(c => members.Contains(c.Id))
+                .Select(c => new { c.Id, c.AccountId })
+                .ToList();
+
+            var total = new AchievementInfo();
+            foreach (var info in characterInfo) {
+                total += GetAchievementInfo(info.AccountId, info.Id);
+            }
+
+            return total;
+        }
         #endregion
 
         public IList<long> GetMentorList(long accountId, long characterId) {

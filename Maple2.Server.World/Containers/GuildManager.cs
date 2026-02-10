@@ -308,6 +308,11 @@ public class GuildManager : IDisposable {
         }
 
         Guild.Emblem = emblem;
+
+        using (GameStorage.Request db = GameStorage.Context()) {
+            db.SaveGuild(Guild);
+        }
+
         Broadcast(new GuildRequest {
             UpdateEmblem = new GuildRequest.Types.UpdateEmblem {
                 RequestorName = requestor.Name,
