@@ -88,6 +88,10 @@ public partial class GlobalService : Global.GlobalBase {
             });
         }
 
+        if (account.MachineId == default) {
+            db.UpdateMachineId(account.Id, machineId);
+        }
+
         if (account.MachineId != machineId) {
             logger.Warning("MachineId mismatch for account {AccountId}", account.Id);
             if (Constant.BlockLoginWithMismatchedMachineId) {
@@ -96,10 +100,6 @@ public partial class GlobalService : Global.GlobalBase {
                     Message = "MachineId mismatch",
                 });
             }
-        }
-
-        if (account.MachineId == default) {
-            db.UpdateMachineId(account.Id, machineId);
         }
 
         (bool IsBanned, Ban? Ban) status = db.GetBanStatus(account.Id, clientIp, machineId);
