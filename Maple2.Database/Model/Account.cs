@@ -13,7 +13,7 @@ internal class Account {
     public required string Username { get; set; }
     public string Password { get; set; }
     // TODO: Add list of MachineId and IP addresses used to login
-    public Guid MachineId { get; set; }
+    public Guid? MachineId { get; set; }
     public int MaxCharacters { get; set; }
     public int PrestigeLevel { get; set; }
     public int PrestigeLevelsGained { get; set; }
@@ -23,7 +23,7 @@ internal class Account {
     public IList<int> PrestigeRewardsClaimed { get; set; }
     public long PremiumTime { get; set; }
     public IList<int> PremiumRewardsClaimed { get; set; } // TODO: clear list on daily reset
-    public required AccountCurrency Currency { get; set; }
+    public AccountCurrency? Currency { get; set; }
     public required MarketLimits MarketLimits { get; set; }
 
     public int SurvivalLevel { get; set; }
@@ -122,7 +122,7 @@ internal class Account {
         builder.Property(account => account.Password).IsRequired().HasMaxLength(255).HasColumnType("varchar(255)");
         builder.Property(account => account.MaxCharacters).HasDefaultValue(Constant.DefaultMaxCharacters);
         builder.HasMany(account => account.Characters);
-        builder.Property(account => account.Currency).HasJsonConversion().IsRequired();
+        builder.Property(account => account.Currency).HasJsonConversion();
         builder.Property(account => account.MarketLimits).HasJsonConversion().IsRequired();
         builder.Property(account => account.PremiumRewardsClaimed).HasJsonConversion();
         builder.Property(account => account.PrestigeMissions).HasJsonConversion();

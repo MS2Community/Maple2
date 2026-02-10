@@ -88,11 +88,10 @@ public partial class GlobalService : Global.GlobalBase {
             });
         }
 
-        if (account.MachineId == default) {
+        if (account.MachineId == null) {
             db.UpdateMachineId(account.Id, machineId);
         }
-
-        if (account.MachineId != machineId) {
+        else if (account.MachineId != machineId) {
             logger.Warning("MachineId mismatch for account {AccountId}", account.Id);
             if (Constant.BlockLoginWithMismatchedMachineId) {
                 return Task.FromResult(new LoginResponse {

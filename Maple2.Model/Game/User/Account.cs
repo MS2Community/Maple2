@@ -8,7 +8,7 @@ public class Account {
     public long Id { get; init; }
 
     public required string Username { get; init; }
-    public Guid MachineId { get; set; }
+    public Guid? MachineId { get; set; }
     #endregion
 
     public int MaxCharacters { get; set; }

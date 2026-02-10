@@ -134,8 +134,8 @@ public class BanCommand : GameCommand {
     }
 
     private void HandleHardwareBan(InvocationContext ctx, GameStorage.Request db, Account targetAccount, long characterId, string reason) {
-        Guid machineId = targetAccount.MachineId;
-        if (machineId == Guid.Empty) {
+        Guid? machineId = targetAccount.MachineId;
+        if (machineId == null) {
             ctx.Console.Out.WriteLine("Target has no recorded machine id (cannot apply hardware ban).");
             ctx.ExitCode = 1;
             return;
