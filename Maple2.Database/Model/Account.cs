@@ -33,7 +33,7 @@ internal class Account {
     public bool ActiveGoldPass { get; set; }
 
     public DateTime CreationTime { get; set; }
-    public DateTime LastModified { get; set; }
+    public DateTime LastModified { get; init; }
 
     public bool Online { get; set; }
     public string Permissions { get; set; }
