@@ -350,6 +350,9 @@ public partial class GameStorage {
                     foreach (EntityEntry entry in ex.Entries) {
                         string entityName = entry.Metadata.ClrType.Name;
                         if (entry.Entity is not Model.Account && entry.Entity is not Model.Character && entry.Entity is not CharacterUnlock) {
+                            // Intentionally re-throw for unsupported entity types as fail-fast behavior during development.
+                            // SavePlayer only handles concurrency conflicts for Account, Character, and CharacterUnlock.
+                            // If other entities are unexpectedly involved, this indicates a logic error that should be caught immediately.
                             Logger.LogInformation("  Unsupported concurrency entity {EntityName}, rethrowing.", entityName);
                             throw;
                         }
@@ -423,7 +426,11 @@ public partial class GameStorage {
             (DateTime CharacterLastModified, DateTime AccountLastModified, DateTime UnlockLastModified)? newPlayer = GetLastModifiedTimestamps(character.Id);
             if (newPlayer == null) {
                 Logger.LogError("> Save succeeded but failed to fetch updated timestamps CharacterId={CharacterId}", player.Character.Id);
+                return false;
             }
+            player.Account.LastModified = newPlayer.Value.AccountLastModified;
+            player.Character.LastModified = newPlayer.Value.CharacterLastModified;
+            player.Unlock.LastModified = newPlayer.Value.UnlockLastModified;
 
             Logger.LogInformation("> Save complete {ContextId}:{CharacterId}", Context.ContextId, player.Character.Id);
             return true;

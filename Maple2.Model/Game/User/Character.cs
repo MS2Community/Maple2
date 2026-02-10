@@ -8,7 +8,7 @@ namespace Maple2.Model.Game;
 public class Character {
     #region Immutable
     public long CreationTime { get; init; }
-    public DateTime LastModified { get; init; }
+    public DateTime LastModified { get; set; }
 
     public long Id { get; init; }
     public long AccountId { get; init; }

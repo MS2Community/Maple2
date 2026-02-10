@@ -21,7 +21,7 @@ internal class CharacterUnlock {
     public required IDictionary<int, byte> CollectedItems { get; set; }
     public required InventoryExpand Expand { get; set; }
     public short HairSlotExpand { get; set; }
-    public DateTime LastModified { get; init; }
+    public DateTime LastModified { get; set; }
 
     public static implicit operator CharacterUnlock(Maple2.Model.Game.Unlock? other) {
         return other == null ? new CharacterUnlock {
