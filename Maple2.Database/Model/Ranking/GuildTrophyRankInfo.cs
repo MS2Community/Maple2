@@ -1,4 +1,4 @@
-using Maple2.Model.Game;
+﻿using Maple2.Model.Game;
 
 namespace Maple2.Database.Model.Ranking;
 
