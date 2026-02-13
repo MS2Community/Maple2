@@ -94,10 +94,27 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
     }
 
     public virtual void ApplyDamage(IActor caster, DamageRecord damage, SkillMetadataAttack attack) {
+        // Determine the source position.
+        // For region/trigger skills, the caster is FieldActor at origin - use damage.Position (the skill region's position) instead.
+        Vector3 sourcePosition = caster.Position;
+        if (sourcePosition.LengthSquared() < 0.001f && damage.Position.LengthSquared() > 0.001f) {
+            sourcePosition = damage.Position;
+        }
+
         var targetRecord = new DamageRecordTarget(this) {
-            Position = caster.Position,
-            Direction = caster.Rotation, // Idk why this is wrong
+            Position = sourcePosition,
+            Direction = caster.Transform.FrontAxis,
         };
+
+        if (attack.Damage.Push != null) {
+            // Direction should point from source toward the target (the push direction).
+            Vector3 offset = Position - sourcePosition;
+            if (offset.LengthSquared() > 0.001f) {
+                targetRecord.Direction = Vector3.Normalize(offset);
+            } else if (damage.Direction.LengthSquared() > 0.001f) {
+                targetRecord.Direction = Vector3.Normalize(damage.Direction);
+            }
+        }
         damage.Targets.TryAdd(ObjectId, targetRecord);
 
         if (attack.Damage.Count <= 0) {

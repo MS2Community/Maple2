@@ -112,12 +112,13 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                 SkillMetadataAttack attack = record.Attack;
                 record.TargetUid++;
                 var damage = new DamageRecord(record.Metadata, attack) {
-                    CasterId = Caster.ObjectId,
+                    CasterId = ObjectId,
                     OwnerId = ObjectId,
                     SkillId = Value.Id,
                     Level = Value.Level,
                     MotionPoint = record.MotionPoint,
                     AttackPoint = record.AttackPoint,
+                    Position = Position,
                     Direction = Rotation,
                 };
                 var targetRecords = new List<TargetRecord>();
