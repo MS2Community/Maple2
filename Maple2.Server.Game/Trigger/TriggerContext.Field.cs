@@ -265,16 +265,11 @@ public partial class TriggerContext {
         Broadcast(PortalPacket.Update(portal));
     }
 
-    public void SetRandomMesh(int[] triggerIds, bool visible, int meshCount, int arg4, int delay) {
-        DebugLog("[SetRandomMesh] triggerIds:{Ids}, visible:{Visible}, meshCount:{MeshCount}, arg4:{Arg4}, delay:{Delay}",
-            string.Join(", ", triggerIds), visible, meshCount, arg4, delay);
-        int count = triggerIds.Length;
-        if (meshCount > 0 && meshCount < triggerIds.Length) {
-            count = meshCount;
-            Random.Shared.Shuffle(triggerIds);
-        }
-
-        UpdateMesh(new ArraySegment<int>(triggerIds, 0, count), visible, arg4, delay);
+    public void SetRandomMesh(int[] triggerIds, bool visible, int startDelay, int interval, int fade) {
+        DebugLog("[SetRandomMesh] triggerIds:{Ids}, visible:{Visible}, startDelay:{StartDelay}, interval:{Interval}, fade:{Fade}",
+            string.Join(", ", triggerIds), visible, startDelay, interval, fade);
+        Random.Shared.Shuffle(triggerIds);
+        UpdateMesh(triggerIds, visible, startDelay, interval, fade);
     }
 
     private void UpdateMesh(ArraySegment<int> triggerIds, bool visible, int delay, int interval, int fade = 0) {
