@@ -24,7 +24,6 @@ public sealed class ShopManager {
     private int NextEntryId() => Interlocked.Increment(ref idCounter);
     #endregion
     private readonly GameSession session;
-    // TODO: the CharacterShopData's restock count need to be reset at daily reset.
     private readonly IDictionary<int, CharacterShopData> accountShopData;
     private readonly IDictionary<int, CharacterShopData> characterShopData;
     private readonly Dictionary<int, Shop> instancedShops;
@@ -623,6 +622,27 @@ public sealed class ShopManager {
             session.Send(ShopPacket.RemoveBuyBackItem(item.Id));
         }
         return true;
+    }
+
+    public void DailyReset() {
+        ResetShopData(ResetType.Day);
+    }
+
+    public void WeeklyReset() {
+        ResetShopData(ResetType.Week);
+    }
+
+    private void ResetShopData(ResetType interval) {
+        foreach (CharacterShopData data in accountShopData.Values) {
+            if (data.Interval == interval) {
+                data.RestockCount = 0;
+            }
+        }
+        foreach (CharacterShopData data in characterShopData.Values) {
+            if (data.Interval == interval) {
+                data.RestockCount = 0;
+            }
+        }
     }
 
     public void Save(GameStorage.Request db) {
