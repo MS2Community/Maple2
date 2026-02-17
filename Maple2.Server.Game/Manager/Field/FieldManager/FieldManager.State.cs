@@ -104,7 +104,7 @@ public partial class FieldManager {
         return fieldPlayer;
     }
 
-    public FieldNpc? SpawnNpc(NpcMetadata npc, Vector3 position, Vector3 rotation, FieldMobSpawn? owner = null, SpawnPointNPC? spawnPointNpc = null, string spawnAnimation = "") {
+    public FieldNpc? SpawnNpc(NpcMetadata npc, Vector3 position, Vector3 rotation, bool disableAi = false, FieldMobSpawn? owner = null, SpawnPointNPC? spawnPointNpc = null, string spawnAnimation = "") {
         // Apply random offset if SpawnRadius is set
         Vector3 spawnPosition = position;
         if (spawnPointNpc?.SpawnRadius > 0) {
@@ -132,7 +132,8 @@ public partial class FieldManager {
         DtCrowdAgent agent = Navigation.AddAgent(npc, spawnPosition);
 
         AnimationMetadata? animation = NpcMetadata.GetAnimation(npc.Model.Name);
-        var fieldNpc = new FieldNpc(this, NextLocalId(), agent, new Npc(npc, animation), npc.AiPath, patrolDataUUID: spawnPointNpc?.PatrolData, spawnAnimation: spawnAnimation) {
+        string aiPath = disableAi ? string.Empty : npc.AiPath;
+        var fieldNpc = new FieldNpc(this, NextLocalId(), agent, new Npc(npc, animation), aiPath, patrolDataUUID: spawnPointNpc?.PatrolData, spawnAnimation: spawnAnimation) {
             Owner = owner,
             Position = spawnPosition,
             Rotation = rotation,
@@ -150,7 +151,7 @@ public partial class FieldManager {
     }
 
     public FieldNpc? SpawnNpc(NpcMetadata npc, SpawnPointNPC spawnPointNpc) {
-        return SpawnNpc(npc, spawnPointNpc.Position, spawnPointNpc.Rotation, null, spawnPointNpc);
+        return SpawnNpc(npc, spawnPointNpc.Position, spawnPointNpc.Rotation, disableAi: false, owner: null, spawnPointNpc: spawnPointNpc);
     }
 
     public FieldPet? SpawnPet(Item pet, Vector3 position, Vector3 rotation, FieldMobSpawn? owner = null, FieldPlayer? player = null) {

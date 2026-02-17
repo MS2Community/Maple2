@@ -21,13 +21,15 @@ public class NpcCommand : GameCommand {
 
         var id = new Argument<int>("id", "Id of npc to spawn.");
         var amount = new Option<int>(["--amount", "-a"], () => 1, "Amount of the npc.");
+        var noAi = new Option<bool>(["--no-ai"], () => false, "Spawn NPC without AI.");
 
         AddArgument(id);
         AddOption(amount);
-        this.SetHandler<InvocationContext, int, int>(Handle, id, amount);
+        AddOption(noAi);
+        this.SetHandler<InvocationContext, int, int, bool>(Handle, id, amount, noAi);
     }
 
-    private void Handle(InvocationContext ctx, int npcId, int amount) {
+    private void Handle(InvocationContext ctx, int npcId, int amount, bool noAi) {
         try {
             if (session.Field == null || !npcStorage.TryGet(npcId, out NpcMetadata? metadata)) {
                 ctx.Console.Error.WriteLine($"Invalid Npc: {npcId}");
@@ -46,7 +48,7 @@ public class NpcCommand : GameCommand {
                     0 // Keep Z position the same
                 );
 
-                FieldNpc? fieldNpc = session.Field.SpawnNpc(metadata, spawnPosition, rotation);
+                FieldNpc? fieldNpc = session.Field.SpawnNpc(metadata, spawnPosition, rotation, disableAi: noAi);
                 if (fieldNpc == null) {
                     ctx.Console.Error.WriteLine($"Failed to spawn npc {i + 1}/{amount}: {npcId}");
                     continue;
