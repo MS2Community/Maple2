@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Grpc.Core;
 using Maple2.Database.Extensions;
 using Maple2.Database.Storage;
@@ -53,6 +53,7 @@ public class WorldServer {
         db.DeleteUnownedItems();
 
         StartDailyReset();
+        StartWeeklyReset();
         StartWorldEvents();
         ScheduleGameEvents();
         FieldPlotExpiryCheck();
@@ -170,6 +171,40 @@ public class WorldServer {
         foreach ((int channelId, ChannelClient channelClient) in channelClients) {
             channelClient.GameReset(new GameResetRequest {
                 Daily = new GameResetRequest.Types.Daily(),
+            });
+        }
+    }
+    #endregion
+
+    #region Weekly Reset
+    private void StartWeeklyReset() {
+        using GameStorage.Request db = gameStorage.Context();
+        DateTime lastReset = db.GetLastWeeklyReset();
+
+        DateTime now = DateTime.Now;
+        int daysSinceFriday = ((int) now.DayOfWeek - (int) DayOfWeek.Friday + 7) % 7;
+        DateTime lastFridayMidnight = now.Date.AddDays(-daysSinceFriday);
+
+        if (lastReset < lastFridayMidnight) {
+            db.WeeklyReset();
+        }
+
+        DateTime nextFriday = now.NextDayOfWeek(DayOfWeek.Friday);
+        TimeSpan timeUntilFriday = nextFriday - now;
+        scheduler.Schedule(ScheduleWeeklyReset, timeUntilFriday);
+    }
+
+    private void ScheduleWeeklyReset() {
+        WeeklyReset();
+        scheduler.ScheduleRepeated(WeeklyReset, TimeSpan.FromDays(7), strict: true);
+    }
+
+    private void WeeklyReset() {
+        using GameStorage.Request db = gameStorage.Context();
+        db.WeeklyReset();
+        foreach ((int channelId, ChannelClient channelClient) in channelClients) {
+            channelClient.GameReset(new GameResetRequest {
+                Weekly = new GameResetRequest.Types.Weekly(),
             });
         }
     }

@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
@@ -658,35 +658,6 @@ public sealed partial class GameSession : Core.Network.Session {
         Dungeon.UpdateDungeonEnterLimit();
         // Shop restock
         Shop.WeeklyReset();
-    }
-
-    public void RefreshClubBuffs() {
-        if (Field == null) {
-            return;
-        }
-
-        foreach ((long clubId, ClubManager club) in Clubs) {
-            int buffId = club.Club.BuffId;
-            if (buffId <= 0) {
-                continue;
-            }
-
-            bool memberInField = Field.Players.Values.Any(fieldPlayer =>
-                fieldPlayer.Value.Character.Id != CharacterId &&
-                club.Club.Members.ContainsKey(fieldPlayer.Value.Character.Id));
-
-            if (memberInField) {
-                Player.Buffs.AddBuff(Player, Player, buffId, 1, Field.FieldTick);
-
-                // Also apply buff to club members already in field
-                foreach (FieldPlayer fieldPlayer in Field.Players.Values) {
-                    if (fieldPlayer.Value.Character.Id != CharacterId &&
-                        club.Club.Members.ContainsKey(fieldPlayer.Value.Character.Id)) {
-                        fieldPlayer.Buffs.AddBuff(fieldPlayer, fieldPlayer, buffId, 1, Field.FieldTick);
-                    }
-                }
-            }
-        }
     }
 
     public void MigrateToPlanner(PlotMode plotMode) {

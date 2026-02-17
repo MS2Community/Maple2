@@ -1,4 +1,4 @@
-﻿using Grpc.Core;
+using Grpc.Core;
 
 namespace Maple2.Server.Game.Service;
 
@@ -7,6 +7,8 @@ public partial class ChannelService {
         switch (request.ResetCase) {
             case GameResetRequest.ResetOneofCase.Daily:
                 return Task.FromResult(Daily());
+            case GameResetRequest.ResetOneofCase.Weekly:
+                return Task.FromResult(Weekly());
             default:
                 return Task.FromResult(new GameResetResponse());
         }
@@ -14,6 +16,11 @@ public partial class ChannelService {
 
     private GameResetResponse Daily() {
         server.DailyReset();
+        return new GameResetResponse();
+    }
+
+    private GameResetResponse Weekly() {
+        server.WeeklyReset();
         return new GameResetResponse();
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Autofac;
@@ -172,6 +172,14 @@ public class GameServer : Server<GameSession> {
         lock (mutex) {
             foreach (GameSession session in sessions.Values) {
                 session.DailyReset();
+            }
+        }
+    }
+
+    public void WeeklyReset() {
+        lock (mutex) {
+            foreach (GameSession session in sessions.Values) {
+                session.WeeklyReset();
             }
         }
     }
