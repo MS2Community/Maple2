@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Maple2.Database.Extensions;
 using Maple2.Database.Storage;
 using Maple2.Model.Enum;
@@ -641,6 +641,11 @@ public sealed class ShopManager {
         foreach (CharacterShopData data in characterShopData.Values) {
             if (data.Interval == interval) {
                 data.RestockCount = 0;
+            }
+        }
+        foreach (Shop shop in instancedShops.Values) {
+            if (shop.RestockData?.ResetType == interval) {
+                shop.RestockCount = 0;
             }
         }
     }

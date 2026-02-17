@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
@@ -646,6 +646,7 @@ public sealed partial class GameSession : Core.Network.Session {
         // Meso Market
         Player.Value.Account.MesoMarketListed = 0;
         Player.Value.Account.MesoMarketPurchased = 0;
+        Send(MesoMarketPacket.Quota(Player.Value.Account.MesoMarketListed, Player.Value.Account.MesoMarketPurchased));
         // Shop restock
         Shop.DailyReset();
     }

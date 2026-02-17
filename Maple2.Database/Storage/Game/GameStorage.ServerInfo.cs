@@ -1,4 +1,4 @@
-﻿using Maple2.Database.Model;
+using Maple2.Database.Model;
 using Microsoft.EntityFrameworkCore;
 
 namespace Maple2.Database.Storage;
@@ -48,7 +48,7 @@ public partial class GameStorage {
             lock (Context) {
                 ServerInfo? serverInfo = Context.ServerInfo.Find("WeeklyReset");
                 if (serverInfo == null) {
-                    serverInfo = new ServerInfo { Key = "WeeklyReset" };
+                    serverInfo = new ServerInfo { Key = "WeeklyReset", LastModified = DateTime.Now };
                     Context.ServerInfo.Add(serverInfo);
                 } else {
                     serverInfo.LastModified = DateTime.Now;

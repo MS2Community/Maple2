@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Grpc.Core;
 using Maple2.Database.Extensions;
 using Maple2.Database.Storage;
@@ -182,16 +182,16 @@ public class WorldServer {
         DateTime lastReset = db.GetLastWeeklyReset();
 
         DateTime now = DateTime.Now;
-        int daysSinceFriday = ((int) now.DayOfWeek - (int) DayOfWeek.Friday + 7) % 7;
-        DateTime lastFridayMidnight = now.Date.AddDays(-daysSinceFriday);
+        int daysSinceReset = ((int) now.DayOfWeek - (int) Constant.ResetDay + 7) % 7;
+        DateTime lastResetMidnight = now.Date.AddDays(-daysSinceReset);
 
-        if (lastReset < lastFridayMidnight) {
+        if (lastReset < lastResetMidnight) {
             db.WeeklyReset();
         }
 
-        DateTime nextFriday = now.NextDayOfWeek(DayOfWeek.Friday);
-        TimeSpan timeUntilFriday = nextFriday - now;
-        scheduler.Schedule(ScheduleWeeklyReset, timeUntilFriday);
+        DateTime nextReset = now.NextDayOfWeek(Constant.ResetDay).Date;
+        TimeSpan timeUntilReset = nextReset - now;
+        scheduler.Schedule(ScheduleWeeklyReset, timeUntilReset);
     }
 
     private void ScheduleWeeklyReset() {
