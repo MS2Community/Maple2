@@ -158,7 +158,7 @@ public class SkillMapper : TypeMapper<StoredSkillMetadata> {
             },
             Distance: region.distance,
             Height: region.height,
-            Width: region.height,
+            Width: region.width,
             EndWidth: region.endWidth,
             RotateZDegree: region.rangeZRotateDegree,
             RangeAdd: region.rangeAdd,
