@@ -15,16 +15,20 @@ public static class SkillUtils {
             return new Prism(IPolygon.Null, 0, 0);
         }
 
-        var origin = new Vector2(position.X, position.Y);
+        float adjustedAngle = angle + range.RotateZDegree + 180;
+        var origin = new Vector2(position.X + range.RangeOffset.X, position.Y + range.RangeOffset.Y);
+        float boxWidth = range.Width + range.RangeAdd.X;
         IPolygon polygon = range.Type switch {
-            SkillRegion.Box => new Rectangle(origin, range.Width + range.RangeAdd.X, range.Distance + range.RangeAdd.Y, angle),
+            // Use Trapezoid with equal widths for Box - projects forward from caster (0 to distance)
+            // Rectangle is centered on origin which is wrong for skill hitboxes
+            SkillRegion.Box => new Trapezoid(origin, boxWidth, boxWidth, range.Distance + range.RangeAdd.Y, adjustedAngle),
             SkillRegion.Cylinder => new Circle(origin, range.Distance),
-            SkillRegion.Frustum => new Trapezoid(origin, range.Width, range.EndWidth, range.Distance, angle),
+            SkillRegion.Frustum => new Trapezoid(origin, range.Width, range.EndWidth, range.Distance, adjustedAngle),
             SkillRegion.HoleCylinder => new HoleCircle(origin, range.Width, range.EndWidth),
             _ => throw new ArgumentOutOfRangeException($"Invalid range type: {range.Type}"),
         };
 
-        return new Prism(polygon, position.Z, range.Height + range.RangeAdd.Z);
+        return new Prism(polygon, position.Z + range.RangeOffset.Z, range.Height + range.RangeAdd.Z);
     }
 
     public static IEnumerable<T> Filter<T>(this Prism prism, IEnumerable<T> entities, int limit = 10) where T : IActor {

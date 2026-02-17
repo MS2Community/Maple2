@@ -198,6 +198,8 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             return;
         }
 
+        // For NPC casts, ImpactPosition is never set (only comes from client packets), so fall back to caster position
+        Vector3 impactPosition = record.ImpactPosition.LengthSquared() > 0.001f ? record.ImpactPosition : Position;
         var damage = new DamageRecord(record.Metadata, record.Attack) {
             CasterId = record.Caster.ObjectId,
             TargetUid = record.TargetUid,
@@ -206,7 +208,7 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             Level = record.Level,
             AttackPoint = record.AttackPoint,
             MotionPoint = record.MotionPoint,
-            Position = record.ImpactPosition,
+            Position = impactPosition,
             Direction = record.Direction,
         };
 
