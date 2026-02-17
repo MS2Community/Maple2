@@ -19,8 +19,7 @@ public static class SkillUtils {
         var origin = new Vector2(position.X + range.RangeOffset.X, position.Y + range.RangeOffset.Y);
         float boxWidth = range.Width + range.RangeAdd.X;
         IPolygon polygon = range.Type switch {
-            // Use Trapezoid with equal widths for Box - projects forward from caster (0 to distance)
-            // Rectangle is centered on origin which is wrong for skill hitboxes
+            // Box projects forward from caster (0 to distance), same as Frustum but with equal widths.
             SkillRegion.Box => new Trapezoid(origin, boxWidth, boxWidth, range.Distance + range.RangeAdd.Y, adjustedAngle),
             SkillRegion.Cylinder => new Circle(origin, range.Distance),
             SkillRegion.Frustum => new Trapezoid(origin, range.Width, range.EndWidth, range.Distance, adjustedAngle),

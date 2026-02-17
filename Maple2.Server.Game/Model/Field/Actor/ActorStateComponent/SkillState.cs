@@ -68,9 +68,9 @@ public class SkillState {
 
         // Apply damage to targets server-side for NPC attacks
         // Always use the attack range prism to resolve targets so spatial checks are respected
-        Maple2.Tools.Collision.Prism attackPrism = attack.Range.GetPrism(actor.Position, actor.Rotation.Z);
+        Tools.Collision.Prism attackPrism = attack.Range.GetPrism(actor.Position, actor.Rotation.Z);
         var resolvedTargets = new List<IActor>();
-        foreach (IActor target in actor.Field.GetTargets(actor, new[] { attackPrism }, attack.Range.ApplyTarget, attack.TargetCount)) {
+        foreach (IActor target in actor.Field.GetTargets(actor, [attackPrism], attack.Range.ApplyTarget, attack.TargetCount)) {
             resolvedTargets.Add(target);
         }
 

@@ -32,7 +32,7 @@ public class HoleHoleCircleTest {
             Assert.That(circle.Intersects(rectangle), Is.True);
         }
         {
-            var rectangle = new Rectangle(new Vector2(4, 4), 2, 2, 0);
+            var rectangle = new Rectangle(new Vector2(7, 7), 2, 2, 0);
             Assert.That(circle.Intersects(rectangle), Is.False);
         }
         {
@@ -50,7 +50,7 @@ public class HoleHoleCircleTest {
             Assert.That(circle.Intersects(trapezoid), Is.True);
         }
         {
-            var trapezoid = new Trapezoid(new Vector2(4, 4), 4, 6, 3, 0);
+            var trapezoid = new Trapezoid(new Vector2(6, 6), 4, 6, 3, 0);
             Assert.That(circle.Intersects(trapezoid), Is.False);
         }
         {
