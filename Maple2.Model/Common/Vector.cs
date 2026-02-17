@@ -7,7 +7,9 @@ namespace Maple2.Model.Common;
 public readonly record struct Vector3B(sbyte X, sbyte Y, sbyte Z) {
     private const float BLOCK_SIZE = 150f;
 
-    public Vector3B(int X, int Y, int Z) : this((sbyte) X, (sbyte) Y, (sbyte) Z) { }
+    private static sbyte ClampToSByte(int value) => (sbyte) Math.Clamp(value, sbyte.MinValue, sbyte.MaxValue);
+
+    public Vector3B(int X, int Y, int Z) : this(ClampToSByte(X), ClampToSByte(Y), ClampToSByte(Z)) { }
 
     public static Vector3B ConvertFromInt(int value) {
         // Ensure the input is within the 24-bit range
@@ -23,9 +25,9 @@ public readonly record struct Vector3B(sbyte X, sbyte Y, sbyte Z) {
 
     public static implicit operator Vector3B(Vector3 vector) {
         return new Vector3B(
-            (sbyte) MathF.Round(vector.X / BLOCK_SIZE),
-            (sbyte) MathF.Round(vector.Y / BLOCK_SIZE),
-            (sbyte) MathF.Round(vector.Z / BLOCK_SIZE)
+            (sbyte) Math.Clamp(MathF.Round(vector.X / BLOCK_SIZE), sbyte.MinValue, sbyte.MaxValue),
+            (sbyte) Math.Clamp(MathF.Round(vector.Y / BLOCK_SIZE), sbyte.MinValue, sbyte.MaxValue),
+            (sbyte) Math.Clamp(MathF.Round(vector.Z / BLOCK_SIZE), sbyte.MinValue, sbyte.MaxValue)
         );
     }
 
@@ -38,7 +40,7 @@ public readonly record struct Vector3B(sbyte X, sbyte Y, sbyte Z) {
     }
 
     public static Vector3B operator +(in Vector3B a, in Vector3B b) =>
-        new((sbyte) (a.X + b.X), (sbyte) (a.Y + b.Y), (sbyte) (a.Z + b.Z));
+        new(ClampToSByte(a.X + b.X), ClampToSByte(a.Y + b.Y), ClampToSByte(a.Z + b.Z));
 
     public static Vector3 operator *(in Vector3B a, float multiplier) =>
         new(a.X * multiplier, a.Y * multiplier, a.Z * multiplier);
@@ -77,14 +79,16 @@ public readonly record struct Vector3S(short X, short Y, short Z) {
         );
     }
 
+    private static short ClampToShort(int value) => (short) Math.Clamp(value, short.MinValue, short.MaxValue);
+
     public static Vector3S operator +(in Vector3S a, in Vector3S b) =>
-        new Vector3S((short) (a.X + b.X), (short) (a.Y + b.Y), (short) (a.Z + b.Z));
+        new Vector3S(ClampToShort(a.X + b.X), ClampToShort(a.Y + b.Y), ClampToShort(a.Z + b.Z));
     public static Vector3S operator -(in Vector3S a, in Vector3S b) =>
-        new Vector3S((short) (a.X - b.X), (short) (a.Y - b.Y), (short) (a.Z - b.Z));
+        new Vector3S(ClampToShort(a.X - b.X), ClampToShort(a.Y - b.Y), ClampToShort(a.Z - b.Z));
     public static Vector3S operator *(in Vector3S a, in Vector3S b) =>
-        new Vector3S((short) (a.X * b.X), (short) (a.Y * b.Y), (short) (a.Z * b.Z));
+        new Vector3S(ClampToShort(a.X * b.X), ClampToShort(a.Y * b.Y), ClampToShort(a.Z * b.Z));
     public static Vector3S operator /(in Vector3S a, in Vector3S b) =>
-        new Vector3S((short) (a.X / b.X), (short) (a.Y / b.Y), (short) (a.Z / b.Z));
+        new Vector3S(ClampToShort(a.X / b.X), ClampToShort(a.Y / b.Y), ClampToShort(a.Z / b.Z));
 
     public override string ToString() => $"<{X}, {Y}, {Z}>";
 }
