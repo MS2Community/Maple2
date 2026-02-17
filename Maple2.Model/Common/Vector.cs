@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Maple2.Model.Common;
@@ -63,9 +63,9 @@ public readonly record struct Vector3S(short X, short Y, short Z) {
 
     public static implicit operator Vector3S(Vector3 vector) {
         return new Vector3S(
-            (short) MathF.Round(vector.X),
-            (short) MathF.Round(vector.Y),
-            (short) MathF.Round(vector.Z)
+            (short) Math.Clamp(MathF.Round(vector.X), short.MinValue, short.MaxValue),
+            (short) Math.Clamp(MathF.Round(vector.Y), short.MinValue, short.MaxValue),
+            (short) Math.Clamp(MathF.Round(vector.Z), short.MinValue, short.MaxValue)
         );
     }
 
