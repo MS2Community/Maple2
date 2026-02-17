@@ -3,10 +3,15 @@ using Maple2.Server.Game.DebugGraphics;
 using Maple2.Server.Game.Manager.Field;
 using ImGuiNET;
 using Maple2.Model.Enum;
+using Maple2.Model.Metadata;
 using Maple2.Model.Metadata.FieldEntity;
 using Maple2.Server.DebugGame.Graphics.Data;
 using Maple2.Server.Game.Model;
+using Maple2.Server.Game.Model.ActorStateComponent;
+using Maple2.Server.Game.Model.Enum;
+using Maple2.Server.Game.Model.Skill;
 using Maple2.Server.Game.Packets;
+using Maple2.Server.Game.Util;
 using Maple2.Tools.VectorMath;
 using Maple2.Tools.Collision;
 using Silk.NET.Maths;
@@ -54,6 +59,7 @@ public class DebugFieldRenderer : IFieldRenderer {
     public bool ShowPlotLabels = true; // toggle for showing floating plot labels (status/owner/etc.)
     public bool ShowTriggers = true;
     public bool ShowTriggerInformation = true;
+    public bool ShowSkillHitboxes = true; // toggle for rendering active skill hitboxes
     public bool PlayerMoveMode;
     public bool ForceMove;
 
@@ -283,6 +289,11 @@ public class DebugFieldRenderer : IFieldRenderer {
 
             // Render text labels above actors using ImGui
             RenderActorTextLabels();
+        }
+
+        // Render skill hitboxes
+        if (ShowSkillHitboxes) {
+            RenderSkillHitboxes(window);
         }
     }
 
@@ -1210,6 +1221,116 @@ public class DebugFieldRenderer : IFieldRenderer {
             drawList.AddRectFilled(bgMin, bgMax, ImGui.ColorConvertFloat4ToU32(bgColor));
             drawList.AddRect(bgMin, bgMax, ImGui.ColorConvertFloat4ToU32(border));
             drawList.AddText(topLeft, ImGui.ColorConvertFloat4ToU32(textColor), idText);
+        }
+    }
+
+    private void RenderSkillHitboxes(DebugFieldWindow window) {
+        // Set orange color for skill hitboxes
+        instanceBuffer.Color = new Vector4(1.0f, 0.5f, 0.0f, 0.7f);
+
+        // Render hitboxes for all actors with active skills
+        foreach ((int _, FieldPlayer player) in Field.Players) {
+            RenderActorSkillHitbox(window, player);
+        }
+        foreach ((int _, FieldNpc npc) in Field.Npcs) {
+            RenderActorSkillHitbox(window, npc);
+        }
+        foreach ((int _, FieldNpc mob) in Field.Mobs) {
+            RenderActorSkillHitbox(window, mob);
+        }
+    }
+
+    private void RenderActorSkillHitbox(DebugFieldWindow window, IActor actor) {
+        // Get the active SkillRecord from the appropriate source
+        SkillRecord? skillRecord = null;
+
+        if (actor is FieldNpc npc) {
+            // For NPCs/mobs: get from MovementState's active cast task
+            if (npc.MovementState.CastTask is MovementState.NpcSkillCastTask skillTask) {
+                skillRecord = skillTask.Cast;
+            }
+        } else {
+            // For players: use ActiveSkills but only if currently in a skill animation
+            if (actor.Animation.Current is { Type: AnimationType.Skill }) {
+                skillRecord = actor.ActiveSkills.GetMostRecent();
+            }
+        }
+
+        if (skillRecord == null) {
+            return;
+        }
+
+        // Only render the CURRENT attack point (not all attacks in the motion)
+        // Bounds check to avoid race condition with game thread updating MotionPoint/AttackPoint
+        if (skillRecord.MotionPoint >= skillRecord.Metadata.Data.Motions.Length ||
+            skillRecord.AttackPoint >= skillRecord.Motion.Attacks.Length) {
+            return;
+        }
+        SkillMetadataAttack attack = skillRecord.Attack;
+        Prism prism = SkillUtils.GetPrism(attack.Range, actor.Position, actor.Rotation.Z);
+
+        RenderPrism(window, prism, attack.Range);
+    }
+
+    private void RenderPrism(DebugFieldWindow window, Prism prism, SkillMetadataRange range) {
+        IPolygon polygon = prism.Polygon;
+
+        if (polygon is Circle circle) {
+            // Render cylinder for circular hitbox
+            Vector3 center = new(circle.Origin.X, circle.Origin.Y, prism.Height.Min + (prism.Height.Max - prism.Height.Min) * 0.5f);
+            float radius = circle.Radius;
+            float height = prism.Height.Max - prism.Height.Min;
+
+            var rotation = Matrix4x4.CreateRotationX((float) (Math.PI / 2));
+            instanceBuffer.Transformation = Matrix4x4.Transpose(
+                Matrix4x4.CreateScale(new Vector3(radius, height * 0.5f, radius)) *
+                rotation *
+                Matrix4x4.CreateTranslation(center));
+
+            UpdateWireframeInstance(window);
+            Context.CoreModels!.Cylinder.Draw();
+        }
+        else if (polygon is Trapezoid trapezoid) {
+            // For trapezoid, calculate center and size from the points array
+            Vector2 p0 = trapezoid.Points[0];
+            Vector2 p1 = trapezoid.Points[1];
+            Vector2 p2 = trapezoid.Points[2];
+            Vector2 p3 = trapezoid.Points[3];
+
+            // Calculate center of the trapezoid
+            Vector2 center2D = (p0 + p1 + p2 + p3) * 0.25f;
+            Vector3 center = new(center2D.X, center2D.Y, prism.Height.Min + (prism.Height.Max - prism.Height.Min) * 0.5f);
+
+            // Use range metadata for dimensions
+            float avgWidth = (range.Width + range.EndWidth) * 0.5f;
+            float distance = range.Distance;
+            float height = prism.Height.Max - prism.Height.Min;
+
+            // Calculate rotation from trapezoid points
+            Vector2 forward2D = Vector2.Normalize(p2 - p1);
+            float angleRad = MathF.Atan2(forward2D.Y, forward2D.X) - MathF.PI / 2; // Adjust for coordinate system
+
+            var rotation = Matrix4x4.CreateRotationZ(angleRad);
+            instanceBuffer.Transformation = Matrix4x4.Transpose(
+                Matrix4x4.CreateScale(new Vector3(avgWidth, distance, height)) *
+                rotation *
+                Matrix4x4.CreateTranslation(center));
+
+            UpdateWireframeInstance(window);
+            Context.CoreModels!.WireCube.Draw();
+        }
+        else {
+            // For other polygon types, render a simple box at the prism position
+            // This is a fallback - extend as needed for other shapes
+            Vector3 center = new(0, 0, prism.Height.Min + (prism.Height.Max - prism.Height.Min) * 0.5f);
+            float height = prism.Height.Max - prism.Height.Min;
+
+            instanceBuffer.Transformation = Matrix4x4.Transpose(
+                Matrix4x4.CreateScale(new Vector3(100, 100, height)) *
+                Matrix4x4.CreateTranslation(center));
+
+            UpdateWireframeInstance(window);
+            Context.CoreModels!.WireCube.Draw();
         }
     }
 }

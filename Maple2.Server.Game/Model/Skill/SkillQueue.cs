@@ -52,4 +52,18 @@ public class SkillQueue {
             casts[i] = null;
         }
     }
+
+    /// <summary>
+    /// Returns the most recently added non-null SkillRecord, or null if none exist.
+    /// </summary>
+    public SkillRecord? GetMostRecent() {
+        // Walk backwards from the last written index
+        for (int i = 0; i < MAX_PENDING; i++) {
+            int idx = (index - 1 - i + MAX_PENDING) % MAX_PENDING;
+            if (casts[idx] != null) {
+                return casts[idx];
+            }
+        }
+        return null;
+    }
 }
