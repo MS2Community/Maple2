@@ -10,7 +10,7 @@ using Maple2.Tools.Collision;
 namespace Maple2.Server.Game.Model;
 
 public interface IActor : IFieldEntity {
-    public NpcMetadataStorage? NpcMetadata { get; init; }
+    public NpcMetadataStorage NpcMetadata { get; init; }
     public BuffManager Buffs { get; }
 
     public StatsManager Stats { get; }
