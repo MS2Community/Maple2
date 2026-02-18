@@ -10,9 +10,8 @@ namespace Maple2.Server.Tests.Tools.Collision;
 /// Trapezoid at angle=0 extends from origin along +Y:
 ///   P0=(-halfW, 0), P1=(halfW, 0), P2=(halfEndW, dist), P3=(-halfEndW, dist)
 ///
-/// Note: Circle.AxisProjection uses Radius directly against non-normalized edge
-/// normals, so barely-touching-edge cases may not be reliable. Tests use shapes
-/// that are clearly inside or clearly outside.
+/// Note: Circle.AxisProjection scales Radius by axis.Length(), so circle projections
+/// are comparable to polygon projections even on non-normalized axes.
 /// </summary>
 public class PolygonIntersectTests {
     // Box: origin at (0,0), 100 wide, 500 deep, pointing +Y (angle=0°).

@@ -70,7 +70,8 @@ public class SkillState {
         // Always use the attack range prism to resolve targets so spatial checks are respected
         Tools.Collision.Prism attackPrism = attack.Range.GetPrism(actor.Position, actor.Rotation.Z);
         var resolvedTargets = new List<IActor>();
-        foreach (IActor target in actor.Field.GetTargets(actor, [attackPrism], attack.Range.ApplyTarget, attack.TargetCount)) {
+        int queryLimit = attack.TargetCount > 0 ? attack.TargetCount : 1;
+        foreach (IActor target in actor.Field.GetTargets(actor, [attackPrism], attack.Range.ApplyTarget, queryLimit)) {
             resolvedTargets.Add(target);
         }
 

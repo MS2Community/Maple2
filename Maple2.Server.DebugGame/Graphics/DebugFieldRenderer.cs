@@ -59,7 +59,7 @@ public class DebugFieldRenderer : IFieldRenderer {
     public bool ShowPlotLabels = true; // toggle for showing floating plot labels (status/owner/etc.)
     public bool ShowTriggers = true;
     public bool ShowTriggerInformation = true;
-    public bool ShowSkillHitboxes = true; // toggle for rendering active skill hitboxes
+    public bool ShowSkillHitboxes = false; // toggle for rendering active skill hitboxes
     public bool PlayerMoveMode;
     public bool ForceMove;
 
@@ -1310,6 +1310,8 @@ public class DebugFieldRenderer : IFieldRenderer {
             float angleRad = MathF.Atan2(forward2D.Y, forward2D.X) - MathF.PI / 2; // Adjust for coordinate system
 
             var rotation = Matrix4x4.CreateRotationZ(angleRad);
+            // Intentional visual approximation: uniform-width box using avgWidth instead of true start/end widths.
+            // This is a debug aid and does not reflect the actual trapezoidal collision shape.
             instanceBuffer.Transformation = Matrix4x4.Transpose(
                 Matrix4x4.CreateScale(new Vector3(avgWidth, distance, height)) *
                 rotation *
@@ -1318,10 +1320,17 @@ public class DebugFieldRenderer : IFieldRenderer {
             UpdateWireframeInstance(window);
             Context.CoreModels!.WireCube.Draw();
         } else {
-            // For other polygon types, render a simple box at the prism position
-            // This is a fallback - extend as needed for other shapes
-            Vector3 center = new(0, 0, prism.Height.Min + (prism.Height.Max - prism.Height.Min) * 0.5f);
+            // Fallback for other polygon types (e.g. Rectangle, HoleCircle).
+            // Derive the 2D center from the vertex average when the polygon is a Polygon subclass.
+            Vector2 center2D = Vector2.Zero;
+            if (polygon is Polygon genericPolygon && genericPolygon.Points.Length > 0) {
+                foreach (Vector2 p in genericPolygon.Points) {
+                    center2D += p;
+                }
+                center2D /= genericPolygon.Points.Length;
+            }
             float height = prism.Height.Max - prism.Height.Min;
+            Vector3 center = new(center2D.X, center2D.Y, prism.Height.Min + (prism.Height.Max - prism.Height.Min) * 0.5f);
 
             instanceBuffer.Transformation = Matrix4x4.Transpose(
                 Matrix4x4.CreateScale(new Vector3(100, 100, height)) *

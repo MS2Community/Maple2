@@ -60,6 +60,11 @@ public class MobAttackCommand : GameCommand {
             return;
         }
 
+        // Warn if the mob does not own the skill in its own skill list
+        if (!entries.Any(e => e.Id == skillId.Value && e.Level == skillLevel)) {
+            ctx.Console.Out.WriteLine($"Warning: {mob.Value.Metadata.Name} does not have skill {skillId.Value} (level {skillLevel}) in its skill list. Casting anyway...");
+        }
+
         // Cast the skill facing the player
         mob.CastAiSkill(skillId.Value, skillLevel, faceTarget: 1, facePos: session.Player.Position);
         ctx.Console.Out.WriteLine($"Mob {mob.Value.Metadata.Name} casting skill {skillId.Value} (level {skillLevel}).");
