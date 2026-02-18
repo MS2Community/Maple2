@@ -209,7 +209,7 @@ public class AdditionalEffectMapper : TypeMapper<AdditionalEffectMetadata> {
             SpConsumeRate: recovery.spConsumeRate,
             EpValue: recovery.epValue,
             EpRate: recovery.epRate,
-            NotCrit: recovery.disableCriticalRecovery);
+            DisableCrit: recovery.disableCriticalRecovery);
     }
 
     private static AdditionalEffectMetadataDot.DotDamage? Convert(DotDamageProperty dotDamage) {
