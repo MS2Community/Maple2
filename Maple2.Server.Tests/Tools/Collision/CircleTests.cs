@@ -1,5 +1,4 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 using Maple2.Tools.Collision;
 
 namespace Maple2.Server.Tests.Tools.Collision;

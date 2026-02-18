@@ -1,7 +1,6 @@
 ﻿namespace Maple2.Database.Storage;
 
 using Maple2.Database.Model;
-using Maple2.Model.Enum;
 using Microsoft.EntityFrameworkCore;
 
 public partial class GameStorage {

@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.RegularExpressions;
-using Maple2.Model.Error;
+﻿using System.Text.RegularExpressions;
 using Maple2.Model.Metadata;
 
 namespace Maple2.Model.Validators;

@@ -3,7 +3,6 @@ using Maple2.Database.Model;
 using Maple2.Database.Storage;
 using Maple2.Model.Game;
 using Maple2.Model.Metadata;
-using Maple2.Model.Enum; // added for BanType reference
 using Serilog;
 using ILogger = Serilog.ILogger;
 

@@ -1,5 +1,4 @@
-﻿using Maple2.Model.Error;
-using Maple2.Model.Metadata;
+﻿using Maple2.Model.Metadata;
 using Maple2.Model.Validators;
 
 namespace Maple2.Server.Tests.Validators;
