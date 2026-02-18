@@ -1,4 +1,4 @@
-﻿using Maple2.Database.Extensions;
+using Maple2.Database.Extensions;
 using Maple2.Model.Game;
 using Maple2.Model.Game.Shop;
 using Maple2.Model.Metadata;
@@ -61,7 +61,9 @@ public partial class GameStorage {
             return Context.CharacterShopItemData.Where(data => data.OwnerId == ownerId)
                 .AsEnumerable()
                 .Select(ToShopItemData)
-                .ToList()!;
+                .Where(data => data != null)
+                .Cast<CharacterShopItemData>()
+                .ToList();
         }
 
         public bool SaveCharacterShopItemData(long ownerId, ICollection<CharacterShopItemData> itemDatas) {
@@ -98,9 +100,12 @@ public partial class GameStorage {
                 return null;
             }
             Item item = model.Item.Convert(metadata);
-            CharacterShopItemData data = model;
-            data.Item = item;
-            return data;
+            return new CharacterShopItemData {
+                ShopId = model.ShopId,
+                ShopItemId = model.ShopItemId,
+                StockPurchased = model.StockPurchased,
+                Item = item,
+            };
         }
     }
 }

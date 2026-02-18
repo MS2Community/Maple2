@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Maple2.Database.Extensions;
 using Maple2.Database.Storage;
 using Maple2.Model.Enum;
@@ -165,7 +165,7 @@ public sealed class ShopManager {
             }
 
             instancedShop.Items[shopItemId] = new ShopItem(shopItem.Metadata) {
-                Item = itemData.Item!,
+                Item = itemData.Item,
                 StockPurchased = itemData.StockPurchased,
             };
         }

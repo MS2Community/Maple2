@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Maple2.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -19,15 +19,6 @@ internal class CharacterShopItemData {
             ShopItemId = other.ShopItemId,
             StockPurchased = other.StockPurchased,
             Item = other.Item,
-        };
-    }
-
-    [return: NotNullIfNotNull(nameof(other))]
-    public static implicit operator Maple2.Model.Game.Shop.CharacterShopItemData?(CharacterShopItemData? other) {
-        return other == null ? null : new Maple2.Model.Game.Shop.CharacterShopItemData {
-            ShopId = other.ShopId,
-            ShopItemId = other.ShopItemId,
-            StockPurchased = other.StockPurchased,
         };
     }
 
