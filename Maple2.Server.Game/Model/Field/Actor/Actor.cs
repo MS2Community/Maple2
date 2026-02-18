@@ -23,7 +23,7 @@ namespace Maple2.Server.Game.Model;
 public abstract class Actor<T> : IActor<T>, IDisposable {
 
     protected readonly ILogger Logger = Log.ForContext<T>();
-    public NpcMetadataStorage NpcMetadata { get; init; }
+    public NpcMetadataStorage? NpcMetadata { get; init; }
 
     public FieldManager Field { get; }
     public T Value { get; }

@@ -43,6 +43,7 @@ public class TableMapper : TypeMapper<TableMetadata> {
     public TableMapper(M2dReader xmlReader, string language) {
         parser = new TableParser(xmlReader, language);
         optionParser = new ItemOptionParser(xmlReader);
+        this.language = language;
     }
 
     protected override IEnumerable<TableMetadata> Map() {

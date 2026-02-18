@@ -12,7 +12,9 @@ namespace Maple2.Server.World.Migrations
 {
     [DbContext(typeof(Ms2Context))]
     [Migration("20240821010240_ugc-banner-slots")]
+#pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
     partial class ugcbannerslots
+#pragma warning restore CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

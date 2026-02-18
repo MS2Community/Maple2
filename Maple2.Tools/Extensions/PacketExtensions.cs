@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Runtime.Serialization;
 using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using Maple2.PacketLib.Tools;
@@ -79,7 +78,7 @@ public static class PacketExtensions {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T ReadClass<T>(this IByteReader packet) where T : IByteDeserializable {
-        var type = (T) FormatterServices.GetSafeUninitializedObject(typeof(T));
+        var type = (T) RuntimeHelpers.GetUninitializedObject(typeof(T));
         type.ReadFrom(packet);
         return type;
     }
