@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
@@ -645,10 +645,11 @@ public sealed partial class GameSession : Core.Network.Session {
         Send(CubePacket.DesignRankReward(Player.Value.Home));
         // Meso Market
         Player.Value.Account.MesoMarketListed = 0;
-        Player.Value.Account.MesoMarketPurchased = 0;
         Send(MesoMarketPacket.Quota(Player.Value.Account.MesoMarketListed, Player.Value.Account.MesoMarketPurchased));
         // Shop restock
         Shop.DailyReset();
+        // Dungeon daily clears
+        Dungeon.ResetDailyClears();
     }
 
     public void WeeklyReset() {
@@ -657,8 +658,16 @@ public sealed partial class GameSession : Core.Network.Session {
         Send(PrestigePacket.Load(Player.Value.Account));
         // Dungeon enter limits
         Dungeon.UpdateDungeonEnterLimit();
+        // Dungeon weekly clears
+        Dungeon.ResetWeeklyClears();
         // Shop restock
         Shop.WeeklyReset();
+    }
+
+    public void MonthlyReset() {
+        // Meso Market
+        Player.Value.Account.MesoMarketPurchased = 0;
+        Send(MesoMarketPacket.Quota(Player.Value.Account.MesoMarketListed, Player.Value.Account.MesoMarketPurchased));
     }
 
     public void MigrateToPlanner(PlotMode plotMode) {

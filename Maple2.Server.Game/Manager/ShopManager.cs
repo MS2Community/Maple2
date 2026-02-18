@@ -634,18 +634,26 @@ public sealed class ShopManager {
 
     private void ResetShopData(ResetType interval) {
         foreach (CharacterShopData data in accountShopData.Values) {
-            if (data.Interval == interval) {
-                data.RestockCount = 0;
+            if (data.Interval != interval) continue;
+            data.RestockCount = 0;
+            if (!accountShopItemData.TryGetValue(data.ShopId, out IDictionary<int, CharacterShopItemData>? items)) continue;
+            foreach (CharacterShopItemData item in items.Values) {
+                item.StockPurchased = 0;
             }
         }
         foreach (CharacterShopData data in characterShopData.Values) {
-            if (data.Interval == interval) {
-                data.RestockCount = 0;
+            if (data.Interval != interval) continue;
+            data.RestockCount = 0;
+            if (!characterShopItemData.TryGetValue(data.ShopId, out IDictionary<int, CharacterShopItemData>? items)) continue;
+            foreach (CharacterShopItemData item in items.Values) {
+                item.StockPurchased = 0;
             }
         }
         foreach (Shop shop in instancedShops.Values) {
-            if (shop.RestockData?.ResetType == interval) {
-                shop.RestockCount = 0;
+            if (shop.RestockData.ResetType != interval) continue;
+            shop.RestockCount = 0;
+            foreach (ShopItem item in shop.Items.Values) {
+                item.StockPurchased = 0;
             }
         }
     }

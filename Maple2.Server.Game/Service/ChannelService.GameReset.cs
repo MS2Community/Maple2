@@ -9,6 +9,8 @@ public partial class ChannelService {
                 return Task.FromResult(Daily());
             case GameResetRequest.ResetOneofCase.Weekly:
                 return Task.FromResult(Weekly());
+            case GameResetRequest.ResetOneofCase.Monthly:
+                return Task.FromResult(Monthly());
             default:
                 return Task.FromResult(new GameResetResponse());
         }
@@ -21,6 +23,11 @@ public partial class ChannelService {
 
     private GameResetResponse Weekly() {
         server.WeeklyReset();
+        return new GameResetResponse();
+    }
+
+    private GameResetResponse Monthly() {
+        server.MonthlyReset();
         return new GameResetResponse();
     }
 }

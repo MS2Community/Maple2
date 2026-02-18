@@ -28,6 +28,7 @@ public partial class GameStorage {
             return query.AsEnumerable()
                 .ToList() // ToList before Select so 'This MySqlConnection is already in use.' exception doesn't occur.
                 .Select(ToPlot)
+                .Where(plot => plot != null)
                 .ToList()!;
         }
 

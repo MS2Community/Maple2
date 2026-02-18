@@ -15,6 +15,11 @@ public partial class GameStorage {
             return weeklyReset?.LastModified ?? CreateServerInfo("WeeklyReset");
         }
 
+        public DateTime GetLastMonthlyReset() {
+            ServerInfo? monthlyReset = Context.ServerInfo.Find("MonthlyReset");
+            return monthlyReset?.LastModified ?? CreateServerInfo("MonthlyReset");
+        }
+
         private DateTime CreateServerInfo(string key) {
             var model = new ServerInfo {
                 Key = key,
@@ -40,7 +45,11 @@ public partial class GameStorage {
                 Context.Database.ExecuteSqlRaw("UPDATE `nurturing` SET `PlayedBy` = '[]'");
                 Context.Database.ExecuteSqlRaw("UPDATE `home` SET `DecorationRewardTimestamp` = 0");
                 Context.Database.ExecuteSqlRaw("UPDATE `character-shop-data` SET `RestockCount` = 0 WHERE `Interval` = 1");
-                Context.Database.ExecuteSqlRaw("UPDATE `account` SET `MarketLimits` = '{\"MesoListed\":0,\"MesoPurchased\":0}'");
+                // Reset shop item stock purchased for daily shops
+                Context.Database.ExecuteSqlRaw("UPDATE `character-shop-item-data` SET `StockPurchased` = 0 WHERE `ShopId` IN (SELECT `ShopId` FROM `character-shop-data` WHERE `Interval` = 1)");
+                Context.Database.ExecuteSqlRaw("UPDATE `account` SET `MarketLimits` = JSON_SET(MarketLimits, '$.MesoListed', 0)");
+                // Dungeon daily clears
+                Context.Database.ExecuteSqlRaw("UPDATE `dungeon-record` SET `CurrentSubClears` = 0, `ExtraCurrentSubClears` = 0");
             }
         }
 
@@ -59,6 +68,26 @@ public partial class GameStorage {
                 Context.Database.ExecuteSqlRaw("UPDATE `guild-member` SET `WeeklyContribution` = 0");
                 Context.Database.ExecuteSqlRaw("UPDATE `account` SET `PrestigeRewardsClaimed` = DEFAULT");
                 Context.Database.ExecuteSqlRaw("UPDATE `character-shop-data` SET `RestockCount` = 0 WHERE `Interval` = 2");
+                // Reset shop item stock purchased for weekly shops
+                Context.Database.ExecuteSqlRaw("UPDATE `character-shop-item-data` SET `StockPurchased` = 0 WHERE `ShopId` IN (SELECT `ShopId` FROM `character-shop-data` WHERE `Interval` = 2)");
+                // Dungeon weekly clears
+                Context.Database.ExecuteSqlRaw("UPDATE `dungeon-record` SET `CurrentClears` = 0, `ExtraCurrentClears` = 0");
+            }
+        }
+
+        public void MonthlyReset() {
+            lock (Context) {
+                ServerInfo? serverInfo = Context.ServerInfo.Find("MonthlyReset");
+                if (serverInfo == null) {
+                    serverInfo = new ServerInfo { Key = "MonthlyReset", LastModified = DateTime.Now };
+                    Context.ServerInfo.Add(serverInfo);
+                } else {
+                    serverInfo.LastModified = DateTime.Now;
+                    Context.Update(serverInfo);
+                }
+                Context.SaveChanges();
+
+                Context.Database.ExecuteSqlRaw("UPDATE `account` SET `MarketLimits` = JSON_SET(MarketLimits, '$.MesoPurchased', 0)");
             }
         }
     }
