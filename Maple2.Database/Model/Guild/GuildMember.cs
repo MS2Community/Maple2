@@ -17,7 +17,7 @@ internal class GuildMember {
     public int TotalContribution { get; set; }
     public int DailyDonationCount { get; set; }
 
-    public Character Character { get; set; }
+    public Character? Character { get; set; }
 
     public DateTime CheckinTime { get; set; }
     public DateTime DonationTime { get; set; }

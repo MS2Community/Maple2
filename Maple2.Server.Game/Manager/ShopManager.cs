@@ -165,7 +165,7 @@ public sealed class ShopManager {
             }
 
             instancedShop.Items[shopItemId] = new ShopItem(shopItem.Metadata) {
-                Item = itemData.Item,
+                Item = itemData.Item!,
                 StockPurchased = itemData.StockPurchased,
             };
         }

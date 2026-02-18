@@ -8,7 +8,7 @@ namespace Maple2.Database.Model;
 internal class GameEventUserValue {
     public long CharacterId { get; set; }
     public GameEventUserValueType Type { get; set; }
-    public string Value { get; set; }
+    public required string Value { get; set; }
     public int EventId { get; set; }
     public long ExpirationTime { get; set; }
 

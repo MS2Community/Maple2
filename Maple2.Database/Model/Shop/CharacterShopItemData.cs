@@ -10,7 +10,7 @@ internal class CharacterShopItemData {
     public int ShopItemId { get; set; }
     public long OwnerId { get; set; }
     public int StockPurchased { get; set; }
-    public Item Item { get; set; }
+    public Item? Item { get; set; }
 
     [return: NotNullIfNotNull(nameof(other))]
     public static implicit operator CharacterShopItemData?(Maple2.Model.Game.Shop.CharacterShopItemData? other) {

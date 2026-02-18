@@ -48,7 +48,7 @@ public class Character {
     public List<long> ClubIds = [];
     public required Mastery Mastery;
     public AchievementInfo AchievementInfo;
-    public MarriageInfo MarriageInfo;
+    public MarriageInfo MarriageInfo = new();
     public readonly Dictionary<int, DungeonEnterLimit> DungeonEnterLimits = [];
     public short DeathCount;
     public long DeathTick;

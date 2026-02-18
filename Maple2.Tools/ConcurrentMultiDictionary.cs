@@ -39,29 +39,29 @@ public class ConcurrentMultiDictionary<TK1, TK2, TV> where TK1 : notnull where T
         return data.TryAdd(key1, value) && mapping.TryAdd(key2, key1);
     }
 
-    public bool TryGet(TK1 key, [NotNullWhen(true)] out TV? value) {
+    public bool TryGet(TK1 key, [MaybeNullWhen(false)] out TV value) {
         return data.TryGetValue(key, out value);
     }
 
-    public bool TryGetKey1(TK1 key, [NotNullWhen(true)] out TV? value) {
+    public bool TryGetKey1(TK1 key, [MaybeNullWhen(false)] out TV value) {
         return data.TryGetValue(key, out value);
     }
 
-    public bool TryGet(TK2 key2, [NotNullWhen(true)] out TV? value) {
+    public bool TryGet(TK2 key2, [MaybeNullWhen(false)] out TV value) {
         if (mapping.TryGetValue(key2, out TK1? key1)) {
             return data.TryGetValue(key1, out value);
         }
 
-        value = default(TV);
+        value = default;
         return false;
     }
 
-    public bool TryGetKey2(TK2 key2, [NotNullWhen(true)] out TV? value) {
+    public bool TryGetKey2(TK2 key2, [MaybeNullWhen(false)] out TV value) {
         if (mapping.TryGetValue(key2, out TK1? key1)) {
             return data.TryGetValue(key1, out value);
         }
 
-        value = default(TV);
+        value = default;
         return false;
     }
 
@@ -73,14 +73,14 @@ public class ConcurrentMultiDictionary<TK1, TK2, TV> where TK1 : notnull where T
         return mapping.TryGetValue(key2, out TK1? key1) ? GetValueOrDefault(key1, value) : value;
     }
 
-    public bool Remove(TK1 key1, [NotNullWhen(true)] out TV? value) {
+    public bool Remove(TK1 key1, [MaybeNullWhen(false)] out TV value) {
         TK2 key2 = mapping.FirstOrDefault(entry => EqualityComparer<TK1>.Default.Equals(entry.Value, key1)).Key;
         return data.Remove(key1, out value) && mapping.Remove(key2, out _);
     }
 
-    public bool Remove(TK2 key2, [NotNullWhen(true)] out TV? value) {
+    public bool Remove(TK2 key2, [MaybeNullWhen(false)] out TV value) {
         if (!mapping.TryGetValue(key2, out TK1? key1)) {
-            value = default(TV);
+            value = default;
             return false;
         }
         return data.Remove(key1, out value) && mapping.Remove(key2, out _);

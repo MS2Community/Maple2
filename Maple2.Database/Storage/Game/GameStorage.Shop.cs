@@ -91,6 +91,9 @@ public partial class GameStorage {
             if (model == null) {
                 return null;
             }
+            if (model.Item == null) {
+                return null;
+            }
             if (!game.itemMetadata.TryGet(model.Item.ItemId, out ItemMetadata? metadata)) {
                 return null;
             }

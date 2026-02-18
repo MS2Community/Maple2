@@ -8,7 +8,7 @@ namespace Maple2.Database.Model;
 internal class HomeLayout {
     public long Uid { get; set; }
     public int Id { get; set; }
-    public string Name { get; set; }
+    public required string Name { get; set; }
     public byte Area { get; set; }
     public byte Height { get; set; }
     public HomeBackground Background { get; set; }

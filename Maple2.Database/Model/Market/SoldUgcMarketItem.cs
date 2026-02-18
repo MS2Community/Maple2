@@ -10,7 +10,7 @@ internal class SoldUgcMarketItem {
     public long Id { get; set; }
     public long Price { get; set; }
     public long Profit { get; set; }
-    public string Name { get; set; }
+    public required string Name { get; set; }
     public DateTime SoldTime { get; set; }
     public long AccountId { get; set; }
 
