@@ -1,4 +1,4 @@
-using Maple2.Database.Model;
+﻿using Maple2.Database.Model;
 using Microsoft.EntityFrameworkCore;
 
 namespace Maple2.Database.Storage;
