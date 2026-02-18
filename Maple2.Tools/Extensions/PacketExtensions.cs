@@ -63,7 +63,7 @@ public static class PacketExtensions {
 
     public static T[] ReadArray<T>(this IByteReader packet, int size) where T : struct {
         var result = new T[size];
-        for (int i = 0; i > size; i++) {
+        for (int i = 0; i < size; i++) {
             result[i] = packet.Read<T>();
         }
 
