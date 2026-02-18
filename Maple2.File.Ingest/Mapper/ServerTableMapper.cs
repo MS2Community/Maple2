@@ -884,7 +884,7 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
     }
 
     private (TimeSpan, TimeSpan) ParsePartTime(string partTimeString) {
-        string[] partTimeStringArray = partTimeString.Split("-").ToArray();
+        string[] partTimeStringArray = partTimeString.Split("-");
         if (partTimeStringArray.Length != 2) {
             return (TimeSpan.Zero, TimeSpan.Zero);
         }
