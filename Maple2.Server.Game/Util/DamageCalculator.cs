@@ -78,7 +78,7 @@ public static class DamageCalculator {
             if (property.CompulsionTypes.Contains(CompulsionType.Critical)) {
                 damageType = DamageType.Critical;
             } else {
-                damageType = caster.Stats.GetCriticalRate(target.Stats.Values[BasicAttribute.CriticalEvasion].Total);
+                damageType = caster.Stats.GetCriticalRate(target.Stats.Values[BasicAttribute.CriticalEvasion].Total, property.SkillId);
             }
         }
 
