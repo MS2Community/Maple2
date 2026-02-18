@@ -1289,8 +1289,7 @@ public class DebugFieldRenderer : IFieldRenderer {
 
             UpdateWireframeInstance(window);
             Context.CoreModels!.Cylinder.Draw();
-        }
-        else if (polygon is Trapezoid trapezoid) {
+        } else if (polygon is Trapezoid trapezoid) {
             // For trapezoid, calculate center and size from the points array
             Vector2 p0 = trapezoid.Points[0];
             Vector2 p1 = trapezoid.Points[1];
@@ -1318,8 +1317,7 @@ public class DebugFieldRenderer : IFieldRenderer {
 
             UpdateWireframeInstance(window);
             Context.CoreModels!.WireCube.Draw();
-        }
-        else {
+        } else {
             // For other polygon types, render a simple box at the prism position
             // This is a fallback - extend as needed for other shapes
             Vector3 center = new(0, 0, prism.Height.Min + (prism.Height.Max - prism.Height.Min) * 0.5f);
