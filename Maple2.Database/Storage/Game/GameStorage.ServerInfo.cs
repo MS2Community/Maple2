@@ -23,6 +23,7 @@ public partial class GameStorage {
         private DateTime CreateServerInfo(string key) {
             var model = new ServerInfo {
                 Key = key,
+                LastModified = DateTime.Now,
             };
             Context.ServerInfo.Add(model);
             Context.SaveChanges();
