@@ -1,4 +1,4 @@
-namespace Maple2.Model.Game.Shop;
+﻿namespace Maple2.Model.Game.Shop;
 
 public class CharacterShopItemData {
     public int ShopId { get; init; }
