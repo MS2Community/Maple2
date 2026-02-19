@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -610,6 +610,8 @@ public partial class FieldManager {
         }
     }
 
+    // Cube skills are server-side only and do not need to be broadcast to clients.
+    // They are static map hazards that persist for the lifetime of the field.
     public void AddCubeSkill(SkillMetadata metadata, int interval, in Vector3 position, in Vector3 rotation = default) {
         Vector3 adjustedPosition = position;
         adjustedPosition.Z += FieldAccelerationStructure.BLOCK_SIZE;
