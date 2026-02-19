@@ -232,6 +232,10 @@ public class SkillHandler : FieldPacketHandler {
 
             switch (record.Attack.Range.ApplyTarget) {
                 case ApplyTargetType.Hostile:
+                    // Skip adding caster to hostile targets (caster may have been sent by client from a prior Friendly attack point)
+                    if (targetId == session.Player.ObjectId) {
+                        continue;
+                    }
                     if (session.Field.Mobs.TryGetValue(targetId, out FieldNpc? npc)) {
                         record.Targets.TryAdd(npc.ObjectId, npc);
                     }
