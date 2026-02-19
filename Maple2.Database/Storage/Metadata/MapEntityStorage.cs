@@ -36,6 +36,7 @@ public class MapEntityStorage(MetadataContext context) : MetadataStorage<string,
             var npcSpawns = new List<SpawnPointNPC>();
             var regionSpawns = new Dictionary<int, Ms2RegionSpawn>();
             var regionSkills = new List<Ms2RegionSkill>();
+            var cubeSkills = new List<Ms2CubeSkill>();
             var eventNpcSpawns = new Dictionary<int, EventSpawnPointNPC>();
             var eventItemSpawns = new Dictionary<int, EventSpawnPointItem>();
             TaxiStation? taxi = null;
@@ -67,6 +68,9 @@ public class MapEntityStorage(MetadataContext context) : MetadataStorage<string,
                         break;
                     case Ms2RegionSpawn regionSpawn:
                         regionSpawns[regionSpawn.Id] = regionSpawn;
+                        break;
+                    case Ms2CubeSkill cubeSkill:
+                        cubeSkills.Add(cubeSkill);
                         break;
                     case Ms2RegionSkill regionSkill:
                         regionSkills.Add(regionSkill);
@@ -125,6 +129,7 @@ public class MapEntityStorage(MetadataContext context) : MetadataStorage<string,
                 EventItemSpawns = eventItemSpawns,
                 RegionSpawns = regionSpawns,
                 RegionSkills = regionSkills,
+                CubeSkills = cubeSkills,
                 Taxi = taxi,
                 BoundingBox = bounding ?? LargeBoundingBox,
                 BreakableActors = breakableActors,

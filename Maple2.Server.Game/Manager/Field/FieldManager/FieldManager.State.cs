@@ -8,6 +8,7 @@ using Maple2.Database.Storage;
 using Maple2.Model.Common;
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
+using Maple2.Model.Game.Field;
 using Maple2.Model.Metadata;
 using Maple2.Server.Game.LuaFunctions;
 using Maple2.Server.Game.Model;
@@ -45,9 +46,13 @@ public partial class FieldManager {
     private readonly ConcurrentDictionary<int, FieldPlayerSpawnPoint> fieldPlayerSpawnPoints = new();
     private readonly ConcurrentDictionary<int, FieldSpawnGroup> fieldSpawnGroups = new();
     private readonly ConcurrentDictionary<int, FieldSkill> fieldSkills = new();
+    private readonly ConcurrentDictionary<int, FieldSkill> cubeSkills = new();
     private readonly ConcurrentDictionary<int, FieldPortal> fieldPortals = new();
 
     private readonly ConcurrentDictionary<int, HongBao> hongBaos = new();
+
+    public IEnumerable<FieldSkill> DebugFieldSkills => fieldSkills.Values;
+    public IEnumerable<FieldSkill> DebugCubeSkills => cubeSkills.Values;
 
     private string? background;
     private readonly ConcurrentDictionary<FieldProperty, IFieldProperty> fieldProperties = new();
@@ -603,6 +608,16 @@ public partial class FieldManager {
             fieldSkills.Remove(fieldSkill.ObjectId, out _);
             Broadcast(RegionSkillPacket.Remove(fieldSkill.ObjectId));
         }
+    }
+
+    public void AddCubeSkill(SkillMetadata metadata, int interval, in Vector3 position, in Vector3 rotation = default) {
+        Vector3 adjustedPosition = position;
+        adjustedPosition.Z += FieldAccelerationStructure.BLOCK_SIZE;
+        var fieldSkill = new FieldSkill(this, NextLocalId(), FieldActor, metadata, interval, adjustedPosition) {
+            Position = adjustedPosition,
+            Rotation = rotation,
+        };
+        cubeSkills[fieldSkill.ObjectId] = fieldSkill;
     }
     #endregion
 

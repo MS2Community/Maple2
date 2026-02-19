@@ -230,6 +230,14 @@ public partial class FieldManager : IField {
             AddSkill(skill, regionSkill.Interval, regionSkill.Position, regionSkill.Rotation);
         }
 
+        foreach (Ms2CubeSkill cubeSkill in Entities.CubeSkills) {
+            if (!SkillMetadata.TryGet(cubeSkill.SkillId, cubeSkill.Level, out SkillMetadata? skill)) {
+                continue;
+            }
+
+            AddCubeSkill(skill, cubeSkill.Interval, cubeSkill.Position, cubeSkill.Rotation);
+        }
+
         foreach (BannerTable.Entry entry in TableMetadata.BannerTable.Entries) {
             if (entry.MapId != MapId) {
                 continue;
@@ -343,6 +351,7 @@ public partial class FieldManager : IField {
         foreach (FieldMobSpawn mobSpawn in fieldMobSpawns.Values) mobSpawn.Update(FieldTick);
         foreach (FieldSpawnPointNpc spawnPointNpc in fieldSpawnPointNpcs.Values) spawnPointNpc.Update(FieldTick);
         foreach (FieldSkill skill in fieldSkills.Values) skill.Update(FieldTick);
+        foreach (FieldSkill skill in cubeSkills.Values) skill.Update(FieldTick);
         foreach (FieldPortal portal in fieldPortals.Values) portal.Update(FieldTick);
         UpdateBanners();
 

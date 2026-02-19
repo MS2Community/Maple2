@@ -21,7 +21,6 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
     public readonly bool UseDirection;
     private readonly long endTick;
     public long NextTick { get; private set; }
-
     private readonly ILogger logger = Log.ForContext<FieldSkill>();
 
     public FieldSkill(FieldManager field, int objectId, IActor caster,
@@ -80,7 +79,10 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
         if (!Active) {
             foreach (SkillMetadataMotion motion in Value.Data.Motions) {
                 foreach (SkillMetadataAttack attack in motion.Attacks) {
-                    Prism[] prisms = Points.Select(point => attack.Range.GetPrism(point, UseDirection ? Rotation.Z : 0)).ToArray();
+                    float skillAngle = UseDirection ? Rotation.Z : 0;
+                    Prism[] prisms = Points
+                        .Select(point => attack.Range.GetPrism(point, skillAngle, attack.Range.ApplyTarget))
+                        .ToArray();
                     if (Field.GetTargets(Caster, prisms, attack.Range.ApplyTarget, attack.TargetCount).Any()) {
                         Active = true;
                         goto activated;
@@ -167,7 +169,10 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                         Caster.ApplyEffects(attack.Skills, Caster, Caster, skillId: Value.Id, targets: targets);
                     }
                 } else {
-                    Prism[] prisms = Points.Select(point => attack.Range.GetPrism(point, UseDirection ? Rotation.Z : 0)).ToArray();
+                    float skillAngle = UseDirection ? Rotation.Z : 0;
+                    Prism[] prisms = Points
+                        .Select(point => attack.Range.GetPrism(point, skillAngle, attack.Range.ApplyTarget))
+                        .ToArray();
                     IActor[] targets = Field.GetTargets(Caster, prisms, attack.Range.ApplyTarget, attack.TargetCount).ToArray();
                     // if (targets.Length > 0) {
                     //     logger.Debug("[{Tick}] {ObjectId}:{AttackPoint} Targeting: {Count}/{Limit} {Type}",

@@ -180,6 +180,13 @@ public class MapEntityMapper : TypeMapper<MapEntity> {
                 case IMS2MapProperties mapProperties:
                     switch (mapProperties) {
                         case IMS2PhysXProp physXProp:
+                            if (physXProp is IMS2CubeProp { skillID: > 0, skillLevel: > 0 } cubeProp) {
+                                yield return new MapEntity(xblock, new Guid(entity.EntityId), entity.EntityName) {
+                                    Block = new Ms2CubeSkill(cubeProp.skillID, (short) cubeProp.skillLevel,
+                                        500, cubeProp.Position, cubeProp.Rotation),
+                                };
+                                continue;
+                            }
                             if (mapProperties.IsObjectWeapon) {
                                 int[] itemIds = physXProp.ObjectWeaponItemCode.Split(',').Select(int.Parse).ToArray();
                                 if (physXProp.ObjectWeaponSpawnNpcCode == 0) {
