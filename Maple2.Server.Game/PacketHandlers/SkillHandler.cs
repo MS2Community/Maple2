@@ -209,8 +209,10 @@ public class SkillHandler : FieldPacketHandler {
 
         byte count = packet.ReadByte();
         if (count > record.Attack.TargetCount) {
-            Logger.Error("Attack too many targets {Count} for {Record}", count, record);
-            // Adjust count
+            // Skills with BounceCount send all bounce targets in one packet but TargetCount is per-bounce.
+            // This may indicate an unimplemented bounce mechanic rather than a true exploit.
+            Logger.Warning("SkillId={SkillId} AttackPoint={AttackPoint} sent {Count} targets but TargetCount={TargetCount} — clamping. BounceCount={BounceCount}",
+                record.SkillId, attackPoint, count, record.Attack.TargetCount, record.Attack.Arrow.BounceCount);
             count = (byte) record.Attack.TargetCount;
         }
 
@@ -232,10 +234,6 @@ public class SkillHandler : FieldPacketHandler {
 
             switch (record.Attack.Range.ApplyTarget) {
                 case ApplyTargetType.Hostile:
-                    // Skip adding caster to hostile targets (caster may have been sent by client from a prior Friendly attack point)
-                    if (targetId == session.Player.ObjectId) {
-                        continue;
-                    }
                     if (session.Field.Mobs.TryGetValue(targetId, out FieldNpc? npc)) {
                         record.Targets.TryAdd(npc.ObjectId, npc);
                     }
