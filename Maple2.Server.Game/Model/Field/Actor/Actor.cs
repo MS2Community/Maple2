@@ -213,6 +213,10 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
         };
 
         foreach (IActor target in record.Targets.Values) {
+            // Skip applying damage to caster for hostile skills (caster may be in targets from a previous Friendly attack point)
+            if (record.Attack.Range.ApplyTarget == ApplyTargetType.Hostile && target.ObjectId == record.Caster.ObjectId) {
+                continue;
+            }
             target.ApplyDamage(this, damage, record.Attack);
         }
 
@@ -221,11 +225,19 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
 
         ApplyEffects(record.Attack.Skills, record.Caster, this, skillId: record.SkillId, targets: record.Targets.Values.ToArray());
         ApplyEffects(record.Attack.SkillsOnDamage, record.Caster, damage, record.Targets.Values.ToArray());
+
+        // Create splash skills at target positions, excluding the caster
         foreach (IActor target in record.Targets.Values) {
+            // Skip creating splash skill at caster's own position
+            if (target.ObjectId == record.Caster.ObjectId) {
+                continue;
+            }
+
             foreach (SkillEffectMetadata effect in record.Attack.Skills.Where(e => e.Splash != null)) {
                 Field.AddSkill(record.Caster, effect, [target.Position], record.Caster.Rotation);
             }
         }
+
 
     }
 
