@@ -18,8 +18,6 @@ using Silk.NET.Maths;
 using Maple2.Server.DebugGame.Graphics.Scene;
 using Serilog;
 using Maple2.Model.Game;
-using Maple2.Model.Game.Field;
-using Maple2.Tools.Extensions;
 
 namespace Maple2.Server.DebugGame.Graphics;
 
