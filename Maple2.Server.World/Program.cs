@@ -75,6 +75,8 @@ builder.Host.ConfigureContainer<ContainerBuilder>(autofac => {
         .SingleInstance();
     autofac.RegisterType<GlobalPortalLookup>()
         .SingleInstance();
+    autofac.RegisterType<FieldBossLookup>()
+        .SingleInstance();
     autofac.RegisterType<PlayerConfigLookUp>()
         .SingleInstance();
 

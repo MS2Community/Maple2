@@ -1,9 +1,11 @@
 ﻿using Maple2.Model.Game;
+using Maple2.Model.Metadata;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
 using Maple2.Server.Game.PacketHandlers.Field;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
+using Maple2.Server.World.Service;
 
 namespace Maple2.Server.Game.PacketHandlers;
 
@@ -33,7 +35,22 @@ public class WorldMapHandler : FieldPacketHandler {
 
         // 102 = Victoria, 103 = Karkar, 105 = Kritias
         int mapCode = packet.ReadInt();
-        session.Send(WorldMapPacket.Load(new List<ICollection<MapWorldBoss>>(), new List<MapPopulation>()));
+
+        TimeEventResponse bossResponse = session.World.TimeEvent(new TimeEventRequest {
+            GetActiveFieldBosses = new TimeEventRequest.Types.GetActiveFieldBosses(),
+        });
+
+        var bossGroups = new List<ICollection<MapWorldBoss>>();
+        foreach (TimeEventResponse.Types.ActiveFieldBoss active in bossResponse.ActiveFieldBosses) {
+            if (!session.ServerTableMetadata.TimeEventTable.FieldBoss.TryGetValue(active.MetadataId, out FieldBossMetadata? metadata)) {
+                continue;
+            }
+            int npcId = metadata.NpcIds.Length > 0 ? metadata.NpcIds[0] : 0;
+            int mapId = metadata.TargetMapIds.Length > 0 ? metadata.TargetMapIds[0] : 0;
+            bossGroups.Add(active.AliveChannels.Select(ch => new MapWorldBoss(npcId, mapId, (short) ch, active.SpawnTimestamp)).ToList());
+        }
+
+        session.Send(WorldMapPacket.Load(bossGroups, []));
     }
 
     private static void HandlePopulation(GameSession session, IByteReader packet) {

@@ -23,6 +23,7 @@ public class WorldServer {
     private readonly ServerTableMetadataStorage serverTableMetadata;
     private readonly ItemMetadataStorage itemMetadata;
     private readonly GlobalPortalLookup globalPortalLookup;
+    private readonly FieldBossLookup fieldBossLookup;
     private readonly PlayerInfoLookup playerInfoLookup;
     private readonly Thread thread;
     private readonly Thread heartbeatThread;
@@ -35,11 +36,12 @@ public class WorldServer {
 
     private readonly LoginClient login;
 
-    public WorldServer(GameStorage gameStorage, ChannelClientLookup channelClients, ServerTableMetadataStorage serverTableMetadata, GlobalPortalLookup globalPortalLookup, PlayerInfoLookup playerInfoLookup, LoginClient login, ItemMetadataStorage itemMetadata) {
+    public WorldServer(GameStorage gameStorage, ChannelClientLookup channelClients, ServerTableMetadataStorage serverTableMetadata, GlobalPortalLookup globalPortalLookup, FieldBossLookup fieldBossLookup, PlayerInfoLookup playerInfoLookup, LoginClient login, ItemMetadataStorage itemMetadata) {
         this.gameStorage = gameStorage;
         this.channelClients = channelClients;
         this.serverTableMetadata = serverTableMetadata;
         this.globalPortalLookup = globalPortalLookup;
+        this.fieldBossLookup = fieldBossLookup;
         this.playerInfoLookup = playerInfoLookup;
         this.login = login;
         this.itemMetadata = itemMetadata;
@@ -56,6 +58,7 @@ public class WorldServer {
         StartWeeklyReset();
         StartMonthlyReset();
         StartWorldEvents();
+        StartFieldBossEvents();
         ScheduleGameEvents();
         FieldPlotExpiryCheck();
         thread = new Thread(Loop);
@@ -304,6 +307,96 @@ public class WorldServer {
         }
 
         scheduler.Schedule(() => GlobalPortal(data, nextRunTime), nextRunTime - DateTime.Now);
+    }
+
+    private void StartFieldBossEvents() {
+        int scheduled = 0;
+        foreach ((int _, FieldBossMetadata boss) in serverTableMetadata.TimeEventTable.FieldBoss) {
+            if (boss.EndTime < DateTime.Now) {
+                logger.Debug("FieldBoss {Id} skipped — event period ended ({EndTime})", boss.Id, boss.EndTime);
+                continue;
+            }
+            if (boss.CycleTime == TimeSpan.Zero) {
+                logger.Debug("FieldBoss {Id} skipped — no cycle time", boss.Id);
+                continue;
+            }
+
+            DateTime startTime = boss.StartTime;
+            if (DateTime.Now > startTime) {
+                // Catch up to the next scheduled spawn after now
+                while (startTime < DateTime.Now) {
+                    startTime += boss.CycleTime;
+                }
+                if (startTime > boss.EndTime) {
+                    logger.Debug("FieldBoss {Id} skipped — next spawn {NextSpawn} is past EndTime {EndTime}", boss.Id, startTime, boss.EndTime);
+                    continue;
+                }
+            }
+
+            TimeSpan delay = startTime - DateTime.Now;
+            logger.Debug("FieldBoss {Id} (NpcId: {NpcId}) scheduled — first spawn in {Delay:hh\\:mm\\:ss} at {SpawnTime:HH:mm:ss} UTC",
+                boss.Id, boss.NpcIds.Length > 0 ? boss.NpcIds[0] : 0, delay, startTime.ToUniversalTime());
+            scheduler.Schedule(() => SpawnFieldBoss(boss, startTime), delay);
+            scheduled++;
+        }
+        logger.Information("FieldBoss scheduler started — {Count} bosses scheduled", scheduled);
+    }
+
+    private void SpawnFieldBoss(FieldBossMetadata metadata, DateTime spawnTime) {
+        bool shouldSpawn = !(metadata.Probability < 100 && Random.Shared.Next(100) >= metadata.Probability);
+
+        // Compute next spawn time before Create() so it can be broadcast with the announce
+        DateTime nextSpawn = spawnTime + metadata.CycleTime;
+        if (metadata.RandomTime > TimeSpan.Zero) {
+            nextSpawn += TimeSpan.FromMilliseconds(Random.Shared.Next((int) metadata.RandomTime.TotalMilliseconds));
+        }
+        long nextSpawnTimestamp = nextSpawn <= metadata.EndTime ? new DateTimeOffset(nextSpawn).ToUnixTimeSeconds() : 0;
+
+        if (!shouldSpawn) {
+            logger.Debug("FieldBoss {Id} roll failed (probability {Probability}%) — skipping spawn, next at {NextSpawn:HH:mm:ss} UTC",
+                metadata.Id, metadata.Probability, nextSpawn.ToUniversalTime());
+        } else if (fieldBossLookup.TryGet(metadata.Id, out _)) {
+            logger.Debug("FieldBoss {Id} still active from previous cycle — skipping spawn", metadata.Id);
+        } else {
+            long spawnTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            long endTick = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (long) metadata.LifeTime.TotalMilliseconds;
+            if (fieldBossLookup.Create(metadata, endTick, nextSpawnTimestamp, out int eventId)) {
+                if (fieldBossLookup.TryGet(metadata.Id, out FieldBossManager? manager)) {
+                    manager.Boss.SpawnTimestamp = spawnTimestamp;
+                    manager.Announce();
+                }
+                logger.Information("FieldBoss {Id} (NpcId: {NpcId}) spawned — eventId: {EventId}, alive for {LifeTime:mm\\:ss}, next spawn at {NextSpawn:HH:mm:ss} UTC",
+                    metadata.Id, metadata.NpcIds.Length > 0 ? metadata.NpcIds[0] : 0, eventId, metadata.LifeTime, nextSpawn.ToUniversalTime());
+
+                TimeSpan warnDelay = metadata.LifeTime - TimeSpan.FromMinutes(1);
+                _ = MonitorFieldBossLifetimeAsync(metadata.Id, warnDelay, metadata.LifeTime);
+            }
+        }
+
+        if (nextSpawn > metadata.EndTime) {
+            logger.Information("FieldBoss {Id} will not respawn — next spawn {NextSpawn} is past EndTime {EndTime}", metadata.Id, nextSpawn, metadata.EndTime);
+            return;
+        }
+
+        scheduler.Schedule(() => SpawnFieldBoss(metadata, nextSpawn), nextSpawn - DateTime.Now);
+    }
+
+    private async Task MonitorFieldBossLifetimeAsync(int metadataId, TimeSpan warnDelay, TimeSpan lifeTime) {
+        try {
+            if (warnDelay > TimeSpan.Zero) {
+                await Task.Delay(warnDelay);
+                if (fieldBossLookup.TryGet(metadataId, out FieldBossManager? warnManager)) {
+                    warnManager.WarnChannels();
+                }
+                await Task.Delay(TimeSpan.FromMinutes(1));
+            } else {
+                await Task.Delay(lifeTime);
+            }
+            fieldBossLookup.Dispose(metadataId);
+            logger.Information("FieldBoss {Id} lifetime expired — despawning", metadataId);
+        } catch (Exception ex) {
+            logger.Error(ex, "Error monitoring field boss lifetime for metadata {MetadataId}", metadataId);
+        }
     }
 
     private void ScheduleGameEvents() {

@@ -11,9 +11,33 @@ public partial class WorldService {
                 return Task.FromResult(JoinGlobalPortal(request.JoinGlobalPortal));
             case TimeEventRequest.TimeEventOneofCase.GetGlobalPortal:
                 return Task.FromResult(GetGlobalPortal(request.GetGlobalPortal));
+            case TimeEventRequest.TimeEventOneofCase.GetActiveFieldBosses:
+                return Task.FromResult(GetActiveFieldBosses());
+            case TimeEventRequest.TimeEventOneofCase.FieldBossKilled:
+                return Task.FromResult(OnFieldBossKilled(request.FieldBossKilled));
             default:
                 return Task.FromResult(new TimeEventResponse());
         }
+    }
+
+    private TimeEventResponse OnFieldBossKilled(TimeEventRequest.Types.FieldBossKilled kill) {
+        fieldBossLookup.RemoveChannel(kill.MetadataId, (short) kill.Channel);
+        return new TimeEventResponse();
+    }
+
+    private TimeEventResponse GetActiveFieldBosses() {
+        var response = new TimeEventResponse();
+        foreach (FieldBossManager manager in fieldBossLookup.GetAll()) {
+            var entry = new TimeEventResponse.Types.ActiveFieldBoss {
+                MetadataId = manager.Boss.MetadataId,
+                EventId = manager.Boss.Id,
+                SpawnTimestamp = manager.Boss.SpawnTimestamp,
+                NextSpawnTimestamp = manager.Boss.NextSpawnTimestamp,
+            };
+            entry.AliveChannels.AddRange(manager.AliveChannels.Keys.Select(ch => (int) ch));
+            response.ActiveFieldBosses.Add(entry);
+        }
+        return response;
     }
 
     private TimeEventResponse JoinGlobalPortal(TimeEventRequest.Types.JoinGlobalPortal portal) {

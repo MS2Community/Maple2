@@ -85,6 +85,9 @@ public class FieldNpc : Actor<Npc> {
     public readonly SkillMetadata?[] Skills;
 
     public int SpawnPointId = 0;
+    public Action<FieldNpc>? FieldBossDeathCallback { get; set; }
+    public long LastDamageTick { get; private set; }
+    private int lastAttackerObjectId;
 
     public MS2PatrolData? Patrol { get; private set; }
     private int currentWaypointIndex;
@@ -315,7 +318,13 @@ public class FieldNpc : Actor<Npc> {
         return approachTask;
     }
 
+    protected override void OnDamageReceived(IActor caster, long amount) {
+        LastDamageTick = Environment.TickCount64;
+        lastAttackerObjectId = caster.ObjectId;
+    }
+
     protected override void OnDeath() {
+        FieldBossDeathCallback?.Invoke(this);
         Owner?.Despawn(ObjectId);
         SendControl = false;
 
@@ -485,6 +494,13 @@ public class FieldNpc : Actor<Npc> {
         // Clear patrol data
         Patrol = null;
         currentWaypointIndex = 0;
+    }
+
+    public FieldPlayer? GetLastAttacker() {
+        if (lastAttackerObjectId == 0 || !Field.TryGetPlayer(lastAttackerObjectId, out FieldPlayer? player)) {
+            return null;
+        }
+        return player;
     }
 
     public override string ToString() {

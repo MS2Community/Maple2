@@ -16,6 +16,7 @@ public partial class WorldService : World.WorldBase {
     private readonly GroupChatLookup groupChatLookup;
     private readonly BlackMarketLookup blackMarketLookup;
     private readonly GlobalPortalLookup globalPortalLookup;
+    private readonly FieldBossLookup fieldBossLookup;
     private readonly PlayerConfigLookUp playerConfigLookUp;
     private readonly ILogger logger = Log.Logger.ForContext<WorldService>();
 
@@ -23,7 +24,7 @@ public partial class WorldService : World.WorldBase {
         IMemoryCache tokenCache, WorldServer worldServer, ChannelClientLookup channelClients,
         PlayerInfoLookup playerLookup, GuildLookup guildLookup, PartyLookup partyLookup,
         PartySearchLookup partySearchLookup, GroupChatLookup groupChatLookup, BlackMarketLookup blackMarketLookup,
-        ClubLookup clubLookup, GlobalPortalLookup globalPortalLookup, PlayerConfigLookUp playerConfigLookUp
+        ClubLookup clubLookup, GlobalPortalLookup globalPortalLookup, FieldBossLookup fieldBossLookup, PlayerConfigLookUp playerConfigLookUp
         ) {
         this.tokenCache = tokenCache;
         this.worldServer = worldServer;
@@ -36,6 +37,7 @@ public partial class WorldService : World.WorldBase {
         this.clubLookup = clubLookup;
         this.blackMarketLookup = blackMarketLookup;
         this.globalPortalLookup = globalPortalLookup;
+        this.fieldBossLookup = fieldBossLookup;
         this.playerConfigLookUp = playerConfigLookUp;
     }
 
