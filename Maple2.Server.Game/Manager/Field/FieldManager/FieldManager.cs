@@ -235,7 +235,7 @@ public partial class FieldManager : IField {
                 continue;
             }
 
-            AddCubeSkill(skill, cubeSkill.Interval, cubeSkill.Position, cubeSkill.Rotation);
+            AddCubeSkill(skill, (int) Constant.GlobalCubeSkillIntervalTime.TotalMilliseconds, cubeSkill.Position, cubeSkill.Rotation);
         }
 
         foreach (BannerTable.Entry entry in TableMetadata.BannerTable.Entries) {

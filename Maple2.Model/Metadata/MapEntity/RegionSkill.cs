@@ -13,7 +13,6 @@ public record Ms2RegionSkill(
 public record Ms2CubeSkill(
     int SkillId,
     short Level,
-    int Interval,
     Vector3 Position,
     Vector3 Rotation
-) : Ms2RegionSkill(SkillId, Level, Interval, Position, Rotation);
+) : Ms2RegionSkill(SkillId, Level, 0, Position, Rotation);
