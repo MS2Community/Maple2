@@ -162,4 +162,3 @@ The client will report what field is expected next. Results saved to `./PacketSt
 
 - [Understanding Packets Wiki](https://github.com/MS2Community/Maple2/wiki/Understanding-packets)
 - [Packet Resolver Wiki](https://github.com/MS2Community/Maple2/wiki/Packet-Resolver)
-- Opcode reference: `.claude/skills/mapleshark-sniff/references/opcodes.json`
