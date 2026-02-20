@@ -3,6 +3,7 @@ using Maple2.File.Flat;
 using Maple2.File.Flat.maplestory2library;
 using Maple2.File.Flat.standardmodellibrary;
 using Maple2.File.Parser.MapXBlock;
+using Maple2.File.Parser.Xml.Table;
 using Maple2.Model.Enum;
 using Maple2.Model.Metadata;
 using Maple2.Tools.Extensions;
@@ -197,7 +198,7 @@ public class MapEntityMapper : TypeMapper<MapEntity> {
                             switch (physXProp) {
                                 case IMS2CubeProp { skillID: > 0, skillLevel: > 0 } cubeProp:
                                     yield return new MapEntity(xblock, new Guid(entity.EntityId), entity.EntityName) {
-                                        Block = new Ms2CubeSkill(cubeProp.skillID, (short) cubeProp.skillLevel, 500, cubeProp.Position, cubeProp.Rotation),
+                                        Block = new Ms2CubeSkill(cubeProp.skillID, (short) cubeProp.skillLevel, Constant.GlobalCubeSkillIntervalTime.Milliseconds, cubeProp.Position, cubeProp.Rotation),
                                     };
                                     continue;
                                 case IMS2Liftable liftable:
