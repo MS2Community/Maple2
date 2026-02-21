@@ -593,6 +593,10 @@ public partial class FieldManager {
     }
 
     public IEnumerable<IActor> GetTargets(IActor caster, Prism[] prisms, SkillMetadataRange range, int targetCount, ICollection<IActor>? ignore = null) {
+        if (targetCount <= 0) {
+            return [];
+        }
+
         // Caster is always excluded from the pool; re-added explicitly per IncludeCaster semantics
         ICollection<IActor> poolIgnore = ignore != null ? [..ignore, caster] : [caster];
 
