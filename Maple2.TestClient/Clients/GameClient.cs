@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Numerics;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
@@ -102,6 +102,7 @@ public class GameClient : IDisposable {
             int id = r.ReadInt();
             var pos = r.Read<Vector3>();
             var info = new NpcInfo(objectId, id, pos);
+            FieldNpcs[objectId] = info; // Manually add since one-shot waiter consumed the packet before persistent handler
             Logger.Information("NPC spawned: ObjectId={ObjectId}, NpcId={NpcId}, Position={Position}", objectId, id, pos);
             return info;
         } catch (TimeoutException) {

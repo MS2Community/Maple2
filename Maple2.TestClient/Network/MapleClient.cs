@@ -1,4 +1,4 @@
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 using Maple2.PacketLib.Crypto;
@@ -79,7 +79,8 @@ public class MapleClient : IDisposable {
         byte[] rawHandshake = new byte[HANDSHAKE_HEADER_SIZE + payloadLength];
         Buffer.BlockCopy(headerBuf, 0, rawHandshake, 0, HANDSHAKE_HEADER_SIZE);
         Buffer.BlockCopy(payload, 0, rawHandshake, HANDSHAKE_HEADER_SIZE, payloadLength);
-        recvCipher.TryDecrypt(new ReadOnlySequence<byte>(rawHandshake), out PoolByteReader _);
+        recvCipher.TryDecrypt(new ReadOnlySequence<byte>(rawHandshake), out PoolByteReader handshakeReader);
+        handshakeReader.Dispose();
 
         Logger.Information("Connected to {Host}:{Port} (version={Version}, patchType={PatchType})", host, port, version, patchType);
 
@@ -121,6 +122,8 @@ public class MapleClient : IDisposable {
         cts.Token.Register(() => tcs.TrySetException(
             new TimeoutException($"Timed out waiting for {opcode} after {timeout.Value.TotalSeconds}s")));
 
+        // Dispose the CTS when the task completes regardless of outcome
+        tcs.Task.ContinueWith(_ => cts.Dispose(), TaskContinuationOptions.ExecuteSynchronously);
         return tcs.Task;
     }
 
@@ -198,8 +201,8 @@ public class MapleClient : IDisposable {
     private void DispatchPacket(byte[] raw) {
         if (raw.Length < 2) return;
 
-        var opcode = (SendOp)(raw[1] << 8 | raw[0]);
-        Logger.Debug("Dispatching packet: {Opcode} (0x{Code:X4}), length={Length}", opcode, (ushort)opcode, raw.Length);
+        var opcode = (SendOp) (raw[1] << 8 | raw[0]);
+        Logger.Debug("Dispatching packet: {Opcode} (0x{Code:X4}), length={Length}", opcode, (ushort) opcode, raw.Length);
         OnPacketReceived?.Invoke(opcode, raw);
 
         // Check one-shot waiters first

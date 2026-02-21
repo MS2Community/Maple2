@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
 using Maple2.TestClient.Network;
@@ -65,9 +65,13 @@ public class LoginClient : IDisposable {
             switch (command) {
                 case 0: // List - contains character entries
                     byte count = r.ReadByte();
+                    if (count > 1) {
+                        Logger.Warning("Multiple characters ({Count}) found; only first will be parsed correctly", count);
+                    }
                     for (int i = 0; i < count; i++) {
                         long charId = ParseCharacterId(r);
                         characters.Add(new CharacterInfo(charId, ""));
+                        if (i == 0 && count > 1) break; // avoid corrupted reads
                     }
                     break;
                 case 4: // EndList
@@ -100,7 +104,7 @@ public class LoginClient : IDisposable {
         Logger.Information("Login successful! AccountId={AccountId}", accountId);
 
         // Wait for character list to finish (StartList → List → EndList)
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         cts.Token.Register(() => charListDone.TrySetCanceled());
         await charListDone.Task;
 

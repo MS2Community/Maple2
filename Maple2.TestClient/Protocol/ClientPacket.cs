@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Maple2.Model.Enum;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
@@ -141,6 +141,9 @@ public static class ClientPacket {
     public static ByteWriter SkillAttackTarget(long skillUid, long targetUid,
         Vector3 impactPosition, Vector3 direction, byte attackPoint,
         byte targetCount, int[] targetObjectIds) {
+        if (targetObjectIds.Length < targetCount) {
+            throw new ArgumentException($"targetObjectIds length ({targetObjectIds.Length}) must be >= targetCount ({targetCount})");
+        }
         var pWriter = Of(RecvOp.Skill, 256);
         pWriter.WriteByte(1); // Command.Attack
         pWriter.WriteByte(1); // SubCommand.Target

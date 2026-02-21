@@ -1,4 +1,4 @@
-using Maple2.TestClient.Clients;
+﻿using Maple2.TestClient.Clients;
 using Maple2.Tools;
 using Serilog;
 
@@ -66,8 +66,8 @@ try {
         long characterId = result.Characters[0].CharacterId;
         Log.Information("--- Step 3: Selecting character {CharacterId} ---", characterId);
         gameServer = await loginClient.SelectCharacterAsync(characterId);
-        Log.Information("Game server: {Address}:{Port}, Token={Token}, MapId={MapId}",
-            gameServer.Address, gameServer.Port, gameServer.Token, gameServer.MapId);
+        Log.Information("Game server: {Address}:{Port}, MapId={MapId}",
+            gameServer.Address, gameServer.Port, gameServer.MapId);
 
         accountId = result.AccountId;
         machineId = loginClient.MachineId;
