@@ -62,11 +62,11 @@ public class AdditionalEffectMapper : TypeMapper<AdditionalEffectMetadata> {
                     Shield: Convert(data.ShieldProperty),
                     InvokeEffect: Convert(data.InvokeEffectProperty),
                     ModifyOverlapCount: data.ModifyOverlapCountProperty == null! ? [] : data.ModifyOverlapCountProperty.effectCodes
-                            .Zip(data.ModifyOverlapCountProperty.offsetCounts)
-                            .Select(tuple => new AdditionalEffectMetadataModifyOverlapCount(
-                                Id: tuple.First,
-                                OffsetCount: tuple.Second))
-                            .ToArray(),
+                        .Zip(data.ModifyOverlapCountProperty.offsetCounts)
+                        .Select(tuple => new AdditionalEffectMetadataModifyOverlapCount(
+                            Id: tuple.First,
+                            OffsetCount: tuple.Second))
+                        .ToArray(),
                     Skills: data.conditionSkill.Concat(data.splashSkill).Where(skill => !skill.activeByIntervalTick).Select(skill => skill.Convert()).ToArray(),
                     TickSkills: data.conditionSkill.Concat(data.splashSkill).Where(skill => skill.activeByIntervalTick).Select(skill => skill.Convert()).ToArray());
             }
@@ -213,7 +213,7 @@ public class AdditionalEffectMapper : TypeMapper<AdditionalEffectMetadata> {
     }
 
     private static AdditionalEffectMetadataDot.DotDamage? Convert(DotDamageProperty dotDamage) {
-        if (dotDamage.type <= 0) {
+        if (dotDamage is { value: <= 0, rate: <= 0, damageByTargetMaxHP: <= 0, spValue: 0, epValue: 0 }) {
             return null;
         }
 

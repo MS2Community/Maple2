@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Maple2.Model.Metadata;
+using Maple2.PacketLib.Tools;
 using Maple2.Server.Game.Manager.Field;
 using Maple2.Server.Game.Model.Skill;
 using Maple2.Server.Game.Packets;
@@ -9,8 +10,14 @@ using Serilog;
 
 namespace Maple2.Server.Game.Model;
 
+public enum SkillSource {
+    Region,
+    Cube,
+}
+
 public class FieldSkill : FieldEntity<SkillMetadata> {
     public IActor Caster { get; init; }
+    public SkillSource Source { get; init; } = SkillSource.Region;
     public int Interval { get; }
     public int FireCount { get; private set; }
     public bool Enabled => FireCount > 0 || NextTick <= endTick || Field.FieldTick <= endTick;
@@ -21,8 +28,12 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
     public readonly bool UseDirection;
     private readonly long endTick;
     public long NextTick { get; private set; }
-
     private readonly ILogger logger = Log.ForContext<FieldSkill>();
+
+    private ByteWriter GetDamagePacket(DamageRecord record) => Source switch {
+        SkillSource.Cube => SkillDamagePacket.Tile(record),
+        _ => SkillDamagePacket.Region(record),
+    };
 
     public FieldSkill(FieldManager field, int objectId, IActor caster,
                       SkillMetadata value, int interval, params Vector3[] points) : base(field, objectId, value) {
@@ -80,7 +91,10 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
         if (!Active) {
             foreach (SkillMetadataMotion motion in Value.Data.Motions) {
                 foreach (SkillMetadataAttack attack in motion.Attacks) {
-                    Prism[] prisms = Points.Select(point => attack.Range.GetPrism(point, UseDirection ? Rotation.Z : 0)).ToArray();
+                    float skillAngle = UseDirection ? Rotation.Z : 0;
+                    Prism[] prisms = Points
+                        .Select(point => attack.Range.GetPrism(point, skillAngle, attack.Range.ApplyTarget))
+                        .ToArray();
                     if (Field.GetTargets(Caster, prisms, attack.Range.ApplyTarget, attack.TargetCount).Any()) {
                         Active = true;
                         goto activated;
@@ -154,7 +168,7 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                     }
 
                     Field.Broadcast(SkillDamagePacket.Target(record, targetRecords));
-                    Field.Broadcast(SkillDamagePacket.Region(damage));
+                    Field.Broadcast(GetDamagePacket(damage));
                     for (int t = 0; t < bounceTargets.Count; t++) {
                         IActor target = bounceTargets[t];
                         record.TargetUid = targetRecords[t].Uid;
@@ -167,7 +181,10 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                         Caster.ApplyEffects(attack.Skills, Caster, Caster, skillId: Value.Id, targets: targets);
                     }
                 } else {
-                    Prism[] prisms = Points.Select(point => attack.Range.GetPrism(point, UseDirection ? Rotation.Z : 0)).ToArray();
+                    float skillAngle = UseDirection ? Rotation.Z : 0;
+                    Prism[] prisms = Points
+                        .Select(point => attack.Range.GetPrism(point, skillAngle, attack.Range.ApplyTarget))
+                        .ToArray();
                     IActor[] targets = Field.GetTargets(Caster, prisms, attack.Range.ApplyTarget, attack.TargetCount).ToArray();
                     // if (targets.Length > 0) {
                     //     logger.Debug("[{Tick}] {ObjectId}:{AttackPoint} Targeting: {Count}/{Limit} {Type}",
@@ -197,7 +214,7 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                     }
                     if (targetRecords.Count > 0) {
                         Field.Broadcast(SkillDamagePacket.Target(record, targetRecords));
-                        Field.Broadcast(SkillDamagePacket.Region(damage));
+                        Field.Broadcast(GetDamagePacket(damage));
                     }
 
                     Caster.ApplyEffects(attack.SkillsOnDamage, Caster, damage, targets: targets);
