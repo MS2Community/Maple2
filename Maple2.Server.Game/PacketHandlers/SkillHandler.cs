@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+using System.Linq;
+using System.Numerics;
 using Maple2.Database.Storage;
 using Maple2.Model.Enum;
 using Maple2.Model.Metadata;
@@ -11,6 +12,8 @@ using Maple2.Server.Game.Model.Skill;
 using Maple2.Server.Game.PacketHandlers.Field;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
+using Maple2.Server.Game.Util;
+using Maple2.Tools.Collision;
 
 namespace Maple2.Server.Game.PacketHandlers;
 
@@ -178,6 +181,46 @@ public class SkillHandler : FieldPacketHandler {
             }
 
             session.Player.InBattle = true;
+
+            // When the client reports no valid target (TargetId=0), the NPC may have died since the last
+            // SubCommand.Target. Do server-side detection to find hittable corpses in attack range.
+            if (targets.All(t => t.TargetId == 0) && session.Field != null) {
+                float angle = MathF.Atan2(record.Direction.Y, record.Direction.X) * (180f / MathF.PI);
+                Prism attackPrism = record.Attack.Range.GetPrism(record.Position, angle);
+                foreach (FieldNpc npc in attackPrism.Filter(session.Field.Mobs.Values, record.Attack.TargetCount)) {
+                    if (npc.IsCorpse) {
+                        record.Targets.TryAdd(npc.ObjectId, npc);
+                    }
+                }
+
+                // Fallback: if no corpse found in prism, pick the nearest corpse within range (non-directional).
+                if (record.Targets.IsEmpty) {
+                    float maxDist = record.Attack.Range.Distance + record.Attack.Range.RangeAdd.Y;
+                    float maxHeight = record.Attack.Range.Height + record.Attack.Range.RangeAdd.Z;
+                    FieldNpc? nearestCorpse = null;
+                    float nearestDist = float.MaxValue;
+                    foreach (FieldNpc npc in session.Field.Mobs.Values) {
+                        if (!npc.IsCorpse) continue;
+                        float dist = Vector2.Distance(new Vector2(record.Position.X, record.Position.Y),
+                            new Vector2(npc.Position.X, npc.Position.Y));
+                        float heightDelta = MathF.Abs(npc.Position.Z - record.Position.Z);
+                        if (dist <= maxDist && heightDelta <= maxHeight && dist < nearestDist) {
+                            nearestDist = dist;
+                            nearestCorpse = npc;
+                        }
+                    }
+
+                    if (nearestCorpse != null) {
+                        record.Targets.TryAdd(nearestCorpse.ObjectId, nearestCorpse);
+                    }
+                }
+                if (!record.Targets.IsEmpty) {
+                    session.Player.TargetAttack(record);
+                    record.Targets.Clear();
+                    continue;
+                }
+            }
+
             session.Field?.Broadcast(SkillDamagePacket.Target(record, targets), session);
 
             // Unsure if this is correct.

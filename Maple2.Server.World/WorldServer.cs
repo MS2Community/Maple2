@@ -313,11 +313,9 @@ public class WorldServer {
         int scheduled = 0;
         foreach ((int _, WorldBossMetadata boss) in serverTableMetadata.TimeEventTable.WorldBoss) {
             if (boss.EndTime < DateTime.Now) {
-                logger.Debug("WorldBoss {Id} skipped — event period ended ({EndTime})", boss.Id, boss.EndTime);
                 continue;
             }
             if (boss.CycleTime == TimeSpan.Zero) {
-                logger.Debug("WorldBoss {Id} skipped — no cycle time", boss.Id);
                 continue;
             }
 
@@ -328,14 +326,11 @@ public class WorldServer {
                     startTime += boss.CycleTime;
                 }
                 if (startTime > boss.EndTime) {
-                    logger.Debug("WorldBoss {Id} skipped — next spawn {NextSpawn} is past EndTime {EndTime}", boss.Id, startTime, boss.EndTime);
                     continue;
                 }
             }
 
             TimeSpan delay = startTime - DateTime.Now;
-            logger.Debug("WorldBoss {Id} (NpcId: {NpcId}) scheduled — first spawn in {Delay:hh\\:mm\\:ss} at {SpawnTime:HH:mm:ss} UTC",
-                boss.Id, boss.NpcIds.Length > 0 ? boss.NpcIds[0] : 0, delay, startTime.ToUniversalTime());
             scheduler.Schedule(() => SpawnWorldBoss(boss, startTime), delay);
             scheduled++;
         }
