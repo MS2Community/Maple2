@@ -163,7 +163,7 @@ public class SkillMapper : TypeMapper<StoredSkillMetadata> {
             RotateZDegree: region.rangeZRotateDegree,
             RangeAdd: region.rangeAdd,
             RangeOffset: region.rangeOffset,
-            IncludeCaster: (SkillTargetType) region.includeCaster,
+            IncludeCaster: (IncludeCasterType) region.includeCaster,
             ApplyTarget: (ApplyTargetType) region.applyTarget,
             CastTarget: (SkillTargetType) region.castTarget
         );

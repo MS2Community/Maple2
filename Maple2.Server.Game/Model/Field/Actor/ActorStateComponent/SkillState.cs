@@ -71,7 +71,7 @@ public class SkillState {
         Tools.Collision.Prism attackPrism = attack.Range.GetPrism(actor.Position, actor.Rotation.Z);
         var resolvedTargets = new List<IActor>();
         int queryLimit = attack.TargetCount > 0 ? attack.TargetCount : 1;
-        foreach (IActor target in actor.Field.GetTargets(actor, [attackPrism], attack.Range.ApplyTarget, queryLimit)) {
+        foreach (IActor target in actor.Field.GetTargets(actor, [attackPrism], attack.Range, queryLimit)) {
             resolvedTargets.Add(target);
         }
 

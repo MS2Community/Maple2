@@ -562,7 +562,7 @@ public partial class FieldManager {
         }
     }
 
-    public IEnumerable<IActor> GetTargets(IActor caster, Prism[] prisms, ApplyTargetType targetType, int limit, ICollection<IActor>? ignore = null) {
+    private IEnumerable<IActor> GetTargetPool(IActor caster, Prism[] prisms, ApplyTargetType targetType, int limit, ICollection<IActor>? ignore) {
         switch (targetType) {
             case ApplyTargetType.Friendly:
                 if (caster is FieldNpc) {
@@ -590,6 +590,31 @@ public partial class FieldManager {
                 Log.Debug("Unhandled SkillEntity:{Entity}", targetType);
                 return [];
         }
+    }
+
+    public IEnumerable<IActor> GetTargets(IActor caster, Prism[] prisms, SkillMetadataRange range, int targetCount, ICollection<IActor>? ignore = null) {
+        // Caster is always excluded from the pool; re-added explicitly per IncludeCaster semantics
+        ICollection<IActor> poolIgnore = ignore != null ? [..ignore, caster] : [caster];
+
+        switch (range.IncludeCaster) {
+            case IncludeCasterType.Priority: {
+                // Caster guaranteed as first target; pool fills remaining slots
+                IActor[] pool = GetTargetPool(caster, prisms, range.ApplyTarget, targetCount - 1, poolIgnore).ToArray();
+                return Enumerable.Repeat<IActor>(caster, 1).Concat(pool);
+            }
+            case IncludeCasterType.Last: {
+                // Pool fills all slots; caster appended only if fewer than targetCount were found
+                IActor[] pool = GetTargetPool(caster, prisms, range.ApplyTarget, targetCount, poolIgnore).ToArray();
+                return pool.Length < targetCount ? pool.Concat(Enumerable.Repeat<IActor>(caster, 1)) : pool;
+            }
+            default: // Exclude
+                return GetTargetPool(caster, prisms, range.ApplyTarget, targetCount, poolIgnore);
+        }
+    }
+
+    public IEnumerable<IActor> GetTargets(SkillRecord record, ICollection<IActor>? ignore = null) {
+        Prism[] prisms = [record.Attack.Range.GetPrism(record.ImpactPosition, record.Rotation.Z)];
+        return GetTargets(record.Caster, prisms, record.Attack.Range, record.Attack.TargetCount, ignore);
     }
 
     public void RemoveSkill(int objectId) {

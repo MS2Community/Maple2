@@ -81,7 +81,7 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
             foreach (SkillMetadataMotion motion in Value.Data.Motions) {
                 foreach (SkillMetadataAttack attack in motion.Attacks) {
                     Prism[] prisms = Points.Select(point => attack.Range.GetPrism(point, UseDirection ? Rotation.Z : 0)).ToArray();
-                    if (Field.GetTargets(Caster, prisms, attack.Range.ApplyTarget, attack.TargetCount).Any()) {
+                    if (Field.GetTargets(Caster, prisms, attack.Range, attack.TargetCount).Any()) {
                         Active = true;
                         goto activated;
                     }
@@ -134,8 +134,8 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                         var prism = new Prism(circle, position.Z, box.Z);
 
                         targets = attack.Arrow.BounceOverlap
-                            ? Field.GetTargets(Caster, [prism], record.Attack.Range.ApplyTarget, 1, targets).ToArray()
-                            : Field.GetTargets(Caster, [prism], record.Attack.Range.ApplyTarget, 1, bounceTargets).ToArray();
+                            ? Field.GetTargets(Caster, [prism], record.Attack.Range, 1, targets).ToArray()
+                            : Field.GetTargets(Caster, [prism], record.Attack.Range, 1, bounceTargets).ToArray();
                         if (targets.Length <= 0) {
                             break;
                         }
@@ -168,7 +168,7 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                     }
                 } else {
                     Prism[] prisms = Points.Select(point => attack.Range.GetPrism(point, UseDirection ? Rotation.Z : 0)).ToArray();
-                    IActor[] targets = Field.GetTargets(Caster, prisms, attack.Range.ApplyTarget, attack.TargetCount).ToArray();
+                    IActor[] targets = Field.GetTargets(Caster, prisms, attack.Range, attack.TargetCount).ToArray();
                     // if (targets.Length > 0) {
                     //     logger.Debug("[{Tick}] {ObjectId}:{AttackPoint} Targeting: {Count}/{Limit} {Type}",
                     //         NextTick, ObjectId, attack.Point, targets.Length, attack.TargetCount, attack.Range.ApplyTarget);
