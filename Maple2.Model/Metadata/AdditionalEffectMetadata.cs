@@ -99,7 +99,7 @@ public record AdditionalEffectMetadataRecovery(
     float SpConsumeRate,
     long EpValue,
     float EpRate,
-    bool NotCrit);
+    bool DisableCrit);
 
 public record AdditionalEffectMetadataDot(
     AdditionalEffectMetadataDot.DotDamage? Damage,

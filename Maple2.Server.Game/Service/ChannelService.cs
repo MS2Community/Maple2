@@ -10,7 +10,6 @@ public partial class ChannelService : Channel.Service.Channel.ChannelBase {
     private readonly GameStorage gameStorage;
     private readonly TableMetadataStorage tableMetadata;
     private readonly ServerTableMetadataStorage serverTableMetadata;
-
     private readonly ILogger logger = Log.Logger.ForContext<ChannelService>();
 
     public ChannelService(GameServer server, PlayerInfoStorage playerInfos, GameStorage gameStorage, ServerTableMetadataStorage serverTableMetadata, TableMetadataStorage tableMetadata, ItemMetadataStorage itemMetadata) {

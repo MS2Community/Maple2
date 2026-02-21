@@ -151,6 +151,7 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             record.AddDamage(DamageType.Normal, positiveDamage);
             Stats.Values[BasicAttribute.Health].Add(damageAmount);
             Field.Broadcast(StatsPacket.Update(this, BasicAttribute.Health));
+            OnDamageReceived(caster, positiveDamage);
         }
 
         foreach ((DamageType damageType, long amount) in targetRecord.Damage) {
@@ -173,6 +174,8 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             }
         }
     }
+
+    protected virtual void OnDamageReceived(IActor caster, long amount) { }
 
     public virtual void Reflect(IActor target) {
         if (Buffs.Reflect == null || Buffs.Reflect.Counter >= Buffs.Reflect.Metadata.Count) {

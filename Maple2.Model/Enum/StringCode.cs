@@ -2238,6 +2238,7 @@ public enum StringCode {
     s_interact_result_unknown = 2229,
     s_interact_result_mastery = 2230,
     s_interact_find_new_telescope = 2231,
+    [Description("{0} dealt the final blow against {1}.")]
     s_hunting_kill_boss = 2232,
     s_hunting_npc_kill_boss = 2233,
     s_mode_pvp_status_winner = 2234,
@@ -3321,7 +3322,9 @@ public enum StringCode {
     s_word_tab_petcollect = 3308,
     s_word_tab_remakeoption = 3309,
     s_char_input_itemname = 3310,
+    [Description("$npc:{0}$ will leave soon.")]
     s_timeevent_boss_lifetimetext1 = 3311,
+    [Description("$npc:{0}$ disappeared.")]
     s_timeevent_boss_lifetimetext2 = 3312,
     s_word_pet = 3313,
     s_word_battle_pet = 3314,

@@ -9,3 +9,10 @@ public record Ms2RegionSkill(
     Vector3 Position,
     Vector3 Rotation
 ) : MapBlock;
+
+public record Ms2CubeSkill(
+    int SkillId,
+    short Level,
+    Vector3 Position,
+    Vector3 Rotation
+) : Ms2RegionSkill(SkillId, Level, 0, Position, Rotation);

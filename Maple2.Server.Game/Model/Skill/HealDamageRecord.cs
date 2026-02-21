@@ -18,10 +18,15 @@ public class HealDamageRecord : IByteSerializable {
         Target = target;
         OwnerId = ownerId;
 
+        float multiplier = 1f;
+        if (!recovery.DisableCrit && caster.Stats.GetCriticalRate() == DamageType.Critical) {
+            multiplier = 1.5f;
+        }
+
         HpAmount = (int) (recovery.HpValue + recovery.HpRate * target.Stats.Values[BasicAttribute.Health].Total
-                                           + recovery.RecoveryRate * caster.Stats.Values[BasicAttribute.MagicalAtk].Current);
-        SpAmount = (int) (recovery.SpValue + recovery.SpRate * target.Stats.Values[BasicAttribute.Spirit].Total);
-        EpAmount = (int) (recovery.EpValue + recovery.EpRate * target.Stats.Values[BasicAttribute.Stamina].Total);
+                                           + recovery.RecoveryRate * caster.Stats.Values[BasicAttribute.MagicalAtk].Current * multiplier);
+        SpAmount = (int) (recovery.SpValue + recovery.SpRate * target.Stats.Values[BasicAttribute.Spirit].Total * multiplier);
+        EpAmount = (int) (recovery.EpValue + recovery.EpRate * target.Stats.Values[BasicAttribute.Stamina].Total * multiplier);
     }
 
     public void WriteTo(IByteWriter writer) {

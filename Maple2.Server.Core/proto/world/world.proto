@@ -498,17 +498,36 @@ message TimeEventRequest {
 
   message GetGlobalPortal {}
 
+  message GetActiveWorldBosses {}
+
+  message WorldBossKilled {
+    int32 metadata_id = 1;
+    int32 event_id = 2;
+    int32 channel = 3;
+  }
+
   oneof TimeEvent {
     JoinGlobalPortal join_global_portal = 1;
     GetGlobalPortal get_global_portal = 2;
+    GetActiveWorldBosses get_active_world_bosses = 3;
+    WorldBossKilled world_boss_killed = 4;
   }
 }
 
 message TimeEventResponse {
+  message ActiveWorldBoss {
+    int32 metadata_id = 1;
+    int32 event_id = 2;
+    int64 spawn_timestamp = 3;
+    int64 next_spawn_timestamp = 4;
+    repeated int32 alive_channels = 5;
+  }
+
   oneof Info {
     GlobalPortalInfo global_portal_info = 1;
   }
   int32 error = 2;
+  repeated ActiveWorldBoss active_world_bosses = 3;
 }
 
 message GlobalPortalInfo {

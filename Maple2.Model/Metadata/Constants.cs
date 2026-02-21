@@ -9,7 +9,6 @@ namespace Maple2.Model.Metadata;
 
 public static class Constant {
     #region custom constants
-
     public const int ServerMaxCharacters = 8;
     public const int CharacterNameLengthMax = 12;
     public const long MaxMeret = long.MaxValue;
@@ -24,7 +23,7 @@ public static class Constant {
     public const int LapenshardGrade = 3;
     public const int InventoryExpandRowCount = 6;
     public const int DefaultReturnMapId = 2000062; // Lith Harbor
-    public const int DefaultHomeMapId = 62000000;  // Private Residence
+    public const int DefaultHomeMapId = 62000000; // Private Residence
     public const int DefaultHomeNumber = 1;
     public const byte MinHomeArea = 4;
     public const byte MaxHomeArea = 25;
@@ -106,6 +105,10 @@ public static class Constant {
     public const int MinStatIntervalTick = 100;
     public const int HomePollMaxCount = 5;
 
+    public static readonly TimeSpan WorldBossIdleWarningThreshold = TimeSpan.FromMinutes(4);
+    public static readonly TimeSpan WorldBossDespawnThreshold = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan WorldBossMonitorInterval = TimeSpan.FromSeconds(30);
+
     public const int MaxMentees = 3;
 
     public const long FurnishingBaseId = 2870000000000000000;
@@ -123,29 +126,29 @@ public static class Constant {
     public const bool AllowUnicodeInNames = false; // Allow Unicode characters in character and guild names
 
     public static IReadOnlyDictionary<string, int> ContentRewards { get; } = new Dictionary<string, int> {
-        {"miniGame", 1005},
-        {"dungeonHelper", 1006},
-        {"MiniGameType2",1007}, // Shanghai Runners
-        {"UserOpenMiniGameExtraReward", 1008}, // Player hosted mini game extra rewards
-        {"PrestigeRankUp", 1020},
-        {"NormalHardDungeonBonusTier1", 10000001},
-        {"NormalHardDungeonBonusTier2", 10000002},
-        {"NormalHardDungeonBonusTier3", 10000003},
-        {"NormalHardDungeonBonusTier4", 10000004},
-        {"NormalHardDungeonBonusTier5", 10000005},
-        {"NormalHardDungeonBonusTier6", 10000006},
-        {"NormalHardDungeonBonusTier7", 10000007},
-        {"NormalHardDungeonBonusTier8", 10000008},
-        {"QueenBeanArenaRound1Reward", 10000009},
-        {"QueenBeanArenaRound2Reward", 10000010},
-        {"QueenBeanArenaRound3Reward", 10000011},
-        {"QueenBeanArenaRound4Reward", 10000012},
-        {"QueenBeanArenaRound5Reward", 10000013},
-        {"QueenBeanArenaRound6Reward", 10000014},
-        {"QueenBeanArenaRound7Reward", 10000015},
-        {"QueenBeanArenaRound8Reward", 10000016},
-        {"QueenBeanArenaRound9Reward", 10000017},
-        {"QueenBeanArenaRound10Reward", 10000018},
+        { "miniGame", 1005 },
+        { "dungeonHelper", 1006 },
+        { "MiniGameType2", 1007 }, // Shanghai Runners
+        { "UserOpenMiniGameExtraReward", 1008 }, // Player hosted mini game extra rewards
+        { "PrestigeRankUp", 1020 },
+        { "NormalHardDungeonBonusTier1", 10000001 },
+        { "NormalHardDungeonBonusTier2", 10000002 },
+        { "NormalHardDungeonBonusTier3", 10000003 },
+        { "NormalHardDungeonBonusTier4", 10000004 },
+        { "NormalHardDungeonBonusTier5", 10000005 },
+        { "NormalHardDungeonBonusTier6", 10000006 },
+        { "NormalHardDungeonBonusTier7", 10000007 },
+        { "NormalHardDungeonBonusTier8", 10000008 },
+        { "QueenBeanArenaRound1Reward", 10000009 },
+        { "QueenBeanArenaRound2Reward", 10000010 },
+        { "QueenBeanArenaRound3Reward", 10000011 },
+        { "QueenBeanArenaRound4Reward", 10000012 },
+        { "QueenBeanArenaRound5Reward", 10000013 },
+        { "QueenBeanArenaRound6Reward", 10000014 },
+        { "QueenBeanArenaRound7Reward", 10000015 },
+        { "QueenBeanArenaRound8Reward", 10000016 },
+        { "QueenBeanArenaRound9Reward", 10000017 },
+        { "QueenBeanArenaRound10Reward", 10000018 },
     };
 
     public const bool MailQuestItems = false; // Mail quest item rewards if inventory is full
@@ -187,7 +190,6 @@ public static class Constant {
     public static readonly bool BlockLoginWithMismatchedMachineId = false;
     public static readonly int DefaultMaxCharacters = 4;
     #endregion
-
     #endregion
 
     #region client constants
@@ -218,7 +220,6 @@ public static class Constant {
     #endregion
 
     #region table/constants.xml
-
     public const float NPCColorScale = 2.0f;
     public const float NPCDuration = 0.2f;
     public const float PCColorScale = 2.0f;
@@ -932,7 +933,6 @@ public static class Constant {
     public const int DummyNpcMale = 2040998;
     public const int DummyNpcFemale = 2040999;
     public static int DummyNpc(Gender gender) => gender is Gender.Female ? DummyNpcFemale : DummyNpcMale;
-
     #endregion
 
     #region server table/constants.xml
@@ -960,6 +960,8 @@ public static class Constant {
     public const int SystemShopNPCIDFishing = 11001609;
     public const int SystemShopNPCIDMentor = 11003561;
     public const int SystemShopNPCIDMentee = 11003562;
+
+    public static TimeSpan GlobalCubeSkillIntervalTime = TimeSpan.FromMilliseconds(100);
     #endregion
 }
 

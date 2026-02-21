@@ -31,15 +31,17 @@ public class DotDamageRecord {
 
         int hpAmount = dotDamage.HpValue;
         if (!dotDamage.IsConstDamage) {
-            try {
-                (DamageType type, long amount) = DamageCalculator.CalculateDamage(caster, target, Properties);
-                Type = type;
-                hpAmount += (int) amount;
-                hpAmount += (int) (dotDamage.DamageByTargetMaxHp * Target.Stats.Values[BasicAttribute.Health].Total);
-            } catch (Exception e) {
-                Log.Logger.Error(e, "Error calculating damage for {Caster} on {Target} with dot damage {DotDamage}", caster, Target, dotDamage);
-                hpAmount = 0; // Fallback to 0 if calculation fails
+            if (dotDamage.Type != AttackType.None) {
+                try {
+                    (DamageType type, long amount) = DamageCalculator.CalculateDamage(caster, target, Properties);
+                    Type = type;
+                    hpAmount += (int) amount;
+                } catch (Exception e) {
+                    Log.Logger.Error(e, "Error calculating damage for {Caster} on {Target} with dot damage {DotDamage}", caster, Target, dotDamage);
+                    hpAmount = 0; // Fallback to 0 if calculation fails
+                }
             }
+            hpAmount += (int) (dotDamage.DamageByTargetMaxHp * Target.Stats.Values[BasicAttribute.Health].Total);
         }
         if (dotDamage.NotKill) {
             hpAmount = Math.Min(hpAmount, (int) (Target.Stats.Values[BasicAttribute.Health].Current - 1));

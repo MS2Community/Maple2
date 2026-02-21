@@ -76,7 +76,6 @@ public class MapDataMapper : TypeMapper<MapDataMetadata> {
         int vibrateObjectId = 0;
 
         foreach (IMapEntity entity in entities) {
-            var nearestCubeIndex = new Vector3S();
 
             if (entity is not IPlaceable placeable) {
                 continue;
@@ -88,7 +87,7 @@ public class MapDataMapper : TypeMapper<MapDataMetadata> {
             transform.Scale = placeable.Scale;
 
             Vector3 position = (1 / BLOCK_SIZE) * (placeable.Position - new Vector3(0, 0, HALF_BLOCK)); // offset to round to nearest
-            nearestCubeIndex = new Vector3S((short) Math.Floor(position.X + 0.5f), (short) Math.Floor(position.Y + 0.5f), (short) Math.Floor(position.Z + 0.5f));
+            var nearestCubeIndex = new Vector3S((short) Math.Floor(position.X + 0.5f), (short) Math.Floor(position.Y + 0.5f), (short) Math.Floor(position.Z + 0.5f));
             Vector3 voxelPosition = BLOCK_SIZE * new Vector3(nearestCubeIndex.X, nearestCubeIndex.Y, nearestCubeIndex.Z);
             var entityBounds = new BoundingBox3();
 

@@ -10,6 +10,20 @@ using Maple2.Tools.Collision;
 namespace Maple2.Server.Game.Util;
 
 public static class SkillUtils {
+    public static Prism GetPrism(this SkillMetadataRange range, in Vector3 position, float angle, ApplyTargetType applyTarget) {
+        // Region buffs use the same box shape but are centered on the target instead of projecting forward from the caster.
+        if (range.Type == SkillRegion.Box && applyTarget is ApplyTargetType.RegionBuff or ApplyTargetType.RegionBuff2) {
+            float adjustedAngle = angle + range.RotateZDegree + 180;
+            float length = range.Distance + range.RangeAdd.Y;
+            float width = range.Width + range.RangeAdd.X;
+            var origin = new Vector2(position.X + range.RangeOffset.X, position.Y + range.RangeOffset.Y);
+            return new Prism(new Rectangle(origin, width, length, adjustedAngle),
+                position.Z + range.RangeOffset.Z, range.Height + range.RangeAdd.Z);
+        }
+
+        return range.GetPrism(position, angle);
+    }
+
     public static Prism GetPrism(this SkillMetadataRange range, in Vector3 position, float angle) {
         if (range.Type == SkillRegion.None) {
             return new Prism(IPolygon.Null, 0, 0);

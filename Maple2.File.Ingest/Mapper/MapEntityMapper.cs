@@ -195,6 +195,11 @@ public class MapEntityMapper : TypeMapper<MapEntity> {
                             }
 
                             switch (physXProp) {
+                                case IMS2CubeProp { skillID: > 0, skillLevel: > 0 } cubeProp:
+                                    yield return new MapEntity(xblock, new Guid(entity.EntityId), entity.EntityName) {
+                                        Block = new Ms2CubeSkill(cubeProp.skillID, (short) cubeProp.skillLevel, cubeProp.Position, cubeProp.Rotation),
+                                    };
+                                    continue;
                                 case IMS2Liftable liftable:
                                     yield return new MapEntity(xblock, new Guid(entity.EntityId), entity.EntityName) {
                                         Block = new Liftable((int) liftable.ItemID, liftable.ItemStackCount, liftable.ItemLifeTime, liftable.LiftableRegenCheckTime, liftable.LiftableFinishTime, liftable.MaskQuestID, liftable.MaskQuestState, liftable.EffectQuestID, liftable.EffectQuestState, liftable.IsReactEffect, liftable.Position, liftable.Rotation),
