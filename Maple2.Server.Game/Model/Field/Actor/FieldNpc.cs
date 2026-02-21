@@ -409,10 +409,9 @@ public class FieldNpc : Actor<Npc> {
     // IndividualDropBoxIds instead (keyed to the NPC id, e.g. individualDropBoxId="23000013" for Doondun).
     private void DropGlobalLoot(long receiverCharacterId = 0) {
         NpcMetadataDropInfo dropInfo = Value.Metadata.DropInfo;
-
-        ICollection<Item> globalDrops = new List<Item>();
+        var globalDrops = new List<Item>();
         foreach (int globalDropId in dropInfo.GlobalDropBoxIds) {
-            globalDrops = globalDrops.Concat(Field.ItemDrop.GetGlobalDropItems(globalDropId, Value.Metadata.Basic.Level)).ToList();
+            globalDrops.AddRange(Field.ItemDrop.GetGlobalDropItems(globalDropId, Value.Metadata.Basic.Level));
         }
 
         foreach (Item item in globalDrops) {
@@ -424,10 +423,9 @@ public class FieldNpc : Actor<Npc> {
 
     private void DropHitLoot(FieldPlayer player) {
         NpcMetadataDropInfo dropInfo = Value.Metadata.DropInfo;
-
-        ICollection<Item> globalDrops = new List<Item>();
+        var globalDrops = new List<Item>();
         foreach (int globalHitDropId in dropInfo.GlobalHitDropBoxIds) {
-            globalDrops = globalDrops.Concat(Field.ItemDrop.GetGlobalDropItems(globalHitDropId, Value.Metadata.Basic.Level)).ToList();
+            globalDrops.AddRange(Field.ItemDrop.GetGlobalDropItems(globalHitDropId, Value.Metadata.Basic.Level));
         }
 
         foreach (Item item in globalDrops) {
@@ -437,8 +435,7 @@ public class FieldNpc : Actor<Npc> {
         }
 
         foreach (int individualHitDropId in dropInfo.IndividualHitDropBoxIds) {
-            ICollection<Item> individualDrops = Field.ItemDrop.GetIndividualDropItems(player.Session, player.Value.Character.Level, individualHitDropId);
-            foreach (Item item in individualDrops) {
+            foreach (Item item in Field.ItemDrop.GetIndividualDropItems(player.Session, player.Value.Character.Level, individualHitDropId)) {
                 float x = Random.Shared.Next((int) Position.X - dropInfo.DropDistanceRandom, (int) Position.X + dropInfo.DropDistanceRandom);
                 float y = Random.Shared.Next((int) Position.Y - dropInfo.DropDistanceRandom, (int) Position.Y + dropInfo.DropDistanceRandom);
                 Field.DropItem(new Vector3(x, y, Position.Z), Rotation, item, owner: this, characterId: player.Value.Character.Id);
@@ -448,10 +445,9 @@ public class FieldNpc : Actor<Npc> {
 
     private void DropIndividualLoot(FieldPlayer player) {
         NpcMetadataDropInfo dropInfo = Value.Metadata.DropInfo;
-
-        ICollection<Item> individualDrops = new List<Item>();
+        var individualDrops = new List<Item>();
         foreach (int individualDropId in dropInfo.IndividualDropBoxIds) {
-            individualDrops = individualDrops.Concat(Field.ItemDrop.GetIndividualDropItems(player.Session, player.Value.Character.Level, individualDropId)).ToList();
+            individualDrops.AddRange(Field.ItemDrop.GetIndividualDropItems(player.Session, player.Value.Character.Level, individualDropId));
         }
 
         foreach (Item item in individualDrops) {
@@ -463,10 +459,9 @@ public class FieldNpc : Actor<Npc> {
 
     public void DropCorpseLoot(FieldPlayer player) {
         NpcMetadataDropInfo dropInfo = Value.Metadata.DropInfo;
-
-        ICollection<Item> globalDrops = new List<Item>();
+        var globalDrops = new List<Item>();
         foreach (int deadGlobalDropId in dropInfo.DeadGlobalDropBoxIds) {
-            globalDrops = globalDrops.Concat(Field.ItemDrop.GetGlobalDropItems(deadGlobalDropId, Value.Metadata.Basic.Level)).ToList();
+            globalDrops.AddRange(Field.ItemDrop.GetGlobalDropItems(deadGlobalDropId, Value.Metadata.Basic.Level));
         }
 
         foreach (Item item in globalDrops) {
