@@ -70,7 +70,7 @@ public class ItemRepackHandler : FieldPacketHandler {
                 return;
             }
 
-            if (scrollMetadata.MinLevel > targetItem.Metadata.Limit.Level && scrollMetadata.MaxLevel < targetItem.Metadata.Limit.Level) {
+            if (targetItem.Metadata.Limit.Level < scrollMetadata.MinLevel || targetItem.Metadata.Limit.Level > scrollMetadata.MaxLevel) {
                 session.Send(ItemRepackPacket.Error(ItemRepackError.s_item_repacking_scroll_error_impossible_level));
                 return;
             }
@@ -80,7 +80,10 @@ public class ItemRepackHandler : FieldPacketHandler {
                 return;
             }
 
-            //TODO: Check item slot type
+            if (!scrollMetadata.ItemTypes.Contains(targetItem.Type.Type)) {
+                session.Send(ItemRepackPacket.Error(ItemRepackError.s_item_repacking_scroll_error_impossible_slot));
+                return;
+            }
 
             targetItem.Transfer.RemainTrades++;
             targetItem.Transfer.RepackageCount++;
