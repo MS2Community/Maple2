@@ -1,0 +1,30 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      maple2-packetlib-ts:
+        specifier: ^1.1.2
+        version: 1.1.2
+
+packages:
+
+  '@picode/binary-reader@1.0.0':
+    resolution: {integrity: sha512-OH2RfmwkqtO5mItVQTD4HgfAetfIMPCmH+nEQm9P2BiUSjgufC+5BD5LLY4+0hZxBUYTfgb+Dls53WtHCUZ9wg==}
+
+  maple2-packetlib-ts@1.1.2:
+    resolution: {integrity: sha512-VelT07TEvV/HPsgzgkAtFVnlVyKgJJiyuEWyz0qyJiidQNVEozTyVgHwz4ES/SwBwNzZIhKC4xE8k/jgFYDDdg==}
+    hasBin: true
+
+snapshots:
+
+  '@picode/binary-reader@1.0.0': {}
+
+  maple2-packetlib-ts@1.1.2:
+    dependencies:
+      '@picode/binary-reader': 1.0.0
