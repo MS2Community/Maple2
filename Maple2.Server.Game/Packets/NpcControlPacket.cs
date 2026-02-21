@@ -1,4 +1,4 @@
-using Maple2.Model.Common;
+﻿using Maple2.Model.Common;
 using Maple2.Model.Enum;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
