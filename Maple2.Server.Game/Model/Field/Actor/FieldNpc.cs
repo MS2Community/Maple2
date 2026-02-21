@@ -85,7 +85,7 @@ public class FieldNpc : Actor<Npc> {
     public readonly SkillMetadata?[] Skills;
 
     public int SpawnPointId = 0;
-    public Action<FieldNpc>? FieldBossDeathCallback { get; set; }
+    public Action<FieldNpc>? WorldBossDeathCallback { get; set; }
     public long LastDamageTick { get; private set; }
     private int lastAttackerObjectId;
 
@@ -324,7 +324,7 @@ public class FieldNpc : Actor<Npc> {
     }
 
     protected override void OnDeath() {
-        FieldBossDeathCallback?.Invoke(this);
+        WorldBossDeathCallback?.Invoke(this);
         Owner?.Despawn(ObjectId);
         SendControl = false;
 

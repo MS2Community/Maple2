@@ -326,15 +326,15 @@ public sealed partial class GameSession : Core.Network.Session {
         Send(FishingPacket.LoadAlbum(Player.Value.Unlock.FishAlbum.Values));
         Pet?.Load();
         Send(PetPacket.LoadCollection(Player.Value.Unlock.Pets));
-        Send(LegionBattlePacket.Load(ServerTableMetadata.TimeEventTable.FieldBoss));
+        Send(LegionBattlePacket.Load(ServerTableMetadata.TimeEventTable.WorldBoss));
         try {
             TimeEventResponse bossResponse = World.TimeEvent(new TimeEventRequest {
-                GetActiveFieldBosses = new TimeEventRequest.Types.GetActiveFieldBosses(),
+                GetActiveWorldBosses = new TimeEventRequest.Types.GetActiveWorldBosses(),
             });
-            if (bossResponse.ActiveFieldBosses.Count > 0) {
+            if (bossResponse.ActiveWorldBosses.Count > 0) {
                 var bossGroups = new List<ICollection<MapWorldBoss>>();
-                foreach (TimeEventResponse.Types.ActiveFieldBoss active in bossResponse.ActiveFieldBosses) {
-                    if (!ServerTableMetadata.TimeEventTable.FieldBoss.TryGetValue(active.MetadataId, out FieldBossMetadata? bossMetadata)) {
+                foreach (TimeEventResponse.Types.ActiveWorldBoss active in bossResponse.ActiveWorldBosses) {
+                    if (!ServerTableMetadata.TimeEventTable.WorldBoss.TryGetValue(active.MetadataId, out WorldBossMetadata? bossMetadata)) {
                         continue;
                     }
                     int bossNpcId = bossMetadata.NpcIds.Length > 0 ? bossMetadata.NpcIds[0] : 0;

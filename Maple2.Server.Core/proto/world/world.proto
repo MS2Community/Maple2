@@ -498,9 +498,9 @@ message TimeEventRequest {
 
   message GetGlobalPortal {}
 
-  message GetActiveFieldBosses {}
+  message GetActiveWorldBosses {}
 
-  message FieldBossKilled {
+  message WorldBossKilled {
     int32 metadata_id = 1;
     int32 event_id = 2;
     int32 channel = 3;
@@ -509,13 +509,13 @@ message TimeEventRequest {
   oneof TimeEvent {
     JoinGlobalPortal join_global_portal = 1;
     GetGlobalPortal get_global_portal = 2;
-    GetActiveFieldBosses get_active_field_bosses = 3;
-    FieldBossKilled field_boss_killed = 4;
+    GetActiveWorldBosses get_active_world_bosses = 3;
+    WorldBossKilled world_boss_killed = 4;
   }
 }
 
 message TimeEventResponse {
-  message ActiveFieldBoss {
+  message ActiveWorldBoss {
     int32 metadata_id = 1;
     int32 event_id = 2;
     int64 spawn_timestamp = 3;
@@ -527,7 +527,7 @@ message TimeEventResponse {
     GlobalPortalInfo global_portal_info = 1;
   }
   int32 error = 2;
-  repeated ActiveFieldBoss active_field_bosses = 3;
+  repeated ActiveWorldBoss active_field_bosses = 3;
 }
 
 message GlobalPortalInfo {

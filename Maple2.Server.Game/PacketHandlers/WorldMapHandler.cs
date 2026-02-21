@@ -37,12 +37,12 @@ public class WorldMapHandler : FieldPacketHandler {
         int mapCode = packet.ReadInt();
 
         TimeEventResponse bossResponse = session.World.TimeEvent(new TimeEventRequest {
-            GetActiveFieldBosses = new TimeEventRequest.Types.GetActiveFieldBosses(),
+            GetActiveWorldBosses = new TimeEventRequest.Types.GetActiveWorldBosses(),
         });
 
         var bossGroups = new List<ICollection<MapWorldBoss>>();
-        foreach (TimeEventResponse.Types.ActiveFieldBoss active in bossResponse.ActiveFieldBosses) {
-            if (!session.ServerTableMetadata.TimeEventTable.FieldBoss.TryGetValue(active.MetadataId, out FieldBossMetadata? metadata)) {
+        foreach (TimeEventResponse.Types.ActiveWorldBoss active in bossResponse.ActiveWorldBosses) {
+            if (!session.ServerTableMetadata.TimeEventTable.WorldBoss.TryGetValue(active.MetadataId, out WorldBossMetadata? metadata)) {
                 continue;
             }
             int npcId = metadata.NpcIds.Length > 0 ? metadata.NpcIds[0] : 0;

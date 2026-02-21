@@ -786,7 +786,7 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
 
     private TimeEventTable ParseTimeEventTable() {
         var globalPortals = new Dictionary<int, GlobalPortalMetadata>();
-        var fieldBosses = new Dictionary<int, FieldBossMetadata>();
+        var worldBosses = new Dictionary<int, WorldBossMetadata>();
         foreach ((int id, TimeEventData data) in parser.ParseTimeEventData()) {
             switch (data.type) {
                 case TimeEventType.GlobalEvent: {
@@ -827,7 +827,7 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
                         int[] cycleArray = string.IsNullOrEmpty(data.cycleTime) ? [0, 0, 0, 0, 0, 0] : ParseTimeToArray(data.cycleTime);
                         int[] randomArray = string.IsNullOrEmpty(data.randomTime) ? [0, 0, 0, 0, 0, 0] : ParseTimeToArray(data.randomTime);
                         int[] lifeArray = string.IsNullOrEmpty(data.lifeTime) ? [0, 0, 0, 0, 0, 0] : ParseTimeToArray(data.lifeTime);
-                        fieldBosses.Add(id, new FieldBossMetadata(
+                        worldBosses.Add(id, new WorldBossMetadata(
                             Id: id,
                             Probability: data.prob,
                             StartTime: new DateTime(startTimeArray[0], startTimeArray[1], startTimeArray[2], startTimeArray[3], startTimeArray[4], startTimeArray[5]),
@@ -848,7 +848,7 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
                     }
             }
         }
-        return new TimeEventTable(GlobalPortal: globalPortals, FieldBoss: fieldBosses);
+        return new TimeEventTable(GlobalPortal: globalPortals, WorldBoss: worldBosses);
 
         int[] ParseTimeToArray(string time) {
             string[] timeArray = time.Split('-');

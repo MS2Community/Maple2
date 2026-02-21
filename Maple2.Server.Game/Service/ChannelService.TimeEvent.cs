@@ -22,12 +22,12 @@ public partial class ChannelService {
                 return Task.FromResult(CloseGlobalPortal(request.CloseGlobalPortal));
             case TimeEventRequest.TimeEventOneofCase.GetField:
                 return Task.FromResult(GetField(request.GetField));
-            case TimeEventRequest.TimeEventOneofCase.AnnounceFieldBoss:
-                return Task.FromResult(AnnounceFieldBoss(request.AnnounceFieldBoss));
-            case TimeEventRequest.TimeEventOneofCase.CloseFieldBoss:
-                return Task.FromResult(CloseFieldBoss(request.CloseFieldBoss));
-            case TimeEventRequest.TimeEventOneofCase.WarnFieldBoss:
-                return Task.FromResult(WarnFieldBoss(request.WarnFieldBoss));
+            case TimeEventRequest.TimeEventOneofCase.AnnounceWorldBoss:
+                return Task.FromResult(AnnounceWorldBoss(request.AnnounceWorldBoss));
+            case TimeEventRequest.TimeEventOneofCase.CloseWorldBoss:
+                return Task.FromResult(CloseWorldBoss(request.CloseWorldBoss));
+            case TimeEventRequest.TimeEventOneofCase.WarnWorldBoss:
+                return Task.FromResult(WarnWorldBoss(request.WarnWorldBoss));
             default:
                 return Task.FromResult(new TimeEventResponse());
         }
@@ -52,8 +52,8 @@ public partial class ChannelService {
         return new TimeEventResponse();
     }
 
-    private TimeEventResponse AnnounceFieldBoss(TimeEventRequest.Types.AnnounceFieldBoss boss) {
-        if (!serverTableMetadata.TimeEventTable.FieldBoss.TryGetValue(boss.MetadataId, out FieldBossMetadata? metadata)) {
+    private TimeEventResponse AnnounceWorldBoss(TimeEventRequest.Types.AnnounceWorldBoss boss) {
+        if (!serverTableMetadata.TimeEventTable.WorldBoss.TryGetValue(boss.MetadataId, out WorldBossMetadata? metadata)) {
             return new TimeEventResponse();
         }
 
@@ -70,14 +70,14 @@ public partial class ChannelService {
         // Spawn the boss NPC in each target map
         foreach (int targetMapId in metadata.TargetMapIds) {
             FieldManager? field = server.GetField(targetMapId);
-            field?.SpawnFieldBoss(metadata, boss.EventId);
+            field?.SpawnWorldBoss(metadata, boss.EventId);
         }
 
         return new TimeEventResponse();
     }
 
-    private TimeEventResponse WarnFieldBoss(TimeEventRequest.Types.WarnFieldBoss boss) {
-        if (!serverTableMetadata.TimeEventTable.FieldBoss.TryGetValue(boss.MetadataId, out FieldBossMetadata? metadata)) {
+    private TimeEventResponse WarnWorldBoss(TimeEventRequest.Types.WarnWorldBoss boss) {
+        if (!serverTableMetadata.TimeEventTable.WorldBoss.TryGetValue(boss.MetadataId, out WorldBossMetadata? metadata)) {
             return new TimeEventResponse();
         }
 
@@ -86,7 +86,7 @@ public partial class ChannelService {
         foreach (int targetMapId in metadata.TargetMapIds) {
             FieldManager? field = server.GetField(targetMapId);
             if (field == null) continue;
-            FieldNpc? bossNpc = field.GetFieldBossNpc();
+            FieldNpc? bossNpc = field.GetWorldBossNpc();
             if (bossNpc == null) continue; // Already dead on this channel
             field.Broadcast(NoticePacket.Message(new InterfaceText(StringCode.s_timeevent_boss_lifetimetext1, npcId.ToString())));
         }
@@ -94,8 +94,8 @@ public partial class ChannelService {
         return new TimeEventResponse();
     }
 
-    private TimeEventResponse CloseFieldBoss(TimeEventRequest.Types.CloseFieldBoss boss) {
-        if (!serverTableMetadata.TimeEventTable.FieldBoss.TryGetValue(boss.MetadataId, out FieldBossMetadata? metadata)) {
+    private TimeEventResponse CloseWorldBoss(TimeEventRequest.Types.CloseWorldBoss boss) {
+        if (!serverTableMetadata.TimeEventTable.WorldBoss.TryGetValue(boss.MetadataId, out WorldBossMetadata? metadata)) {
             return new TimeEventResponse();
         }
 
@@ -105,20 +105,20 @@ public partial class ChannelService {
             FieldManager? field = server.GetField(targetMapId);
             if (field == null) continue;
 
-            FieldNpc? bossNpc = field.GetFieldBossNpc();
+            FieldNpc? bossNpc = field.GetWorldBossNpc();
             if (bossNpc == null) continue;
 
             long idleMs = bossNpc.LastDamageTick > 0
                 ? Environment.TickCount64 - bossNpc.LastDamageTick
                 : long.MaxValue;
 
-            if (idleMs < (long) Constant.FieldBossIdleWarningThreshold.TotalMilliseconds) {
+            if (idleMs < (long) Constant.WorldBossIdleWarningThreshold.TotalMilliseconds) {
                 if (monitoringBossFields.TryAdd(targetMapId, 0)) {
                     _ = MonitorExtendedBossLifetimeAsync(field, npcId, targetMapId);
                 }
             } else {
                 field.Broadcast(NoticePacket.Message(new InterfaceText(StringCode.s_timeevent_boss_lifetimetext2, npcId.ToString())));
-                field.DespawnFieldBoss();
+                field.DespawnWorldBoss();
             }
         }
 
@@ -129,23 +129,23 @@ public partial class ChannelService {
         bool warningSent = false;
         try {
             while (true) {
-                await Task.Delay(Constant.FieldBossMonitorInterval);
+                await Task.Delay(Constant.WorldBossMonitorInterval);
 
-                FieldNpc? bossNpc = field.GetFieldBossNpc();
+                FieldNpc? bossNpc = field.GetWorldBossNpc();
                 if (bossNpc == null) return;
 
                 long idleMs = bossNpc.LastDamageTick == 0
                     ? long.MaxValue
                     : Environment.TickCount64 - bossNpc.LastDamageTick;
 
-                if (!warningSent && idleMs >= (long) Constant.FieldBossIdleWarningThreshold.TotalMilliseconds) {
+                if (!warningSent && idleMs >= (long) Constant.WorldBossIdleWarningThreshold.TotalMilliseconds) {
                     field.Broadcast(NoticePacket.Message(new InterfaceText(StringCode.s_timeevent_boss_lifetimetext1, npcId.ToString())));
                     warningSent = true;
                 }
 
-                if (idleMs >= (long) Constant.FieldBossDespawnThreshold.TotalMilliseconds) {
+                if (idleMs >= (long) Constant.WorldBossDespawnThreshold.TotalMilliseconds) {
                     field.Broadcast(NoticePacket.Message(new InterfaceText(StringCode.s_timeevent_boss_lifetimetext2, npcId.ToString())));
-                    field.DespawnFieldBoss();
+                    field.DespawnWorldBoss();
                     return;
                 }
             }

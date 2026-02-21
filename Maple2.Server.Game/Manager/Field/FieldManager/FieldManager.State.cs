@@ -52,7 +52,7 @@ public partial class FieldManager {
 
     private readonly ConcurrentDictionary<int, HongBao> hongBaos = new();
 
-    private int fieldBossObjectId;
+    private int worldBossObjectId;
 
     private string? background;
     private readonly ConcurrentDictionary<FieldProperty, IFieldProperty> fieldProperties = new();
@@ -450,25 +450,25 @@ public partial class FieldManager {
         fieldSpawnGroup.ToggleActive(enable);
     }
 
-    public FieldNpc? SpawnFieldBoss(FieldBossMetadata metadata, int eventId) {
+    public FieldNpc? SpawnWorldBoss(WorldBossMetadata metadata, int eventId) {
         if (metadata.NpcIds.Length == 0 || metadata.SpawnPointIds.Length == 0) {
-            logger.Warning("[FieldBoss] Metadata {Id} has no NpcIds or SpawnPointIds", metadata.Id);
+            logger.Warning("[WorldBoss] Metadata {Id} has no NpcIds or SpawnPointIds", metadata.Id);
             return null;
         }
 
-        if (metadata.Unique && fieldBossObjectId != 0) {
-            logger.Warning("[FieldBoss] Unique boss {Id} already present in map {MapId}, skipping spawn", metadata.Id, MapId);
+        if (metadata.Unique && worldBossObjectId != 0) {
+            logger.Warning("[WorldBoss] Unique boss {Id} already present in map {MapId}, skipping spawn", metadata.Id, MapId);
             return null;
         }
 
         // TimeEventData.Xml only uses 1 npc and spawnpointid for each event
         if (!NpcMetadata.TryGet(metadata.NpcIds.First(), out NpcMetadata? npcMetadata)) {
-            logger.Warning("[FieldBoss] NPC {NpcId} not found", metadata.NpcIds.First());
+            logger.Warning("[WorldBoss] NPC {NpcId} not found", metadata.NpcIds.First());
             return null;
         }
 
         if (!Entities.RegionSpawns.TryGetValue(metadata.SpawnPointIds.First(), out Ms2RegionSpawn? regionSpawn)) {
-            logger.Warning("[FieldBoss] RegionSpawn {SpawnPointId} not found in map {MapId}", metadata.SpawnPointIds.First(), MapId);
+            logger.Warning("[WorldBoss] RegionSpawn {SpawnPointId} not found in map {MapId}", metadata.SpawnPointIds.First(), MapId);
             return null;
         }
 
@@ -477,9 +477,9 @@ public partial class FieldManager {
             return null;
         }
 
-        fieldBossObjectId = npc.ObjectId;
-        npc.FieldBossDeathCallback = killedNpc => {
-            fieldBossObjectId = 0;
+        worldBossObjectId = npc.ObjectId;
+        npc.WorldBossDeathCallback = killedNpc => {
+            worldBossObjectId = 0;
             FieldPlayer? killer = killedNpc.GetLastAttacker();
             string killerName = killer?.Value.Character.Name ?? string.Empty;
             string bossName = npcMetadata.Name ?? string.Empty;
@@ -489,34 +489,34 @@ public partial class FieldManager {
             // Notify World to remove this channel from the boss's alive channel list (for world map accuracy)
             try {
                 FieldFactory.World.TimeEvent(new WorldTimeEventRequest {
-                    FieldBossKilled = new WorldTimeEventRequest.Types.FieldBossKilled {
+                    WorldBossKilled = new WorldTimeEventRequest.Types.WorldBossKilled {
                         MetadataId = metadata.Id,
                         EventId = eventId,
                         Channel = GameServer.GetChannel(),
                     },
                 });
             } catch (Exception ex) {
-                logger.Error(ex, "[FieldBoss] Failed to notify world of boss {MetadataId} kill on channel {Channel}", metadata.Id, GameServer.GetChannel());
+                logger.Error(ex, "[WorldBoss] Failed to notify world of boss {MetadataId} kill on channel {Channel}", metadata.Id, GameServer.GetChannel());
             }
         };
         Broadcast(FieldPacket.AddNpc(npc));
-        logger.Information("[FieldBoss] Spawned {NpcId} (objectId={ObjectId}) for event {EventId} in map {MapId}", metadata.NpcIds[0], npc.ObjectId, eventId, MapId);
+        logger.Information("[WorldBoss] Spawned {NpcId} (objectId={ObjectId}) for event {EventId} in map {MapId}", metadata.NpcIds[0], npc.ObjectId, eventId, MapId);
         return npc;
     }
 
-    public FieldNpc? GetFieldBossNpc() {
-        if (fieldBossObjectId == 0) return null;
-        Mobs.TryGetValue(fieldBossObjectId, out FieldNpc? npc);
+    public FieldNpc? GetWorldBossNpc() {
+        if (worldBossObjectId == 0) return null;
+        Mobs.TryGetValue(worldBossObjectId, out FieldNpc? npc);
         return npc;
     }
 
-    public void DespawnFieldBoss() {
-        if (fieldBossObjectId == 0) {
+    public void DespawnWorldBoss() {
+        if (worldBossObjectId == 0) {
             return;
         }
 
-        int objectId = fieldBossObjectId;
-        fieldBossObjectId = 0;
+        int objectId = worldBossObjectId;
+        worldBossObjectId = 0;
         RemoveNpc(objectId);
     }
 

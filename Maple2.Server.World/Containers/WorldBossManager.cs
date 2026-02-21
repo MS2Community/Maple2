@@ -8,14 +8,14 @@ using ChannelClient = Maple2.Server.Channel.Service.Channel.ChannelClient;
 
 namespace Maple2.Server.World.Containers;
 
-public class FieldBossManager : IDisposable {
+public class WorldBossManager : IDisposable {
     public required ChannelClientLookup ChannelClients { get; init; }
 
-    public readonly FieldBoss Boss;
+    public readonly WorldBoss Boss;
     public readonly ConcurrentDictionary<int, byte> AliveChannels = new();
 
-    public FieldBossManager(FieldBossMetadata metadata, int id, long endTick, long nextSpawnTimestamp) {
-        Boss = new FieldBoss(metadata, id) {
+    public WorldBossManager(WorldBossMetadata metadata, int id, long endTick, long nextSpawnTimestamp) {
+        Boss = new WorldBoss(metadata, id) {
             EndTick = endTick,
             NextSpawnTimestamp = nextSpawnTimestamp,
         };
@@ -27,7 +27,7 @@ public class FieldBossManager : IDisposable {
         foreach ((int channelId, ChannelClient channelClient) in ChannelClients) {
             try {
                 channelClient.TimeEvent(new TimeEventRequest {
-                    AnnounceFieldBoss = new TimeEventRequest.Types.AnnounceFieldBoss {
+                    AnnounceWorldBoss = new TimeEventRequest.Types.AnnounceWorldBoss {
                         MetadataId = Boss.MetadataId,
                         EventId = Boss.Id,
                         EndTick = Boss.EndTick,
@@ -50,7 +50,7 @@ public class FieldBossManager : IDisposable {
         foreach ((int channelId, ChannelClient channelClient) in ChannelClients) {
             try {
                 channelClient.TimeEvent(new TimeEventRequest {
-                    WarnFieldBoss = new TimeEventRequest.Types.WarnFieldBoss {
+                    WarnWorldBoss = new TimeEventRequest.Types.WarnWorldBoss {
                         MetadataId = Boss.MetadataId,
                         EventId = Boss.Id,
                     },
@@ -69,7 +69,7 @@ public class FieldBossManager : IDisposable {
         foreach ((int channelId, ChannelClient channelClient) in ChannelClients) {
             try {
                 channelClient.TimeEvent(new TimeEventRequest {
-                    CloseFieldBoss = new TimeEventRequest.Types.CloseFieldBoss {
+                    CloseWorldBoss = new TimeEventRequest.Types.CloseWorldBoss {
                         MetadataId = Boss.MetadataId,
                         EventId = Boss.Id,
                     },

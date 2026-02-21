@@ -2,8 +2,8 @@
 
 namespace Maple2.Server.Game.Util;
 
-public static class FieldBossUtil {
-    public static long ComputeNextSpawnTimestamp(FieldBossMetadata metadata) {
+public static class WorldBossUtil {
+    public static long ComputeNextSpawnTimestamp(WorldBossMetadata metadata) {
         if (metadata.EndTime < DateTime.Now || metadata.CycleTime == TimeSpan.Zero) {
             return 0;
         }

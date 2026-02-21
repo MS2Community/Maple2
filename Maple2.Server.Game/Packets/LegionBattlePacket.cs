@@ -12,14 +12,14 @@ public static class LegionBattlePacket {
         Update = 1,
     }
 
-    public static ByteWriter Load(IReadOnlyDictionary<int, FieldBossMetadata> bosses) {
+    public static ByteWriter Load(IReadOnlyDictionary<int, WorldBossMetadata> bosses) {
         ByteWriter pWriter = Packet.Of(SendOp.LegionBattle);
         pWriter.Write<Mode>(Mode.Load);
         pWriter.WriteShort((short) bosses.Count);
-        foreach ((int _, FieldBossMetadata metadata) in bosses) {
+        foreach ((int _, WorldBossMetadata metadata) in bosses) {
             pWriter.WriteInt(metadata.Id);
             pWriter.WriteInt(metadata.NpcIds.Length > 0 ? metadata.NpcIds[0] : 0);
-            pWriter.WriteLong(FieldBossUtil.ComputeNextSpawnTimestamp(metadata));
+            pWriter.WriteLong(WorldBossUtil.ComputeNextSpawnTimestamp(metadata));
         }
         return pWriter;
     }

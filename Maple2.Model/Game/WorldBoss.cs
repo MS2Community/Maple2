@@ -2,15 +2,15 @@
 
 namespace Maple2.Model.Game;
 
-public class FieldBoss {
+public class WorldBoss {
     public int MetadataId => Metadata.Id;
     public int Id;
-    public FieldBossMetadata Metadata;
+    public WorldBossMetadata Metadata;
     public long EndTick;
     public long SpawnTimestamp;
     public long NextSpawnTimestamp;
 
-    public FieldBoss(FieldBossMetadata metadata, int id) {
+    public WorldBoss(WorldBossMetadata metadata, int id) {
         Metadata = metadata;
         Id = id;
     }

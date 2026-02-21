@@ -4,24 +4,24 @@ using Maple2.Model.Metadata;
 
 namespace Maple2.Server.World.Containers;
 
-public class FieldBossLookup {
+public class WorldBossLookup {
     private readonly ChannelClientLookup channelClients;
-    private readonly ConcurrentDictionary<int, FieldBossManager> activeManagers = new();
+    private readonly ConcurrentDictionary<int, WorldBossManager> activeManagers = new();
     private int nextEventId = 1;
 
-    public FieldBossLookup(ChannelClientLookup channelClients) {
+    public WorldBossLookup(ChannelClientLookup channelClients) {
         this.channelClients = channelClients;
     }
 
-    public bool TryGet(int metadataId, [NotNullWhen(true)] out FieldBossManager? manager) {
+    public bool TryGet(int metadataId, [NotNullWhen(true)] out WorldBossManager? manager) {
         return activeManagers.TryGetValue(metadataId, out manager);
     }
 
-    public IEnumerable<FieldBossManager> GetAll() => activeManagers.Values;
+    public IEnumerable<WorldBossManager> GetAll() => activeManagers.Values;
 
-    public bool Create(FieldBossMetadata metadata, long endTick, long nextSpawnTimestamp, out int eventId) {
+    public bool Create(WorldBossMetadata metadata, long endTick, long nextSpawnTimestamp, out int eventId) {
         int id = Interlocked.Increment(ref nextEventId);
-        var manager = new FieldBossManager(metadata, id, endTick, nextSpawnTimestamp) {
+        var manager = new WorldBossManager(metadata, id, endTick, nextSpawnTimestamp) {
             ChannelClients = channelClients,
         };
 
@@ -35,13 +35,13 @@ public class FieldBossLookup {
     }
 
     public void RemoveChannel(int metadataId, short channel) {
-        if (activeManagers.TryGetValue(metadataId, out FieldBossManager? manager)) {
+        if (activeManagers.TryGetValue(metadataId, out WorldBossManager? manager)) {
             manager.RemoveChannel(channel);
         }
     }
 
     public void Dispose(int metadataId) {
-        if (!activeManagers.TryRemove(metadataId, out FieldBossManager? manager)) {
+        if (!activeManagers.TryRemove(metadataId, out WorldBossManager? manager)) {
             return;
         }
         manager.Dispose();

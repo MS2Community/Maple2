@@ -106,9 +106,9 @@ public static class Constant {
     public const int MinStatIntervalTick = 100;
     public const int HomePollMaxCount = 5;
 
-    public static readonly TimeSpan FieldBossIdleWarningThreshold = TimeSpan.FromMinutes(4);
-    public static readonly TimeSpan FieldBossDespawnThreshold = TimeSpan.FromMinutes(5);
-    public static readonly TimeSpan FieldBossMonitorInterval = TimeSpan.FromSeconds(30);
+    public static readonly TimeSpan WorldBossIdleWarningThreshold = TimeSpan.FromMinutes(4);
+    public static readonly TimeSpan WorldBossDespawnThreshold = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan WorldBossMonitorInterval = TimeSpan.FromSeconds(30);
 
     public const int MaxMentees = 3;
 

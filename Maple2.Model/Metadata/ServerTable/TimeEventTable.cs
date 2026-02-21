@@ -2,9 +2,9 @@
 
 public record TimeEventTable(
     IReadOnlyDictionary<int, GlobalPortalMetadata> GlobalPortal,
-    IReadOnlyDictionary<int, FieldBossMetadata> FieldBoss) : ServerTable;
+    IReadOnlyDictionary<int, WorldBossMetadata> WorldBoss) : ServerTable;
 
-public record FieldBossMetadata(
+public record WorldBossMetadata(
     int Id,
     int Probability,
     DateTime StartTime,
