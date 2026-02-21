@@ -383,6 +383,10 @@ public class FieldNpc : Actor<Npc> {
 
     public override void ApplyDamage(IActor caster, DamageRecord damage, SkillMetadataAttack attack) {
         if (IsCorpse) {
+            // Corpse loot intentionally drops on every hit — players are expected to keep
+            // attacking the corpse to collect loot. A per-player rate limit (e.g. once per
+            // second) could be added here if spamming turns out to be an issue, but whether
+            // the original server enforced one is unknown.
             if (caster is FieldPlayer player) {
                 DropCorpseLoot(player);
             }
