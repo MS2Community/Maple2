@@ -612,12 +612,13 @@ public partial class FieldManager {
 
     // Cube skills are server-side only and do not need to be broadcast to clients.
     // They are static map hazards that persist for the lifetime of the field.
-    public void AddCubeSkill(SkillMetadata metadata, int interval, in Vector3 position, in Vector3 rotation = default) {
+    private void AddCubeSkill(SkillMetadata metadata, in Vector3 position, in Vector3 rotation = default) {
         Vector3 adjustedPosition = position;
         adjustedPosition.Z += FieldAccelerationStructure.BLOCK_SIZE;
-        var fieldSkill = new FieldSkill(this, NextLocalId(), FieldActor, metadata, interval, adjustedPosition) {
+        var fieldSkill = new FieldSkill(this, NextLocalId(), FieldActor, metadata, (int) Constant.GlobalCubeSkillIntervalTime.TotalMilliseconds, adjustedPosition) {
             Position = adjustedPosition,
             Rotation = rotation,
+            Source = SkillSource.Cube,
         };
         cubeSkills[fieldSkill.ObjectId] = fieldSkill;
     }

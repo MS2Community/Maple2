@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Maple2.Model.Metadata;
+using Maple2.PacketLib.Tools;
 using Maple2.Server.Game.Manager.Field;
 using Maple2.Server.Game.Model.Skill;
 using Maple2.Server.Game.Packets;
@@ -9,8 +10,14 @@ using Serilog;
 
 namespace Maple2.Server.Game.Model;
 
+public enum SkillSource {
+    Region,
+    Cube,
+}
+
 public class FieldSkill : FieldEntity<SkillMetadata> {
     public IActor Caster { get; init; }
+    public SkillSource Source { get; init; } = SkillSource.Region;
     public int Interval { get; }
     public int FireCount { get; private set; }
     public bool Enabled => FireCount > 0 || NextTick <= endTick || Field.FieldTick <= endTick;
@@ -22,6 +29,11 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
     private readonly long endTick;
     public long NextTick { get; private set; }
     private readonly ILogger logger = Log.ForContext<FieldSkill>();
+
+    private ByteWriter GetDamagePacket(DamageRecord record) => Source switch {
+        SkillSource.Cube => SkillDamagePacket.Tile(record),
+        _ => SkillDamagePacket.Region(record),
+    };
 
     public FieldSkill(FieldManager field, int objectId, IActor caster,
                       SkillMetadata value, int interval, params Vector3[] points) : base(field, objectId, value) {
@@ -156,7 +168,7 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                     }
 
                     Field.Broadcast(SkillDamagePacket.Target(record, targetRecords));
-                    Field.Broadcast(SkillDamagePacket.Region(damage));
+                    Field.Broadcast(GetDamagePacket(damage));
                     for (int t = 0; t < bounceTargets.Count; t++) {
                         IActor target = bounceTargets[t];
                         record.TargetUid = targetRecords[t].Uid;
@@ -202,7 +214,7 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                     }
                     if (targetRecords.Count > 0) {
                         Field.Broadcast(SkillDamagePacket.Target(record, targetRecords));
-                        Field.Broadcast(SkillDamagePacket.Region(damage));
+                        Field.Broadcast(GetDamagePacket(damage));
                     }
 
                     Caster.ApplyEffects(attack.SkillsOnDamage, Caster, damage, targets: targets);
