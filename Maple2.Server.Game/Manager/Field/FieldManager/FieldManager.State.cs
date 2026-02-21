@@ -678,19 +678,19 @@ public partial class FieldManager {
         }
 
         // Caster is always excluded from the pool; re-added explicitly per IncludeCaster semantics
-        ICollection<IActor> poolIgnore = ignore != null ? [..ignore, caster] : [caster];
+        ICollection<IActor> poolIgnore = ignore != null ? [.. ignore, caster] : [caster];
 
         switch (range.IncludeCaster) {
             case IncludeCasterType.Priority: {
-                // Caster guaranteed as first target; pool fills remaining slots
-                IActor[] pool = GetTargetPool(caster, prisms, range.ApplyTarget, targetCount - 1, poolIgnore).ToArray();
-                return Enumerable.Repeat<IActor>(caster, 1).Concat(pool);
-            }
+                    // Caster guaranteed as first target; pool fills remaining slots
+                    IActor[] pool = GetTargetPool(caster, prisms, range.ApplyTarget, targetCount - 1, poolIgnore).ToArray();
+                    return Enumerable.Repeat<IActor>(caster, 1).Concat(pool);
+                }
             case IncludeCasterType.Last: {
-                // Pool fills all slots; caster appended only if fewer than targetCount were found
-                IActor[] pool = GetTargetPool(caster, prisms, range.ApplyTarget, targetCount, poolIgnore).ToArray();
-                return pool.Length < targetCount ? pool.Concat(Enumerable.Repeat<IActor>(caster, 1)) : pool;
-            }
+                    // Pool fills all slots; caster appended only if fewer than targetCount were found
+                    IActor[] pool = GetTargetPool(caster, prisms, range.ApplyTarget, targetCount, poolIgnore).ToArray();
+                    return pool.Length < targetCount ? pool.Concat(Enumerable.Repeat<IActor>(caster, 1)) : pool;
+                }
             default: // Exclude
                 return GetTargetPool(caster, prisms, range.ApplyTarget, targetCount, poolIgnore);
         }
