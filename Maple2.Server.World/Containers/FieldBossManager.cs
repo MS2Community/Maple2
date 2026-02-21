@@ -12,7 +12,7 @@ public class FieldBossManager : IDisposable {
     public required ChannelClientLookup ChannelClients { get; init; }
 
     public readonly FieldBoss Boss;
-    public readonly ConcurrentDictionary<short, byte> AliveChannels = new();
+    public readonly ConcurrentDictionary<int, byte> AliveChannels = new();
 
     public FieldBossManager(FieldBossMetadata metadata, int id, long endTick, long nextSpawnTimestamp) {
         Boss = new FieldBoss(metadata, id) {
@@ -21,7 +21,7 @@ public class FieldBossManager : IDisposable {
         };
     }
 
-    public void RemoveChannel(short channel) => AliveChannels.TryRemove(channel, out _);
+    public void RemoveChannel(int channel) => AliveChannels.TryRemove(channel, out _);
 
     public void Announce() {
         foreach ((int channelId, ChannelClient channelClient) in ChannelClients) {
@@ -35,7 +35,7 @@ public class FieldBossManager : IDisposable {
                     },
                 });
 
-                AliveChannels.TryAdd((short) channelId, 0);
+                AliveChannels.TryAdd(channelId, 0);
             } catch (RpcException rpcException) {
                 if (rpcException.StatusCode == StatusCode.Unavailable) {
                     Log.Warning("Channel {Channel} unavailable when announcing field boss {BossId}", channelId, Boss.MetadataId);

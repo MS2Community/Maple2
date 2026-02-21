@@ -34,7 +34,7 @@ public partial class WorldService {
                 SpawnTimestamp = manager.Boss.SpawnTimestamp,
                 NextSpawnTimestamp = manager.Boss.NextSpawnTimestamp,
             };
-            entry.AliveChannels.AddRange(manager.AliveChannels.Keys.Select(ch => (int) ch));
+            entry.AliveChannels.AddRange(manager.AliveChannels.Keys);
             response.ActiveFieldBosses.Add(entry);
         }
         return response;

@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+﻿using System.Collections.Concurrent;
+using Grpc.Core;
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
 using Maple2.Model.Metadata;
@@ -8,11 +9,11 @@ using Maple2.Server.Game.Manager.Field;
 using Maple2.Server.Game.Model;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
-using Serilog;
 
 namespace Maple2.Server.Game.Service;
 
 public partial class ChannelService {
+    private readonly ConcurrentDictionary<int, byte> monitoringBossFields = new();
     public override Task<TimeEventResponse> TimeEvent(TimeEventRequest request, ServerCallContext context) {
         switch (request.TimeEventCase) {
             case TimeEventRequest.TimeEventOneofCase.AnnounceGlobalPortal:
@@ -112,7 +113,9 @@ public partial class ChannelService {
                 : long.MaxValue;
 
             if (idleMs < (long) Constant.FieldBossIdleWarningThreshold.TotalMilliseconds) {
-                _ = MonitorExtendedBossLifetimeAsync(field, npcId);
+                if (monitoringBossFields.TryAdd(targetMapId, 0)) {
+                    _ = MonitorExtendedBossLifetimeAsync(field, npcId, targetMapId);
+                }
             } else {
                 field.Broadcast(NoticePacket.Message(new InterfaceText(StringCode.s_timeevent_boss_lifetimetext2, npcId.ToString())));
                 field.DespawnFieldBoss();
@@ -122,7 +125,7 @@ public partial class ChannelService {
         return new TimeEventResponse();
     }
 
-    private async Task MonitorExtendedBossLifetimeAsync(FieldManager field, int npcId) {
+    private async Task MonitorExtendedBossLifetimeAsync(FieldManager field, int npcId, int targetMapId) {
         bool warningSent = false;
         try {
             while (true) {
@@ -131,7 +134,9 @@ public partial class ChannelService {
                 FieldNpc? bossNpc = field.GetFieldBossNpc();
                 if (bossNpc == null) return;
 
-                long idleMs = Environment.TickCount64 - bossNpc.LastDamageTick;
+                long idleMs = bossNpc.LastDamageTick == 0
+                    ? long.MaxValue
+                    : Environment.TickCount64 - bossNpc.LastDamageTick;
 
                 if (!warningSent && idleMs >= (long) Constant.FieldBossIdleWarningThreshold.TotalMilliseconds) {
                     field.Broadcast(NoticePacket.Message(new InterfaceText(StringCode.s_timeevent_boss_lifetimetext1, npcId.ToString())));
@@ -145,7 +150,9 @@ public partial class ChannelService {
                 }
             }
         } catch (Exception ex) {
-            Log.Error(ex, "Error monitoring field boss lifetime for NPC {NpcId}", npcId);
+            logger.Error(ex, "Error monitoring field boss lifetime for NPC {NpcId}", npcId);
+        } finally {
+            monitoringBossFields.TryRemove(targetMapId, out _);
         }
     }
 

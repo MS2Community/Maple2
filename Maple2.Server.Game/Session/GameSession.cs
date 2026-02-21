@@ -327,20 +327,24 @@ public sealed partial class GameSession : Core.Network.Session {
         Pet?.Load();
         Send(PetPacket.LoadCollection(Player.Value.Unlock.Pets));
         Send(LegionBattlePacket.Load(ServerTableMetadata.TimeEventTable.FieldBoss));
-        TimeEventResponse bossResponse = World.TimeEvent(new TimeEventRequest {
-            GetActiveFieldBosses = new TimeEventRequest.Types.GetActiveFieldBosses(),
-        });
-        if (bossResponse.ActiveFieldBosses.Count > 0) {
-            var bossGroups = new List<ICollection<MapWorldBoss>>();
-            foreach (TimeEventResponse.Types.ActiveFieldBoss active in bossResponse.ActiveFieldBosses) {
-                if (!ServerTableMetadata.TimeEventTable.FieldBoss.TryGetValue(active.MetadataId, out FieldBossMetadata? bossMetadata)) {
-                    continue;
+        try {
+            TimeEventResponse bossResponse = World.TimeEvent(new TimeEventRequest {
+                GetActiveFieldBosses = new TimeEventRequest.Types.GetActiveFieldBosses(),
+            });
+            if (bossResponse.ActiveFieldBosses.Count > 0) {
+                var bossGroups = new List<ICollection<MapWorldBoss>>();
+                foreach (TimeEventResponse.Types.ActiveFieldBoss active in bossResponse.ActiveFieldBosses) {
+                    if (!ServerTableMetadata.TimeEventTable.FieldBoss.TryGetValue(active.MetadataId, out FieldBossMetadata? bossMetadata)) {
+                        continue;
+                    }
+                    int bossNpcId = bossMetadata.NpcIds.Length > 0 ? bossMetadata.NpcIds[0] : 0;
+                    int bossMapId = bossMetadata.TargetMapIds.Length > 0 ? bossMetadata.TargetMapIds[0] : 0;
+                    bossGroups.Add(active.AliveChannels.Select(ch => new MapWorldBoss(bossNpcId, bossMapId, (short) ch, active.SpawnTimestamp)).ToList());
                 }
-                int bossNpcId = bossMetadata.NpcIds.Length > 0 ? bossMetadata.NpcIds[0] : 0;
-                int bossMapId = bossMetadata.TargetMapIds.Length > 0 ? bossMetadata.TargetMapIds[0] : 0;
-                bossGroups.Add(active.AliveChannels.Select(ch => new MapWorldBoss(bossNpcId, bossMapId, (short) ch, active.SpawnTimestamp)).ToList());
+                Send(WorldMapPacket.Load(bossGroups, []));
             }
-            Send(WorldMapPacket.Load(bossGroups, []));
+        } catch (RpcException ex) {
+            Logger.Warning(ex, "Failed to fetch active field bosses");
         }
         // CharacterAbility
         Config.LoadKeyTable();

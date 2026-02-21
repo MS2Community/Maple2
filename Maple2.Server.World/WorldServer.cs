@@ -369,7 +369,7 @@ public class WorldServer {
                     metadata.Id, metadata.NpcIds.Length > 0 ? metadata.NpcIds[0] : 0, eventId, metadata.LifeTime, nextSpawn.ToUniversalTime());
 
                 TimeSpan warnDelay = metadata.LifeTime - TimeSpan.FromMinutes(1);
-                _ = MonitorFieldBossLifetimeAsync(metadata.Id, warnDelay, metadata.LifeTime);
+                _ = MonitorFieldBossLifetimeAsync(metadata.Id, warnDelay, metadata.LifeTime, tokenSource.Token);
             }
         }
 
@@ -381,19 +381,21 @@ public class WorldServer {
         scheduler.Schedule(() => SpawnFieldBoss(metadata, nextSpawn), nextSpawn - DateTime.Now);
     }
 
-    private async Task MonitorFieldBossLifetimeAsync(int metadataId, TimeSpan warnDelay, TimeSpan lifeTime) {
+    private async Task MonitorFieldBossLifetimeAsync(int metadataId, TimeSpan warnDelay, TimeSpan lifeTime, CancellationToken token) {
         try {
             if (warnDelay > TimeSpan.Zero) {
-                await Task.Delay(warnDelay);
+                await Task.Delay(warnDelay, token);
                 if (fieldBossLookup.TryGet(metadataId, out FieldBossManager? warnManager)) {
                     warnManager.WarnChannels();
                 }
-                await Task.Delay(TimeSpan.FromMinutes(1));
+                await Task.Delay(TimeSpan.FromMinutes(1), token);
             } else {
-                await Task.Delay(lifeTime);
+                await Task.Delay(lifeTime, token);
             }
             fieldBossLookup.Dispose(metadataId);
             logger.Information("FieldBoss {Id} lifetime expired — despawning", metadataId);
+        } catch (OperationCanceledException) {
+            // Server shutting down — do not despawn or log as error
         } catch (Exception ex) {
             logger.Error(ex, "Error monitoring field boss lifetime for metadata {MetadataId}", metadataId);
         }

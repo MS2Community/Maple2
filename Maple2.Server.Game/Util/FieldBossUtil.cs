@@ -8,8 +8,10 @@ public static class FieldBossUtil {
             return 0;
         }
         DateTime next = metadata.StartTime;
-        while (next < DateTime.Now) {
-            next += metadata.CycleTime;
+        if (next < DateTime.Now) {
+            double elapsedMs = (DateTime.Now - metadata.StartTime).TotalMilliseconds;
+            long cycles = (long) Math.Ceiling(elapsedMs / metadata.CycleTime.TotalMilliseconds);
+            next = metadata.StartTime + TimeSpan.FromMilliseconds(cycles * metadata.CycleTime.TotalMilliseconds);
         }
         return next > metadata.EndTime ? 0 : new DateTimeOffset(next).ToUnixTimeSeconds();
     }

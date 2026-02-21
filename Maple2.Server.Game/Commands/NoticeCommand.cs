@@ -23,12 +23,13 @@ public class NoticeCommand : GameCommand {
         AddArgument(args);
         AddOption(flag);
 
-        this.SetHandler<InvocationContext, int, string[], int>(Handle, code, args, flag);
+        this.SetHandler<int, string[], int>(Handle, code, args, flag);
     }
 
     private void Handle(InvocationContext ctx, int code, string[] args, int flag) {
         if (!Enum.IsDefined(typeof(StringCode), code)) {
             ctx.Console.WriteLine($"Unknown StringCode: {code}");
+            return;
         }
 
         var stringCode = (StringCode) code;
