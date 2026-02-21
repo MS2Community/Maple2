@@ -26,6 +26,62 @@ public static class NpcControlPacket {
         return pWriter;
     }
 
+    public static ByteWriter CorpseHit(FieldNpc npc) {
+        var pWriter = Packet.Of(SendOp.NpcControl);
+        pWriter.WriteShort(1);
+
+        using var buffer = new PoolByteWriter();
+        buffer.WriteInt(npc.ObjectId);
+        buffer.WriteByte(0); // flags = 0
+        buffer.Write<Vector3S>(npc.Position);
+        buffer.WriteShort((short) (npc.Transform.RotationAnglesDegrees.Z * 10));
+        buffer.Write<Vector3S>(default); // velocity = (0,0,0)
+        buffer.WriteShort(100); // animation speed = 100%
+
+        if (npc.Value.IsBoss) {
+            buffer.WriteInt(0);
+        }
+
+        buffer.Write<ActorState>(ActorState.Hit);
+        buffer.WriteShort(-1); // seqId = -1
+        buffer.WriteShort(npc.SequenceCounter);
+
+        // ActorState.Hit extra data
+        buffer.WriteFloat(0); // UnknownF1
+        buffer.WriteFloat(0); // UnknownF2
+        buffer.WriteFloat(0); // UnknownF3
+        buffer.WriteByte(0);  // UnknownB
+
+        pWriter.WriteShort((short) buffer.Length);
+        pWriter.WriteBytes(buffer.ToArray());
+        return pWriter;
+    }
+
+    public static ByteWriter Dead(FieldNpc npc) {
+        var pWriter = Packet.Of(SendOp.NpcControl);
+        pWriter.WriteShort(1);
+
+        using var buffer = new PoolByteWriter();
+        buffer.WriteInt(npc.ObjectId);
+        buffer.WriteByte(0); // flags = 0 (no HP bar, no additional effects)
+        buffer.Write<Vector3S>(npc.Position);
+        buffer.WriteShort((short) (npc.Transform.RotationAnglesDegrees.Z * 10));
+        buffer.Write<Vector3S>(default); // velocity = (0,0,0)
+        buffer.WriteShort(100); // animation speed = 100%
+
+        if (npc.Value.IsBoss) {
+            buffer.WriteInt(0); // target id = 0
+        }
+
+        buffer.Write<ActorState>(ActorState.None);
+        buffer.WriteShort(-1); // seqId = -1 (freeze in death pose)
+        buffer.WriteShort(npc.SequenceCounter);
+
+        pWriter.WriteShort((short) buffer.Length);
+        pWriter.WriteBytes(buffer.ToArray());
+        return pWriter;
+    }
+
     public static ByteWriter Talk(FieldNpc npc) {
         var pWriter = Packet.Of(SendOp.NpcControl);
         pWriter.WriteShort(1);

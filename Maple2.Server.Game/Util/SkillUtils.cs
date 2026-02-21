@@ -55,7 +55,7 @@ public static class SkillUtils {
                 continue;
             }
 
-            if (entity.IsDead) {
+            if (entity.IsDead && entity is not FieldNpc { IsCorpse: true }) {
                 continue;
             }
 
@@ -79,7 +79,7 @@ public static class SkillUtils {
                 continue;
             }
 
-            if (entity.IsDead) {
+            if (entity.IsDead && entity is not FieldNpc { IsCorpse: true }) {
                 continue;
             }
             if (ignore != null && ignore.Contains(entity)) {

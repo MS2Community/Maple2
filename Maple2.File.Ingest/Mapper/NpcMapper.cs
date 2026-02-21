@@ -100,7 +100,7 @@ public class NpcMapper : TypeMapper<NpcMetadata> {
                     DeadGlobalDropBoxIds: data.dropiteminfo.globalDeadDropBoxId,
                     IndividualDropBoxIds: data.dropiteminfo.individualDropBoxId,
                     GlobalHitDropBoxIds: data.dropiteminfo.globalHitDropBoxId,
-                    IndividualHitDropBoxIds: data.dropiteminfo.globalHitDropBoxId),
+                    IndividualHitDropBoxIds: data.dropiteminfo.individualHitDropBoxId),
                 Action: new NpcMetadataAction(
                     RotateSpeed: data.speed.rotation,
                     WalkSpeed: data.speed.walk,
@@ -114,6 +114,15 @@ public class NpcMapper : TypeMapper<NpcMetadata> {
                     Count: data.dead.count,
                     LifeTime: data.dead.lifeTime,
                     ExtendRoomTime: data.dead.extendRoomTime),
+                Corpse: data.corpse.hitAble == 1 ? new NpcMetadataCorpse(
+                    Width: data.corpse.width,
+                    Height: data.corpse.height,
+                    Depth: data.corpse.depth,
+                    Added: data.corpse.added,
+                    OffsetNametag: data.corpse.offsetNametag,
+                    CorpseEffect: data.corpse.corpseEffect,
+                    HitAble: true,
+                    Rotation: data.corpse.rotation) : null,
                 LookAtTarget: new NpcMetadataLookAtTarget(
                     data.lookattarget.targetdummy,
                     data.lookattarget.lookAtMyPCWhenTalking == 1,

@@ -16,6 +16,7 @@ public record NpcMetadata(
     NpcMetadataDropInfo DropInfo,
     NpcMetadataAction Action,
     NpcMetadataDead Dead,
+    NpcMetadataCorpse? Corpse,
     NpcMetadataLookAtTarget LookAtTarget) : ISearchResult;
 
 public record NpcMetadataModel(
@@ -104,6 +105,16 @@ public record NpcMetadataDead(
     int Count,
     float LifeTime,
     int ExtendRoomTime);
+
+public record NpcMetadataCorpse(
+    float Width,
+    float Height,
+    float Depth,
+    float Added,
+    float OffsetNametag,
+    string CorpseEffect,
+    bool HitAble,
+    Vector3 Rotation);
 
 public record NpcMetadataLookAtTarget(
     string TargetDummy,

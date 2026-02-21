@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
@@ -85,9 +85,14 @@ public class FieldNpc : Actor<Npc> {
     public readonly SkillMetadata?[] Skills;
 
     public int SpawnPointId = 0;
+    public bool IsCorpse { get; private set; }
     public Action<FieldNpc>? WorldBossDeathCallback { get; set; }
     public long LastDamageTick { get; private set; }
     private int lastAttackerObjectId;
+    // The first player to attack this mob; used to assign drop ownership for regular mobs.
+    // TODO: If the mob loses aggro on all players it should heal to full and clear firstAttackerObjectId and DamageDealers,
+    //       resetting the tag so the next attacker becomes the new owner.
+    private int firstAttackerObjectId;
 
     public MS2PatrolData? Patrol { get; private set; }
     private int currentWaypointIndex;
@@ -141,7 +146,13 @@ public class FieldNpc : Actor<Npc> {
     private long nextDebugPacket = 0;
 
     public override void Update(long tickCount) {
-        if (IsDead) return;
+        if (IsDead) {
+            if (IsCorpse) {
+                SequenceCounter++;
+                Field.Broadcast(NpcControlPacket.Dead(this));
+            }
+            return;
+        }
 
         base.Update(tickCount);
 
@@ -320,6 +331,9 @@ public class FieldNpc : Actor<Npc> {
 
     protected override void OnDamageReceived(IActor caster, long amount) {
         LastDamageTick = Environment.TickCount64;
+        if (firstAttackerObjectId == 0 && caster is FieldPlayer) {
+            firstAttackerObjectId = caster.ObjectId;
+        }
         lastAttackerObjectId = caster.ObjectId;
     }
 
@@ -327,6 +341,13 @@ public class FieldNpc : Actor<Npc> {
         WorldBossDeathCallback?.Invoke(this);
         Owner?.Despawn(ObjectId);
         SendControl = false;
+
+        SequenceCounter++;
+        Field.Broadcast(NpcControlPacket.Dead(this));
+
+        if (Value.Metadata.Corpse?.HitAble == true) {
+            IsCorpse = true;
+        }
 
         HandleDamageDealers();
 
@@ -357,24 +378,73 @@ public class FieldNpc : Actor<Npc> {
         }
     }
 
-    public void DropLoot(FieldPlayer firstPlayer) {
+    public override void ApplyDamage(IActor caster, DamageRecord damage, SkillMetadataAttack attack) {
+        if (IsCorpse) {
+            if (caster is FieldPlayer player) {
+                DropCorpseLoot(player);
+            }
+            SequenceCounter++;
+            Field.Broadcast(NpcControlPacket.CorpseHit(this));
+            return;
+        }
+        base.ApplyDamage(caster, damage, attack);
+    }
+
+    private void DropGlobalLoot(long receiverCharacterId = 0) {
         NpcMetadataDropInfo dropInfo = Value.Metadata.DropInfo;
 
-        ICollection<Item> itemDrops = new List<Item>();
+        ICollection<Item> globalDrops = new List<Item>();
         foreach (int globalDropId in dropInfo.GlobalDropBoxIds) {
-            itemDrops = itemDrops.Concat(Field.ItemDrop.GetGlobalDropItems(globalDropId, Value.Metadata.Basic.Level)).ToList();
+            globalDrops = globalDrops.Concat(Field.ItemDrop.GetGlobalDropItems(globalDropId, Value.Metadata.Basic.Level)).ToList();
         }
 
+        foreach (int deadGlobalDropId in dropInfo.DeadGlobalDropBoxIds) {
+            globalDrops = globalDrops.Concat(Field.ItemDrop.GetGlobalDropItems(deadGlobalDropId, Value.Metadata.Basic.Level)).ToList();
+        }
+
+        foreach (Item item in globalDrops) {
+            float x = Random.Shared.Next((int) Position.X - dropInfo.DropDistanceRandom, (int) Position.X + dropInfo.DropDistanceRandom);
+            float y = Random.Shared.Next((int) Position.Y - dropInfo.DropDistanceRandom, (int) Position.Y + dropInfo.DropDistanceRandom);
+            Field.DropItem(new Vector3(x, y, Position.Z), Rotation, item, owner: this, characterId: receiverCharacterId);
+        }
+    }
+
+    private void DropIndividualLoot(FieldPlayer player) {
+        NpcMetadataDropInfo dropInfo = Value.Metadata.DropInfo;
+
+        ICollection<Item> individualDrops = new List<Item>();
         foreach (int individualDropId in dropInfo.IndividualDropBoxIds) {
-            itemDrops = itemDrops.Concat(Field.ItemDrop.GetIndividualDropItems(firstPlayer.Session, Value.Metadata.Basic.Level, individualDropId)).ToList();
+            individualDrops = individualDrops.Concat(Field.ItemDrop.GetIndividualDropItems(player.Session, Value.Metadata.Basic.Level, individualDropId)).ToList();
         }
 
-        foreach (Item item in itemDrops) {
-            float x = Random.Shared.Next((int) Position.X - Value.Metadata.DropInfo.DropDistanceRandom, (int) Position.X + Value.Metadata.DropInfo.DropDistanceRandom);
-            float y = Random.Shared.Next((int) Position.Y - Value.Metadata.DropInfo.DropDistanceRandom, (int) Position.Y + Value.Metadata.DropInfo.DropDistanceRandom);
-            var position = new Vector3(x, y, Position.Z);
+        foreach (Item item in individualDrops) {
+            float x = Random.Shared.Next((int) Position.X - dropInfo.DropDistanceRandom, (int) Position.X + dropInfo.DropDistanceRandom);
+            float y = Random.Shared.Next((int) Position.Y - dropInfo.DropDistanceRandom, (int) Position.Y + dropInfo.DropDistanceRandom);
+            Field.DropItem(new Vector3(x, y, Position.Z), Rotation, item, owner: this, characterId: player.Value.Character.Id);
+        }
+    }
 
-            Field.DropItem(position, Rotation, item, owner: this, characterId: firstPlayer.Value.Character.Id);
+    public void DropCorpseLoot(FieldPlayer player) {
+        NpcMetadataDropInfo dropInfo = Value.Metadata.DropInfo;
+
+        ICollection<Item> globalDrops = new List<Item>();
+        foreach (int globalHitDropId in dropInfo.GlobalHitDropBoxIds) {
+            globalDrops = globalDrops.Concat(Field.ItemDrop.GetGlobalDropItems(globalHitDropId, Value.Metadata.Basic.Level)).ToList();
+        }
+
+        foreach (Item item in globalDrops) {
+            float x = Random.Shared.Next((int) Position.X - dropInfo.DropDistanceRandom, (int) Position.X + dropInfo.DropDistanceRandom);
+            float y = Random.Shared.Next((int) Position.Y - dropInfo.DropDistanceRandom, (int) Position.Y + dropInfo.DropDistanceRandom);
+            Field.DropItem(new Vector3(x, y, Position.Z), Rotation, item, owner: this);
+        }
+
+        foreach (int individualHitDropId in dropInfo.IndividualHitDropBoxIds) {
+            ICollection<Item> individualDrops = Field.ItemDrop.GetIndividualDropItems(player.Session, Value.Metadata.Basic.Level, individualHitDropId);
+            foreach (Item item in individualDrops) {
+                float x = Random.Shared.Next((int) Position.X - dropInfo.DropDistanceRandom, (int) Position.X + dropInfo.DropDistanceRandom);
+                float y = Random.Shared.Next((int) Position.Y - dropInfo.DropDistanceRandom, (int) Position.Y + dropInfo.DropDistanceRandom);
+                Field.DropItem(new Vector3(x, y, Position.Z), Rotation, item, owner: this, characterId: player.Value.Character.Id);
+            }
         }
     }
 
@@ -400,26 +470,43 @@ public class FieldNpc : Actor<Npc> {
 
     // mob drops, exp, etc.
     private void HandleDamageDealers() {
-        // TODO: Fix drop loot. Right now we're getting the first player in damage dealers as the receiver of the loot.
-        // How it should work is the person who instigated the first attack on the mob gets tagged. As long as the mob is in aggro, it stays on them, regardless if aggro changes.
-        // If the mob stops aggro to everyone, it resets this and heals/removes all damage records.
-        // Boss drop loot is different. They drop for everyone who did damage to them.
+        if (Value.IsBoss) {
+            // Boss drops: global items once (no receiver lock), individual items per dealer.
+            DropGlobalLoot();
+            foreach (KeyValuePair<int, DamageRecordTarget> damageDealer in DamageDealers) {
+                if (!Field.TryGetPlayer(damageDealer.Key, out FieldPlayer? player)) {
+                    continue;
+                }
 
-        if (!Field.TryGetPlayer(DamageDealers.FirstOrDefault().Key, out FieldPlayer? firstPlayer)) {
-            return;
-        }
+                DropIndividualLoot(player);
+                GiveExp(player);
 
-        foreach (KeyValuePair<int, DamageRecordTarget> damageDealer in DamageDealers) {
-            if (!Field.TryGetPlayer(damageDealer.Key, out FieldPlayer? player)) {
-                continue;
+                player.Session.ConditionUpdate(ConditionType.npc, codeLong: Value.Id, targetLong: Field.MapId);
+                foreach (string tag in Value.Metadata.Basic.MainTags) {
+                    player.Session.ConditionUpdate(ConditionType.npc_race, codeString: tag);
+                }
+            }
+        } else {
+            // Regular mob: first attacker is tagged and receives all drops.
+            if (!Field.TryGetPlayer(firstAttackerObjectId, out FieldPlayer? taggedPlayer) &&
+                !Field.TryGetPlayer(DamageDealers.FirstOrDefault().Key, out taggedPlayer)) {
+                return;
             }
 
-            DropLoot(firstPlayer);
-            GiveExp(player);
+            DropGlobalLoot(taggedPlayer!.Value.Character.Id);
+            DropIndividualLoot(taggedPlayer);
 
-            player.Session.ConditionUpdate(ConditionType.npc, codeLong: Value.Id, targetLong: Field.MapId);
-            foreach (string tag in Value.Metadata.Basic.MainTags) {
-                player.Session.ConditionUpdate(ConditionType.npc_race, codeString: tag);
+            foreach (KeyValuePair<int, DamageRecordTarget> damageDealer in DamageDealers) {
+                if (!Field.TryGetPlayer(damageDealer.Key, out FieldPlayer? player)) {
+                    continue;
+                }
+
+                GiveExp(player);
+
+                player.Session.ConditionUpdate(ConditionType.npc, codeLong: Value.Id, targetLong: Field.MapId);
+                foreach (string tag in Value.Metadata.Basic.MainTags) {
+                    player.Session.ConditionUpdate(ConditionType.npc_race, codeString: tag);
+                }
             }
         }
     }
