@@ -85,6 +85,7 @@ public class FieldNpc : Actor<Npc> {
     public readonly SkillMetadata?[] Skills;
 
     public int SpawnPointId = 0;
+    public bool IsCorpse { get; private set; }
 
     public MS2PatrolData? Patrol { get; private set; }
     private int currentWaypointIndex;
@@ -319,6 +320,13 @@ public class FieldNpc : Actor<Npc> {
         Owner?.Despawn(ObjectId);
         SendControl = false;
 
+        SequenceCounter++;
+        Field.Broadcast(NpcControlPacket.Dead(this));
+
+        if (Value.Metadata.Corpse?.HitAble == true) {
+            IsCorpse = true;
+        }
+
         HandleDamageDealers();
 
         Remove(delay: TimeSpan.FromSeconds(Value.Metadata.Dead.Time));
@@ -348,12 +356,28 @@ public class FieldNpc : Actor<Npc> {
         }
     }
 
+    public override void ApplyDamage(IActor caster, DamageRecord damage, SkillMetadataAttack attack) {
+        if (IsCorpse) {
+            if (caster is FieldPlayer player) {
+                DropCorpseLoot(player);
+            }
+            SequenceCounter++;
+            Field.Broadcast(NpcControlPacket.CorpseHit(this));
+            return;
+        }
+        base.ApplyDamage(caster, damage, attack);
+    }
+
     public void DropLoot(FieldPlayer firstPlayer) {
         NpcMetadataDropInfo dropInfo = Value.Metadata.DropInfo;
 
         ICollection<Item> itemDrops = new List<Item>();
         foreach (int globalDropId in dropInfo.GlobalDropBoxIds) {
             itemDrops = itemDrops.Concat(Field.ItemDrop.GetGlobalDropItems(globalDropId, Value.Metadata.Basic.Level)).ToList();
+        }
+
+        foreach (int deadGlobalDropId in dropInfo.DeadGlobalDropBoxIds) {
+            itemDrops = itemDrops.Concat(Field.ItemDrop.GetGlobalDropItems(deadGlobalDropId, Value.Metadata.Basic.Level)).ToList();
         }
 
         foreach (int individualDropId in dropInfo.IndividualDropBoxIds) {
@@ -366,6 +390,30 @@ public class FieldNpc : Actor<Npc> {
             var position = new Vector3(x, y, Position.Z);
 
             Field.DropItem(position, Rotation, item, owner: this, characterId: firstPlayer.Value.Character.Id);
+        }
+    }
+
+    public void DropCorpseLoot(FieldPlayer player) {
+        NpcMetadataDropInfo dropInfo = Value.Metadata.DropInfo;
+
+        ICollection<Item> globalDrops = new List<Item>();
+        foreach (int globalHitDropId in dropInfo.GlobalHitDropBoxIds) {
+            globalDrops = globalDrops.Concat(Field.ItemDrop.GetGlobalDropItems(globalHitDropId, Value.Metadata.Basic.Level)).ToList();
+        }
+
+        foreach (Item item in globalDrops) {
+            float x = Random.Shared.Next((int) Position.X - dropInfo.DropDistanceRandom, (int) Position.X + dropInfo.DropDistanceRandom);
+            float y = Random.Shared.Next((int) Position.Y - dropInfo.DropDistanceRandom, (int) Position.Y + dropInfo.DropDistanceRandom);
+            Field.DropItem(new Vector3(x, y, Position.Z), Rotation, item, owner: this);
+        }
+
+        foreach (int individualHitDropId in dropInfo.IndividualHitDropBoxIds) {
+            ICollection<Item> individualDrops = Field.ItemDrop.GetIndividualDropItems(player.Session, Value.Metadata.Basic.Level, individualHitDropId);
+            foreach (Item item in individualDrops) {
+                float x = Random.Shared.Next((int) Position.X - dropInfo.DropDistanceRandom, (int) Position.X + dropInfo.DropDistanceRandom);
+                float y = Random.Shared.Next((int) Position.Y - dropInfo.DropDistanceRandom, (int) Position.Y + dropInfo.DropDistanceRandom);
+                Field.DropItem(new Vector3(x, y, Position.Z), Rotation, item, owner: this, characterId: player.Value.Character.Id);
+            }
         }
     }
 
