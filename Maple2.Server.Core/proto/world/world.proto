@@ -527,7 +527,7 @@ message TimeEventResponse {
     GlobalPortalInfo global_portal_info = 1;
   }
   int32 error = 2;
-  repeated ActiveWorldBoss active_field_bosses = 3;
+  repeated ActiveWorldBoss active_world_bosses = 3;
 }
 
 message GlobalPortalInfo {
