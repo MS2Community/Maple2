@@ -422,8 +422,8 @@ public class InventoryManager {
                 foreach (Item ingredient in ingredientsByTag[info.Tag]) {
                     int consume = Math.Min(remaining, ingredient.Amount);
                     if (!ConsumeInternal(ingredient.Uid, consume)) {
-                        Log.Fatal("Failed to consume ingredient {ItemUid}", ingredient.Uid);
-                        throw new InvalidOperationException($"Fatal: Consuming ingredient: {ingredient.Uid}");
+                        Log.Error("Failed to consume ingredient {ItemUid}", ingredient.Uid);
+                        return false;
                     }
 
                     remaining -= consume;
