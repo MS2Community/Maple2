@@ -485,8 +485,8 @@ public class InventoryManager {
                     foreach (Item material in materialsByTag[ingredient.Tag]) {
                         int consume = Math.Min(remainingIngredients, material.Amount);
                         if (!session.Item.Inventory.Consume(material.Uid, consume)) {
-                            Log.Fatal("Failed to consume item uid: {ItemUid}, item id: {ItemId}", material.Uid, material.Id);
-                            throw new InvalidOperationException($"Fatal: Consuming item uid: {material.Uid}, item id: {material.Id}");
+                            Log.Error("Failed to consume item uid: {ItemUid}, item id: {ItemId}", material.Uid, material.Id);
+                            return false;
                         }
 
                         remainingIngredients -= consume;
@@ -498,8 +498,8 @@ public class InventoryManager {
                     foreach (Item material in materialsById[ingredient.ItemId]) {
                         int consume = Math.Min(remainingIngredients, material.Amount);
                         if (!session.Item.Inventory.Consume(material.Uid, consume)) {
-                            Log.Fatal("Failed to consume item uid: {ItemUid}, item id: {ItemId}", material.Uid, material.Id);
-                            throw new InvalidOperationException($"Fatal: Consuming item uid: {material.Uid}, item id: {material.Id}");
+                            Log.Error("Failed to consume item uid: {ItemUid}, item id: {ItemId}", material.Uid, material.Id);
+                            return false;
                         }
 
                         remainingIngredients -= consume;
