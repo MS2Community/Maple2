@@ -2,6 +2,7 @@
 using Maple2.Model.Enum;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
+using Maple2.Server.Core.Network;
 
 namespace Maple2.TestClient.Protocol;
 
@@ -68,11 +69,11 @@ public static class ClientPacket {
 
     /// <summary>
     /// Response to RequestFieldEnter after EnterServer completes.
-    /// See: FieldEnterHandler.cs:13 — expects FIELD_KEY(int=0x1234)
+    /// See: FieldEnterHandler.cs:13 — expects FIELD_KEY
     /// </summary>
     public static ByteWriter ResponseFieldEnter() {
         var pWriter = Of(RecvOp.ResponseFieldEnter);
-        pWriter.WriteInt(0x1234); // GameSession.FIELD_KEY
+        pWriter.WriteInt(Session.FIELD_KEY);
         return pWriter;
     }
 

@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using Maple2.PacketLib.Crypto;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
+using Maple2.Server.Core.Network;
 using Serilog;
 
 namespace Maple2.TestClient.Network;
@@ -13,8 +14,6 @@ namespace Maple2.TestClient.Network;
 /// and packet send/receive with dispatch by SendOp.
 /// </summary>
 public class MapleClient : IDisposable {
-    private const uint VERSION = 12;
-    private const uint BLOCK_IV = 12;
     private const int HANDSHAKE_HEADER_SIZE = 6; // WriteHeader prepends a 6-byte header for unencrypted packets
 
     private static readonly ILogger Logger = Log.Logger.ForContext<MapleClient>();
@@ -66,13 +65,13 @@ public class MapleClient : IDisposable {
         uint blockIv = reader.Read<uint>();
         byte patchType = reader.ReadByte();
 
-        if (version != VERSION) {
-            throw new InvalidOperationException($"Version mismatch: server={version}, expected={VERSION}");
+        if (version != Session.VERSION) {
+            throw new InvalidOperationException($"Version mismatch: server={version}, expected={Session.VERSION}");
         }
 
         // Client sends with server's RIV, client receives with server's SIV
-        sendCipher = new MapleCipher.Encryptor(VERSION, serverRiv, blockIv);
-        recvCipher = new MapleCipher.Decryptor(VERSION, serverSiv, blockIv);
+        sendCipher = new MapleCipher.Encryptor(Session.VERSION, serverRiv, blockIv);
+        recvCipher = new MapleCipher.Decryptor(Session.VERSION, serverSiv, blockIv);
 
         // IMPORTANT: Server's sendCipher.WriteHeader() advanced its IV once during handshake.
         // We must advance recvCipher's IV to stay in sync by feeding the raw handshake through TryDecrypt.
