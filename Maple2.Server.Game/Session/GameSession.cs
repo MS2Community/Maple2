@@ -36,7 +36,6 @@ namespace Maple2.Server.Game.Session;
 
 public sealed partial class GameSession : Core.Network.Session {
     protected override PatchType Type => PatchType.Ignore;
-    public const int FIELD_KEY = 0x1234;
 
     // gameDisposeState: 0 = active, 1 = disposing, 2 = disposed
     private int gameDisposeState;

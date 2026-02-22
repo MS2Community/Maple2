@@ -21,7 +21,8 @@ public enum PatchType : byte {
 
 public abstract class Session : IDisposable {
     public const uint VERSION = 12;
-    private const uint BLOCK_IV = 12; // TODO: should this be variable
+    public const uint BLOCK_IV = 12; // TODO: should this be variable
+    public const int FIELD_KEY = 0x1234;
 
     private const int HANDSHAKE_SIZE = 19;
     private const int STOP_TIMEOUT = 2000;

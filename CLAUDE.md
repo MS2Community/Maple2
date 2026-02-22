@@ -137,6 +137,7 @@ Communication:
 - **Maple2.File.Ingest** - Tools for importing game data from MapleStory2 client files
 - **Maple2.Server.Tests** - NUnit test suite
 - **Maple2.Server.DebugGame** - Debug/development version of game server
+- **Maple2.TestClient** - Headless bot client for automated server testing (login, field entry, combat simulation). See [Maple2.TestClient/CLAUDE.md](Maple2.TestClient/CLAUDE.md)
 
 ### Networking Layer
 
@@ -397,6 +398,7 @@ Maple2/
 ├── Maple2.Model/             # Shared data models
 ├── Maple2.File.Ingest/       # Game data import tool
 ├── Maple2.Server.Tests/      # Test suite
+├── Maple2.TestClient/        # Headless bot client for automated ST
 └── Maple2.Tools/             # Development tools
 ```
 
