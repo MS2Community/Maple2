@@ -2114,15 +2114,15 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
     }
 
     private ConstantsTable ParseConstants() {
-        var constants = new Constants();
+        var constants = new ConstantsTable();
         PropertyInfo[] constantsProperties = constants.GetType().GetProperties();
         foreach (PropertyInfo constantsProperty in constantsProperties) {
             foreach ((string key, Parser.Xml.Table.Constants.Key constant) in parser.ParseConstants()) {
-                if (!key.Normalize().Trim().Equals(constantsProperty.Name.Normalize().Trim())) continue;
+                if (!key.Trim().Equals(constantsProperty.Name.Trim())) continue;
                 constantsProperty.SetValue(constants, Convert.ChangeType(constant.value, constantsProperty.PropertyType));
                 break;
             }
         }
-        return new ConstantsTable(constants);
+        return constants;
     }
 }

@@ -1,8 +1,6 @@
 ﻿namespace Maple2.Model.Metadata;
 
-public record ConstantsTable(Constants Constants) : ServerTable;
-
-public record Constants(
+public record ConstantsTable(
     float NPCColorScale = 0f,
     float NPCDuration = 0f,
     float PCColorScale = 0f,
@@ -866,4 +864,4 @@ public record Constants(
     string TencentCharacterCreateShutdownRight = "",
     int LeadSkillMaxSlot = 0,
     int NextStateTriggerDefaultTick = 0
-);
+) : ServerTable;
