@@ -1,11 +1,8 @@
-﻿using System.Globalization;
-using System.Xml;
-using Maple2.Database.Extensions;
+﻿using Maple2.Database.Extensions;
 using Maple2.File.Ingest.Utils;
 using Maple2.File.IO;
 using Maple2.File.Parser;
 using Maple2.File.Parser.Enum;
-using Maple2.File.Parser.Xml.Table;
 using Maple2.File.Parser.Xml.Table.Server;
 using Maple2.Model;
 using Maple2.Model.Common;
@@ -14,6 +11,9 @@ using Maple2.Model.Error;
 using Maple2.Model.Game;
 using Maple2.Model.Game.Shop;
 using Maple2.Model.Metadata;
+using System.Globalization;
+using System.Reflection;
+using System.Xml;
 using DayOfWeek = System.DayOfWeek;
 using ExpType = Maple2.Model.Enum.ExpType;
 using Fish = Maple2.File.Parser.Xml.Table.Server.Fish;
@@ -2114,10 +2114,15 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
     }
 
     private ConstantsTable ParseConstants() {
-        var results = new Dictionary<string, Model.Metadata.Constants>();
-        foreach ((string key, Parser.Xml.Table.Constants.Key constants) in parser.ParseConstants()) {
-            results.Add(key, new Model.Metadata.Constants(constants.key, constants.value));
+        var constants = new Constants();
+        PropertyInfo[] constantsProperties = constants.GetType().GetProperties();
+        foreach (PropertyInfo constantsProperty in constantsProperties) {
+            foreach ((string key, Parser.Xml.Table.Constants.Key constant) in parser.ParseConstants()) {
+                if (!key.Normalize().Trim().Equals(constantsProperty.Name.Normalize().Trim())) continue;
+                constantsProperty.SetValue(constants, Convert.ChangeType(constant.value, constantsProperty.PropertyType));
+                break;
+            }
         }
-        return new ConstantsTable(results);
+        return new ConstantsTable(constants);
     }
 }
