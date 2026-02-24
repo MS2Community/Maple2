@@ -23,8 +23,8 @@ public class LoginSession : Core.Network.Session {
     private bool disposed;
     public readonly LoginServer Server;
 
-    public long AccountId { get; private set; }
-    public long CharacterId { get; private set; } // Used only as a temporary variable
+    public new long AccountId { get; private set; }
+    public new long CharacterId { get; private set; } // Used only as a temporary variable
     public Guid MachineId { get; private set; }
 
     #region Autofac Autowired
@@ -165,10 +165,16 @@ public class LoginSession : Core.Network.Session {
 
         try {
             Server.OnDisconnected(this);
-            State = SessionState.Disconnected;
-            Complete();
-        } finally {
+        } catch (Exception ex) {
+            Logger.Debug(ex, "Error during LoginSession.OnDisconnected");
+        }
+
+        State = SessionState.Disconnected;
+
+        try {
             base.Dispose(disposing);
+        } catch (Exception ex) {
+            Logger.Debug(ex, "Error during LoginSession base disposal");
         }
     }
     #endregion

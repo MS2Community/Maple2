@@ -35,6 +35,7 @@ public record EventSpawnPointNPC(
     bool Visible,
     bool SpawnOnFieldCreate,
     float SpawnRadius,
+    int NpcCount,
     IList<SpawnPointNPCListEntry> NpcList,
     int RegenCheckTime,
     int LifeTime,

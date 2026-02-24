@@ -9,7 +9,6 @@ using Maple2.Server.Game.PacketHandlers.Field;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
 using Maple2.Server.Game.Util;
-using Maple2.Tools.Extensions;
 
 namespace Maple2.Server.Game.PacketHandlers;
 

@@ -1,6 +1,7 @@
-﻿using Maple2.Model.Error;
-using Maple2.Model.Metadata;
+﻿using Maple2.Model.Metadata;
 using Maple2.Model.Validators;
+// ReSharper disable HeuristicUnreachableCode
+#pragma warning disable CS0162 // Unreachable code detected
 
 namespace Maple2.Server.Tests.Validators;
 

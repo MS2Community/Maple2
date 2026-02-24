@@ -377,3 +377,9 @@ FodyWeavers.xsd
 .idea/.idea.Maple2/.idea/dataSources.xml
 /Maple2.Server.Game/DebugTriggers
 .idea/.idea.Maple2/.idea/AugmentWebviewStateStore.xml
+/.idea/.idea.Maple2/.idea
+.claude/settings.local.json
+.claude/worktrees/
+.mcp.json
+CLAUDE.local.md
+telemetry-id

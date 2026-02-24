@@ -120,6 +120,8 @@ public class TriggerBox {
 
     public bool Contains(in Vector3 point) => box.Contains(point);
 
+    public bool Intersects(in IPrism shape) => box.Intersects(shape);
+
     public override string ToString() {
         return $"Id:{Id}\n- {box}";
     }

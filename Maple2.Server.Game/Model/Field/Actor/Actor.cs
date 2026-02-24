@@ -94,10 +94,27 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
     }
 
     public virtual void ApplyDamage(IActor caster, DamageRecord damage, SkillMetadataAttack attack) {
+        // Determine the source position.
+        // For region/trigger skills, the caster is FieldActor at origin - use damage.Position (the skill region's position) instead.
+        Vector3 sourcePosition = caster.Position;
+        if (sourcePosition.LengthSquared() < 0.001f && damage.Position.LengthSquared() > 0.001f) {
+            sourcePosition = damage.Position;
+        }
+
         var targetRecord = new DamageRecordTarget(this) {
-            Position = caster.Position,
-            Direction = caster.Rotation, // Idk why this is wrong
+            Position = sourcePosition,
+            Direction = caster.Transform.FrontAxis,
         };
+
+        if (attack.Damage.Push != null) {
+            // Direction should point from source toward the target (the push direction).
+            Vector3 offset = Position - sourcePosition;
+            if (offset.LengthSquared() > 0.001f) {
+                targetRecord.Direction = Vector3.Normalize(offset);
+            } else if (damage.Direction.LengthSquared() > 0.001f) {
+                targetRecord.Direction = Vector3.Normalize(damage.Direction);
+            }
+        }
         damage.Targets.TryAdd(ObjectId, targetRecord);
 
         if (attack.Damage.Count <= 0) {
@@ -134,6 +151,7 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             record.AddDamage(DamageType.Normal, positiveDamage);
             Stats.Values[BasicAttribute.Health].Add(damageAmount);
             Field.Broadcast(StatsPacket.Update(this, BasicAttribute.Health));
+            OnDamageReceived(caster, positiveDamage);
         }
 
         foreach ((DamageType damageType, long amount) in targetRecord.Damage) {
@@ -156,6 +174,8 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             }
         }
     }
+
+    protected virtual void OnDamageReceived(IActor caster, long amount) { }
 
     public virtual void Reflect(IActor target) {
         if (Buffs.Reflect == null || Buffs.Reflect.Counter >= Buffs.Reflect.Metadata.Count) {
@@ -181,6 +201,8 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             return;
         }
 
+        // For NPC casts, ImpactPosition is never set (only comes from client packets), so fall back to caster position
+        Vector3 impactPosition = record.ImpactPosition.LengthSquared() > 0.001f ? record.ImpactPosition : Position;
         var damage = new DamageRecord(record.Metadata, record.Attack) {
             CasterId = record.Caster.ObjectId,
             TargetUid = record.TargetUid,
@@ -189,9 +211,11 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             Level = record.Level,
             AttackPoint = record.AttackPoint,
             MotionPoint = record.MotionPoint,
-            Position = record.ImpactPosition,
+            Position = impactPosition,
             Direction = record.Direction,
         };
+
+        SkillEffectMetadata[] splashEffects = record.Attack.Skills.Where(e => e.Splash != null).ToArray();
 
         foreach (IActor target in record.Targets.Values) {
             target.ApplyDamage(this, damage, record.Attack);
@@ -199,15 +223,25 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
 
         Field.Broadcast(SkillDamagePacket.Damage(damage));
 
-
         ApplyEffects(record.Attack.Skills, record.Caster, this, skillId: record.SkillId, targets: record.Targets.Values.ToArray());
         ApplyEffects(record.Attack.SkillsOnDamage, record.Caster, damage, record.Targets.Values.ToArray());
+
+        // Create splash skills at target positions.
+        // Always skip the caster: when IncludeCaster is set, the attack also has a CubeMagicPathId
+        // which handles splash placement independently — this loop must not create a duplicate.
         foreach (IActor target in record.Targets.Values) {
-            foreach (SkillEffectMetadata effect in record.Attack.Skills.Where(e => e.Splash != null)) {
+            if (target.ObjectId == record.Caster.ObjectId) {
+                if (splashEffects.Length > 0 && record.Attack.CubeMagicPathId == 0) {
+                    Logger.Warning("[TargetAttack] SkillId={SkillId} AttackPoint={AttackPoint} IncludeCaster={IncludeCaster} — caster skipped in splash loop but CubeMagicPathId=0. Splash may be lost.",
+                        record.SkillId, record.AttackPoint, record.Attack.Range.IncludeCaster);
+                }
+                continue;
+            }
+
+            foreach (SkillEffectMetadata effect in splashEffects) {
                 Field.AddSkill(record.Caster, effect, [target.Position], record.Caster.Rotation);
             }
         }
-
     }
 
     public virtual void SkillAttackPoint(SkillRecord record, byte attackPoint) {

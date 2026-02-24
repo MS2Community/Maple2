@@ -18,6 +18,7 @@ public class PlayerCommand : GameCommand {
         AddCommand(new ExpCommand(session));
         AddCommand(new JobCommand(session));
         AddCommand(new InfoCommand(session));
+        AddCommand(new AttributePointCommand(session));
         AddCommand(new SkillPointCommand(session));
         AddCommand(new CurrencyCommand(session));
         AddCommand(new InventoryCommand(session));
@@ -359,6 +360,29 @@ public class PlayerCommand : GameCommand {
             ctx.Console.Out.WriteLine($"Player: {session.Player.ObjectId} ({session.PlayerName})");
             ctx.Console.Out.WriteLine($"  Position: {session.Player.Position}");
             ctx.Console.Out.WriteLine($"  Rotation: {session.Player.Rotation}");
+        }
+    }
+
+    private class AttributePointCommand : Command {
+        private readonly GameSession session;
+
+        public AttributePointCommand(GameSession session) : base("statpoint", "Add attribute points to the player.") {
+            this.session = session;
+
+            var points = new Argument<int>("points", "Attribute points to add.");
+
+            AddArgument(points);
+            this.SetHandler<InvocationContext, int>(Handle, points);
+        }
+
+        private void Handle(InvocationContext ctx, int points) {
+            try {
+                session.Config.AddStatPoint(AttributePointSource.Command, points);
+                ctx.ExitCode = 0;
+            } catch (SystemException ex) {
+                ctx.Console.Error.WriteLine(ex.Message);
+                ctx.ExitCode = 1;
+            }
         }
     }
 

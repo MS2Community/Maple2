@@ -4,6 +4,7 @@ using Maple2.Server.Core.Constants;
 using Maple2.Server.Core.Packets;
 
 namespace Maple2.Server.Game.Packets;
+
 public static class NpcNoticePacket {
     private enum Command : byte {
         Announce = 0,

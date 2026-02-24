@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using Serilog;
 
 namespace Maple2.Tools.Scheduler;
 
@@ -12,8 +13,13 @@ public class EventQueue {
     private readonly List<ScheduledEvent> timedEvents = [];
     private Queue<ScheduledEvent> nextEvents = [];
     private long nextTime = long.MaxValue;
+    private readonly ILogger logger;
 
     private readonly object mutex = new object();
+
+    public EventQueue(ILogger logger) {
+        this.logger = logger;
+    }
 
     public void Start() {
         Running = true;
@@ -105,9 +111,21 @@ public class EventQueue {
         }
 
         foreach (ScheduledEvent scheduledEvent in events) {
-            long result = scheduledEvent.Invoke();
-            if (result >= 0) {
-                Interlocked.Exchange(ref nextTime, Math.Min(nextTime, result));
+            try {
+                long result = scheduledEvent.Invoke();
+                if (result >= 0) {
+                    Interlocked.Exchange(ref nextTime, Math.Min(nextTime, result));
+                }
+            } catch (Exception ex) {
+                // Log exception but continue processing other events
+                // The scheduler should be resilient to individual task failures
+                logger.Error(ex, "[EventQueue] Task threw exception");
+
+                // Even if task threw, we need to check if it has a next execution time
+                // (for repeated tasks that should continue despite errors)
+                if (scheduledEvent is { Completed: false, ExecutionTime: > 0 }) {
+                    Interlocked.Exchange(ref nextTime, Math.Min(nextTime, scheduledEvent.ExecutionTime));
+                }
             }
         }
     }

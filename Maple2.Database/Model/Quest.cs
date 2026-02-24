@@ -15,7 +15,7 @@ internal class Quest {
     public long StartTime { get; set; }
     public long EndTime { get; set; }
     public bool Track { get; set; }
-    public SortedDictionary<int, QuestCondition> Conditions { get; set; }
+    public SortedDictionary<int, QuestCondition> Conditions { get; set; } = [];
 
     [return: NotNullIfNotNull(nameof(other))]
     public static implicit operator Quest?(Maple2.Model.Game.Quest? other) {
@@ -32,7 +32,7 @@ internal class Quest {
             Conditions = new SortedDictionary<int, QuestCondition>(),
         };
 
-        foreach ((int index, QuestCondition condition) in other.Conditions) {
+        foreach ((int index, Maple2.Model.Game.Quest.Condition condition) in other.Conditions) {
             quest.Conditions.Add(index, condition);
         }
 

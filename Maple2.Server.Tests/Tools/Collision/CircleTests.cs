@@ -1,5 +1,4 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 using Maple2.Tools.Collision;
 
 namespace Maple2.Server.Tests.Tools.Collision;
@@ -27,8 +26,7 @@ public class CircleTests {
             Assert.That(circle.Intersects(rectangle), Is.True);
         }
         {
-            var rectangle = new Rectangle(new Vector2(4, 4), 2, 2, 0);
-            Console.WriteLine(string.Join(",", rectangle.Points));
+            var rectangle = new Rectangle(new Vector2(5, 5), 2, 2, 0);
             Assert.That(circle.Intersects(rectangle), Is.False);
         }
     }

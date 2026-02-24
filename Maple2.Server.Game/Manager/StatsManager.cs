@@ -98,14 +98,22 @@ public class StatsManager {
     /// Gets the critical rate of the actor - uses a different formula for players and NPCs.
     /// </summary>
     /// <param name="targetCriticalEvasion"></param>
-    /// <param name="casterCriticalOverride"></param>
+    /// <param name="skillId">Source skill ID</param>
     /// <returns>DamageType. If successful crit, returns DamageType.Critical. else returns DamageType.Normal</returns>
-    public DamageType GetCriticalRate(long targetCriticalEvasion, double casterCriticalOverride) {
-        float criticalChance = Actor switch {
-            FieldPlayer player => Lua.CalcPlayerCritRate((int) player.Value.Character.Job.Code(), player.Stats.Values[BasicAttribute.Luck].Total, player.Stats.Values[BasicAttribute.CriticalRate].Total, targetCriticalEvasion, 0, 0),
-            FieldNpc npc => Lua.CalcNpcCritRate(npc.Stats.Values[BasicAttribute.Luck].Total, npc.Stats.Values[BasicAttribute.CriticalRate].Total, targetCriticalEvasion),
-            _ => 0,
-        };
+    public DamageType GetCriticalRate(long targetCriticalEvasion = 0, int skillId = 0) {
+        double casterCriticalOverride = 0;
+        float criticalChance = 0;
+        switch (Actor) {
+            case FieldPlayer player:
+                criticalChance = Lua.CalcPlayerCritRate((int) player.Value.Character.Job.Code(), player.Stats.Values[BasicAttribute.Luck].Total, player.Stats.Values[BasicAttribute.CriticalRate].Total, targetCriticalEvasion, 0, 0);
+                casterCriticalOverride = player.Buffs.TotalCompulsionRate(BuffCompulsionEventType.CritChanceOverride, skillId);
+                break;
+            case FieldNpc npc:
+                criticalChance = Lua.CalcNpcCritRate(npc.Stats.Values[BasicAttribute.Luck].Total, npc.Stats.Values[BasicAttribute.CriticalRate].Total, targetCriticalEvasion);
+                break;
+            default:
+                break;
+        }
 
         return Random.Shared.NextDouble() < Math.Max(criticalChance, casterCriticalOverride) ? DamageType.Critical : DamageType.Normal;
     }

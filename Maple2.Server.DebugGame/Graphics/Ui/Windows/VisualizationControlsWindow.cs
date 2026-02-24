@@ -55,6 +55,9 @@ public class VisualizationControlsWindow : IUiWindow {
             ImGui.Checkbox("Show Mobs", ref renderer.ShowMobs);
             ImGui.Unindent();
         }
+        ImGui.Checkbox("Show Skill Hitboxes", ref renderer.ShowSkillHitboxes);
+        ImGui.Checkbox("Show Field Skill Hitboxes", ref renderer.ShowFieldSkillHitboxes);
+        ImGui.Checkbox("Show Cube Skill Hitboxes", ref renderer.ShowCubeSkillHitboxes);
         ImGui.Separator();
         ImGui.Text("Camera Controls:");
         if (ImGui.Button("Reset Camera")) {

@@ -176,6 +176,22 @@ public class GameServer : Server<GameSession> {
         }
     }
 
+    public void WeeklyReset() {
+        lock (mutex) {
+            foreach (GameSession session in sessions.Values) {
+                session.WeeklyReset();
+            }
+        }
+    }
+
+    public void MonthlyReset() {
+        lock (mutex) {
+            foreach (GameSession session in sessions.Values) {
+                session.MonthlyReset();
+            }
+        }
+    }
+
     public override Task StopAsync(CancellationToken cancellationToken) {
         debugGraphicsContext.CleanUp();
 

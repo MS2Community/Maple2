@@ -4,5 +4,5 @@ public class CharacterShopItemData {
     public int ShopId { get; init; }
     public int ShopItemId { get; init; }
     public int StockPurchased { get; set; }
-    public Item Item { get; set; }
+    public required Item Item { get; set; }
 }

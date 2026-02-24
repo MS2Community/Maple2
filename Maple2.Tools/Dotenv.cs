@@ -2,6 +2,7 @@
 using System.IO;
 
 namespace Maple2.Tools;
+
 public static class DotEnv {
     public static void Load() {
         string dotenv = Path.Combine(Paths.SOLUTION_DIR, ".env");

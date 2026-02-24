@@ -8,7 +8,7 @@ namespace Maple2.Model.Game;
 public class Character {
     #region Immutable
     public long CreationTime { get; init; }
-    public DateTime LastModified { get; init; }
+    public DateTime LastModified { get; set; }
 
     public long Id { get; init; }
     public long AccountId { get; init; }
@@ -48,7 +48,7 @@ public class Character {
     public List<long> ClubIds = [];
     public required Mastery Mastery;
     public AchievementInfo AchievementInfo;
-    public MarriageInfo MarriageInfo;
+    public MarriageInfo MarriageInfo = new();
     public readonly Dictionary<int, DungeonEnterLimit> DungeonEnterLimits = [];
     public short DeathCount;
     public long DeathTick;

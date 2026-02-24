@@ -254,10 +254,10 @@ public class Buff : IUpdatable, IByteSerializable {
         }
 
         AdditionalEffectMetadataDot.DotBuff dotBuff = Metadata.Dot.Buff;
-        if (dotBuff.Target == SkillTargetType.Owner) {
-            Owner.Buffs.AddBuff(Caster, Owner, dotBuff.Id, dotBuff.Level, Field.FieldTick);
+        if (dotBuff.Target == DotTargetType.Caster) {
+            Caster.Buffs.AddBuff(Owner, Caster, dotBuff.Id, dotBuff.Level, Field.FieldTick);
         } else {
-            Caster.Buffs.AddBuff(Caster, Owner, dotBuff.Id, dotBuff.Level, Field.FieldTick);
+            Owner.Buffs.AddBuff(Caster, Owner, dotBuff.Id, dotBuff.Level, Field.FieldTick);
         }
     }
 

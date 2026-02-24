@@ -13,7 +13,7 @@ public class PartySearch : IByteSerializable {
     public int MemberCount;
     public long LeaderAccountId;
     public long LeaderCharacterId;
-    public string LeaderName { get; set; }
+    public required string LeaderName { get; set; }
 
     public PartySearch(long id, string name, int size) {
         Id = id;

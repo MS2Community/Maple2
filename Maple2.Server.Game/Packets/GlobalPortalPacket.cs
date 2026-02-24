@@ -4,6 +4,7 @@ using Maple2.Server.Core.Packets;
 using Maple2.Model.Metadata;
 
 namespace Maple2.Server.Game.Packets;
+
 public static class GlobalPortalPacket {
     private enum Command : byte {
         Announce = 0,

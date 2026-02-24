@@ -5,6 +5,7 @@ using Maple2.Server.Game.Session;
 using Serilog;
 
 namespace Maple2.Server.Game.PacketHandlers;
+
 public class FileHashHandler : FieldPacketHandler {
     public override RecvOp OpCode => RecvOp.FileHash;
 

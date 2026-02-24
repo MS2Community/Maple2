@@ -24,7 +24,6 @@ public sealed class ShopManager {
     private int NextEntryId() => Interlocked.Increment(ref idCounter);
     #endregion
     private readonly GameSession session;
-    // TODO: the CharacterShopData's restock count need to be reset at daily reset.
     private readonly IDictionary<int, CharacterShopData> accountShopData;
     private readonly IDictionary<int, CharacterShopData> characterShopData;
     private readonly Dictionary<int, Shop> instancedShops;
@@ -623,6 +622,40 @@ public sealed class ShopManager {
             session.Send(ShopPacket.RemoveBuyBackItem(item.Id));
         }
         return true;
+    }
+
+    public void DailyReset() {
+        ResetShopData(ResetType.Day);
+    }
+
+    public void WeeklyReset() {
+        ResetShopData(ResetType.Week);
+    }
+
+    private void ResetShopData(ResetType interval) {
+        foreach (CharacterShopData data in accountShopData.Values) {
+            if (data.Interval != interval) continue;
+            data.RestockCount = 0;
+            if (!accountShopItemData.TryGetValue(data.ShopId, out IDictionary<int, CharacterShopItemData>? items)) continue;
+            foreach (CharacterShopItemData item in items.Values) {
+                item.StockPurchased = 0;
+            }
+        }
+        foreach (CharacterShopData data in characterShopData.Values) {
+            if (data.Interval != interval) continue;
+            data.RestockCount = 0;
+            if (!characterShopItemData.TryGetValue(data.ShopId, out IDictionary<int, CharacterShopItemData>? items)) continue;
+            foreach (CharacterShopItemData item in items.Values) {
+                item.StockPurchased = 0;
+            }
+        }
+        foreach (Shop shop in instancedShops.Values) {
+            if (shop.RestockData.ResetType != interval) continue;
+            shop.RestockCount = 0;
+            foreach (ShopItem item in shop.Items.Values) {
+                item.StockPurchased = 0;
+            }
+        }
     }
 
     public void Save(GameStorage.Request db) {

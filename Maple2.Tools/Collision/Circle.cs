@@ -37,7 +37,8 @@ public class Circle : IPolygon {
 
     public Range AxisProjection(Vector2 axis) {
         float centerProjection = Vector2.Dot(axis, Origin);
-        return new Range(centerProjection - Radius, centerProjection + Radius);
+        float scaledRadius = Radius * axis.Length();
+        return new Range(centerProjection - scaledRadius, centerProjection + scaledRadius);
     }
 
     public virtual bool Intersects(IPolygon other) {

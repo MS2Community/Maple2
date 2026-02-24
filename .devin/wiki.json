@@ -1,0 +1,282 @@
+{
+  "repo_notes": [
+    {
+      "content": ""
+    }
+  ],
+  "pages": [
+    {
+      "title": "Overview",
+      "purpose": "Introduce the Maple2 server project, its goals, constraints, and a high-level walkthrough of server architecture, data flow, and runtime execution",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Server Architecture",
+      "purpose": "Explain the distributed server topology and responsibility boundaries between Login, World, and Game servers",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Login Server",
+      "purpose": "Detail authentication, character creation, selection, deletion, and migration initiation",
+      "parent": "Server Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "World Server",
+      "purpose": "Explain global coordination responsibilities including migration tokens, distributed locking, player presence, and social systems",
+      "parent": "Server Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Game Server",
+      "purpose": "Describe the game server runtime environment including session management, field instances, and real-time simulation",
+      "parent": "Server Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Networking and Migration",
+      "purpose": "Detail packet handling, encryption, inter-server communication, and the token-based migration flow between servers",
+      "parent": "Server Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Data Pipeline",
+      "purpose": "Explain how proprietary game assets are transformed into structured metadata and runtime-accessible data",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Content Ingestion",
+      "purpose": "Detail file parsing, type mappers, checksum-based ingestion, and database population",
+      "parent": "Data Pipeline",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Map Data Processing",
+      "purpose": "Explain extraction of map entities, spawns, portals, triggers, and spatial metadata from XBlock files",
+      "parent": "Data Pipeline",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Metadata Storage",
+      "purpose": "Describe metadata access patterns, lazy loading, caching strategies, and separation between static and mutable data",
+      "parent": "Data Pipeline",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Game Session",
+      "purpose": "Describe GameSession as the authoritative per-player runtime context and coordination hub",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Session Lifecycle",
+      "purpose": "Explain session creation during migration, initialization order, and disposal and cleanup",
+      "parent": "Game Session",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Session Managers",
+      "purpose": "Detail the manager pattern and responsibilities of core managers such as Item, Quest, Currency, Stats, Buff, and Achievement",
+      "parent": "Game Session",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Persistence and Migration",
+      "purpose": "Explain player data persistence, migration saves, distributed locking, and cross-server consistency guarantees",
+      "parent": "Game Session",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Game World",
+      "purpose": "Provide an overview of world simulation, field instances, and entity management",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Field Manager",
+      "purpose": "Detail field instance lifecycle, update loop, threading model, packet processing, and entity orchestration",
+      "parent": "Game World",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Actor System",
+      "purpose": "Explain the IActor hierarchy, combat execution, skills, buffs, and interaction logic",
+      "parent": "Game World",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Navigation and AI",
+      "purpose": "Detail pathfinding with DotRecast, NPC AI state machines, and movement systems",
+      "parent": "Game World",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Trigger System",
+      "purpose": "Explain trigger state machines, TriggerContext actions, and scripted map events",
+      "parent": "Game World",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Map Entities",
+      "purpose": "Detail static world elements such as portals, spawn points, and interactable objects",
+      "parent": "Game World",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Player Systems",
+      "purpose": "Provide an overview of player-centric mechanics and progression systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Inventory System",
+      "purpose": "Detail inventory management, item collections, transactions, and concurrency considerations",
+      "parent": "Player Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Item Enhancement and Sockets",
+      "purpose": "Explain enchantments, gemstones, limit breaks, and enhancement workflows",
+      "parent": "Player Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Character Progression",
+      "purpose": "Detail stats, leveling, mastery, achievements, and attribute calculation",
+      "parent": "Player Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Condition System",
+      "purpose": "Explain condition evaluation used by quests, achievements, and triggers",
+      "parent": "Player Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Development and Administration",
+      "purpose": "Cover operational, debugging, and maintenance concerns",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Project Structure and Dependencies",
+      "purpose": "Detail repository layout, build configuration, and external dependencies",
+      "parent": "Development and Administration",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Administrative Commands",
+      "purpose": "Explain command infrastructure for debugging, moderation, and live state manipulation",
+      "parent": "Development and Administration",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    }
+  ]
+}

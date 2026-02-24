@@ -4,6 +4,7 @@ using System.Numerics;
 using Maple2.Server.DebugGame.Graphics.Data.VertexBuffer;
 
 namespace Maple2.Server.DebugGame.Graphics.Assets;
+
 public class CoreModels {
     public DebugGraphicsContext Context { get; init; }
     public Mesh Quad { get; init; }

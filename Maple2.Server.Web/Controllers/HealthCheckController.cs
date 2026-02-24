@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 
 namespace Maple2.Server.Web.Controllers;
+
 [Route("/")]
 public class HealthCheckController : ControllerBase {
 

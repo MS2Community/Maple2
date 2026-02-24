@@ -9,6 +9,8 @@ using Maple2.File.IO.Crypto.Common;
 using Maple2.Model.Metadata;
 using Maple2.Tools;
 using static System.Char;
+// ReSharper disable HeuristicUnreachableCode
+#pragma warning disable CS0162 // Unreachable code detected
 
 namespace Maple2.File.Ingest.Mapper;
 

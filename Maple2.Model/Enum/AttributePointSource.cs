@@ -5,4 +5,5 @@ public enum AttributePointSource {
     Quest = 2,
     Exploration = 3,
     Prestige = 4,
+    Command = 5,
 }

@@ -5,6 +5,7 @@ using DotRecast.Recast;
 using DotRecast.Recast.Toolset;
 
 namespace Maple2.Tools.DotRecast;
+
 public static class DotRecastHelper {
     public const int VERTS_PER_POLY = 6;
     public const float CELL_SIZE = 0.05f;

@@ -61,7 +61,9 @@ public partial class GameStorage {
             return Context.CharacterShopItemData.Where(data => data.OwnerId == ownerId)
                 .AsEnumerable()
                 .Select(ToShopItemData)
-                .ToList()!;
+                .Where(data => data != null)
+                .Cast<CharacterShopItemData>()
+                .ToList();
         }
 
         public bool SaveCharacterShopItemData(long ownerId, ICollection<CharacterShopItemData> itemDatas) {
@@ -91,13 +93,19 @@ public partial class GameStorage {
             if (model == null) {
                 return null;
             }
+            if (model.Item == null) {
+                return null;
+            }
             if (!game.itemMetadata.TryGet(model.Item.ItemId, out ItemMetadata? metadata)) {
                 return null;
             }
             Item item = model.Item.Convert(metadata);
-            CharacterShopItemData data = model;
-            data.Item = item;
-            return data;
+            return new CharacterShopItemData {
+                ShopId = model.ShopId,
+                ShopItemId = model.ShopItemId,
+                StockPurchased = model.StockPurchased,
+                Item = item,
+            };
         }
     }
 }

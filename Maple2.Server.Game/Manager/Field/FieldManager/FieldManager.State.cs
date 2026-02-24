@@ -2,23 +2,29 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using DotRecast.Core.Numerics;
 using DotRecast.Detour.Crowd;
 using Maple2.Database.Storage;
 using Maple2.Model.Common;
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
+using Maple2.Model.Game.Field;
 using Maple2.Model.Metadata;
 using Maple2.Server.Game.LuaFunctions;
 using Maple2.Server.Game.Model;
 using Maple2.Server.Game.Model.Skill;
+using Maple2.Server.Core.Packets;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
 using Maple2.Server.Game.Util;
 using Maple2.Tools;
 using Maple2.Tools.Collision;
+using Maple2.Tools.DotRecast;
 using Maple2.Tools.Extensions;
 using Maple2.Tools.VectorMath;
+using Maple2.Server.World.Service;
 using Serilog;
+using WorldTimeEventRequest = Maple2.Server.World.Service.TimeEventRequest;
 
 namespace Maple2.Server.Game.Manager.Field;
 
@@ -43,9 +49,15 @@ public partial class FieldManager {
     private readonly ConcurrentDictionary<int, FieldPlayerSpawnPoint> fieldPlayerSpawnPoints = new();
     private readonly ConcurrentDictionary<int, FieldSpawnGroup> fieldSpawnGroups = new();
     private readonly ConcurrentDictionary<int, FieldSkill> fieldSkills = new();
+    private readonly ConcurrentDictionary<int, FieldSkill> cubeSkills = new();
     private readonly ConcurrentDictionary<int, FieldPortal> fieldPortals = new();
 
     private readonly ConcurrentDictionary<int, HongBao> hongBaos = new();
+
+    public IEnumerable<FieldSkill> DebugFieldSkills => fieldSkills.Values;
+    public IEnumerable<FieldSkill> DebugCubeSkills => cubeSkills.Values;
+
+    private int worldBossObjectId;
 
     private string? background;
     private readonly ConcurrentDictionary<FieldProperty, IFieldProperty> fieldProperties = new();
@@ -102,12 +114,36 @@ public partial class FieldManager {
         return fieldPlayer;
     }
 
-    public FieldNpc? SpawnNpc(NpcMetadata npc, Vector3 position, Vector3 rotation, FieldMobSpawn? owner = null, SpawnPointNPC? spawnPointNpc = null, string spawnAnimation = "") {
-        DtCrowdAgent agent = Navigation.AddAgent(npc, position);
+    public FieldNpc? SpawnNpc(NpcMetadata npc, Vector3 position, Vector3 rotation, bool disableAi = false, FieldMobSpawn? owner = null, SpawnPointNPC? spawnPointNpc = null, string spawnAnimation = "") {
+        // Apply random offset if SpawnRadius is set
+        Vector3 spawnPosition = position;
+        if (spawnPointNpc?.SpawnRadius > 0) {
+            float angle = Random.Shared.NextSingle() * MathF.PI * 2;
+            float distance = Random.Shared.NextSingle() * spawnPointNpc.SpawnRadius;
+            Vector3 offset = new Vector3(
+                MathF.Cos(angle) * distance,
+                MathF.Sin(angle) * distance,
+                0
+            );
+            Vector3 randomizedPosition = position + offset;
+
+            // Validate and snap to nearest valid navmesh position
+            if (FindNearestPoly(randomizedPosition, out long nearestRef, out RcVec3f validPosition) && nearestRef != 0) {
+                spawnPosition = DotRecastHelper.FromNavMeshSpace(validPosition);
+                logger.Debug("[SpawnNpc] Applied spawn radius {Radius} to NPC {NpcId} at SpawnPoint {SpawnPointId}, offset: {Offset}, snapped from {Original} to {Final}",
+                    spawnPointNpc.SpawnRadius, npc.Id, spawnPointNpc.SpawnPointId, offset, randomizedPosition, spawnPosition);
+            } else {
+                logger.Warning("[SpawnNpc] Randomized position {Position} invalid for NPC {NpcId}, using original spawn point {Original}",
+                    randomizedPosition, npc.Id, position);
+                spawnPosition = position;
+            }
+        }
+
+        DtCrowdAgent agent = Navigation.AddAgent(npc, spawnPosition);
 
         AnimationMetadata? animation = NpcMetadata.GetAnimation(npc.Model.Name);
-        Vector3 spawnPosition = position;
-        var fieldNpc = new FieldNpc(this, NextLocalId(), agent, new Npc(npc, animation), npc.AiPath, patrolDataUUID: spawnPointNpc?.PatrolData, spawnAnimation: spawnAnimation) {
+        string aiPath = disableAi ? string.Empty : npc.AiPath;
+        var fieldNpc = new FieldNpc(this, NextLocalId(), agent, new Npc(npc, animation), aiPath, patrolDataUUID: spawnPointNpc?.PatrolData, spawnAnimation: spawnAnimation) {
             Owner = owner,
             Position = spawnPosition,
             Rotation = rotation,
@@ -125,7 +161,7 @@ public partial class FieldManager {
     }
 
     public FieldNpc? SpawnNpc(NpcMetadata npc, SpawnPointNPC spawnPointNpc) {
-        return SpawnNpc(npc, spawnPointNpc.Position, spawnPointNpc.Rotation, null, spawnPointNpc);
+        return SpawnNpc(npc, spawnPointNpc.Position, spawnPointNpc.Rotation, disableAi: false, owner: null, spawnPointNpc: spawnPointNpc);
     }
 
     public FieldPet? SpawnPet(Item pet, Vector3 position, Vector3 rotation, FieldMobSpawn? owner = null, FieldPlayer? player = null) {
@@ -419,6 +455,76 @@ public partial class FieldManager {
         fieldSpawnGroup.ToggleActive(enable);
     }
 
+    public FieldNpc? SpawnWorldBoss(WorldBossMetadata metadata, int eventId) {
+        if (metadata.NpcIds.Length == 0 || metadata.SpawnPointIds.Length == 0) {
+            logger.Warning("[WorldBoss] Metadata {Id} has no NpcIds or SpawnPointIds", metadata.Id);
+            return null;
+        }
+
+        if (metadata.Unique && worldBossObjectId != 0) {
+            logger.Warning("[WorldBoss] Unique boss {Id} already present in map {MapId}, skipping spawn", metadata.Id, MapId);
+            return null;
+        }
+
+        // TimeEventData.Xml only uses 1 npc and spawnpointid for each event
+        if (!NpcMetadata.TryGet(metadata.NpcIds.First(), out NpcMetadata? npcMetadata)) {
+            logger.Warning("[WorldBoss] NPC {NpcId} not found", metadata.NpcIds.First());
+            return null;
+        }
+
+        if (!Entities.RegionSpawns.TryGetValue(metadata.SpawnPointIds.First(), out Ms2RegionSpawn? regionSpawn)) {
+            logger.Warning("[WorldBoss] RegionSpawn {SpawnPointId} not found in map {MapId}", metadata.SpawnPointIds.First(), MapId);
+            return null;
+        }
+
+        FieldNpc? npc = SpawnNpc(npcMetadata, regionSpawn.Position, regionSpawn.Rotation);
+        if (npc == null) {
+            return null;
+        }
+
+        worldBossObjectId = npc.ObjectId;
+        npc.WorldBossDeathCallback = killedNpc => {
+            worldBossObjectId = 0;
+            FieldPlayer? killer = killedNpc.GetLastAttacker();
+            string killerName = killer?.Value.Character.Name ?? string.Empty;
+            string bossName = npcMetadata.Name ?? string.Empty;
+
+            Broadcast(NoticePacket.Message(new InterfaceText(StringCode.s_hunting_kill_boss, killerName, bossName)));
+
+            // Notify World to remove this channel from the boss's alive channel list (for world map accuracy)
+            try {
+                FieldFactory.World.TimeEvent(new WorldTimeEventRequest {
+                    WorldBossKilled = new WorldTimeEventRequest.Types.WorldBossKilled {
+                        MetadataId = metadata.Id,
+                        EventId = eventId,
+                        Channel = GameServer.GetChannel(),
+                    },
+                });
+            } catch (Exception ex) {
+                logger.Error(ex, "[WorldBoss] Failed to notify world of boss {MetadataId} kill on channel {Channel}", metadata.Id, GameServer.GetChannel());
+            }
+        };
+        Broadcast(FieldPacket.AddNpc(npc));
+        logger.Information("[WorldBoss] Spawned {NpcId} (objectId={ObjectId}) for event {EventId} in map {MapId}", metadata.NpcIds[0], npc.ObjectId, eventId, MapId);
+        return npc;
+    }
+
+    public FieldNpc? GetWorldBossNpc() {
+        if (worldBossObjectId == 0) return null;
+        Mobs.TryGetValue(worldBossObjectId, out FieldNpc? npc);
+        return npc;
+    }
+
+    public void DespawnWorldBoss() {
+        if (worldBossObjectId == 0) {
+            return;
+        }
+
+        int objectId = worldBossObjectId;
+        worldBossObjectId = 0;
+        RemoveNpc(objectId);
+    }
+
     public void ToggleNpcSpawnPoint(int spawnId) {
         List<FieldSpawnPointNpc> spawns = fieldSpawnPointNpcs.Values.Where(spawn => spawn.Value.SpawnPointId == spawnId).ToList();
         foreach (FieldSpawnPointNpc spawn in spawns) {
@@ -536,7 +642,7 @@ public partial class FieldManager {
         }
     }
 
-    public IEnumerable<IActor> GetTargets(IActor caster, Prism[] prisms, ApplyTargetType targetType, int limit, ICollection<IActor>? ignore = null) {
+    private IEnumerable<IActor> GetTargetPool(IActor caster, Prism[] prisms, ApplyTargetType targetType, int limit, ICollection<IActor>? ignore) {
         switch (targetType) {
             case ApplyTargetType.Friendly:
                 if (caster is FieldNpc) {
@@ -566,6 +672,35 @@ public partial class FieldManager {
         }
     }
 
+    public IEnumerable<IActor> GetTargets(IActor caster, Prism[] prisms, SkillMetadataRange range, int targetCount, ICollection<IActor>? ignore = null) {
+        if (targetCount <= 0) {
+            return [];
+        }
+
+        // Caster is always excluded from the pool; re-added explicitly per IncludeCaster semantics
+        ICollection<IActor> poolIgnore = ignore != null ? [.. ignore, caster] : [caster];
+
+        switch (range.IncludeCaster) {
+            case IncludeCasterType.Priority: {
+                    // Caster guaranteed as first target; pool fills remaining slots
+                    IActor[] pool = GetTargetPool(caster, prisms, range.ApplyTarget, targetCount - 1, poolIgnore).ToArray();
+                    return Enumerable.Repeat<IActor>(caster, 1).Concat(pool);
+                }
+            case IncludeCasterType.Last: {
+                    // Pool fills all slots; caster appended only if fewer than targetCount were found
+                    IActor[] pool = GetTargetPool(caster, prisms, range.ApplyTarget, targetCount, poolIgnore).ToArray();
+                    return pool.Length < targetCount ? pool.Concat(Enumerable.Repeat<IActor>(caster, 1)) : pool;
+                }
+            default: // Exclude
+                return GetTargetPool(caster, prisms, range.ApplyTarget, targetCount, poolIgnore);
+        }
+    }
+
+    public IEnumerable<IActor> GetTargets(SkillRecord record, ICollection<IActor>? ignore = null) {
+        Prism[] prisms = [record.Attack.Range.GetPrism(record.ImpactPosition, record.Rotation.Z)];
+        return GetTargets(record.Caster, prisms, record.Attack.Range, record.Attack.TargetCount, ignore);
+    }
+
     public void RemoveSkill(int objectId) {
         if (fieldSkills.Remove(objectId, out _)) {
             Broadcast(RegionSkillPacket.Remove(objectId));
@@ -577,6 +712,19 @@ public partial class FieldManager {
             fieldSkills.Remove(fieldSkill.ObjectId, out _);
             Broadcast(RegionSkillPacket.Remove(fieldSkill.ObjectId));
         }
+    }
+
+    // Cube skills are server-side only and do not need to be broadcast to clients.
+    // They are static map hazards that persist for the lifetime of the field.
+    private void AddCubeSkill(SkillMetadata metadata, in Vector3 position, in Vector3 rotation = default) {
+        Vector3 adjustedPosition = position;
+        adjustedPosition.Z += FieldAccelerationStructure.BLOCK_SIZE;
+        var fieldSkill = new FieldSkill(this, NextLocalId(), FieldActor, metadata, (int) Constant.GlobalCubeSkillIntervalTime.TotalMilliseconds, adjustedPosition) {
+            Position = adjustedPosition,
+            Rotation = rotation,
+            Source = SkillSource.Cube,
+        };
+        cubeSkills[fieldSkill.ObjectId] = fieldSkill;
     }
     #endregion
 
@@ -899,6 +1047,9 @@ public partial class FieldManager {
         }
         foreach (FieldNpc fieldNpc in Npcs.Values.Concat(Mobs.Values)) {
             added.Session.Send(FieldPacket.AddNpc(fieldNpc));
+            if (fieldNpc.IsCorpse) {
+                added.Session.Send(NpcControlPacket.Dead(fieldNpc));
+            }
         }
         foreach (FieldPet fieldPet in Pets.Values) {
             added.Session.Send(FieldPacket.AddPet(fieldPet));

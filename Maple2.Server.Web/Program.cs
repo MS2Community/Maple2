@@ -46,6 +46,7 @@ builder.WebHost.UseKestrel(options => {
     // });
 });
 builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(15));
+builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
 
 builder.Logging.ClearProviders();

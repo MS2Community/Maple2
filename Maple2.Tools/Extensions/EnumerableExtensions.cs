@@ -72,9 +72,9 @@ public static class EnumerableExtensions {
     public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) where T : class => source.Where(x => x != null)!;
 
     public static bool TryGetValue<TK1, TK2, TV>(this IReadOnlyDictionary<TK1, IReadOnlyDictionary<TK2, TV>> dictionary, TK1 key1, TK2 key2,
-                                                 [NotNullWhen(true)] out TV? value) {
+                                                 [MaybeNullWhen(false)] out TV value) {
         if (!dictionary.TryGetValue(key1, out IReadOnlyDictionary<TK2, TV>? nested)) {
-            value = default(TV);
+            value = default;
             return false;
         }
 

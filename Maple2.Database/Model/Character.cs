@@ -30,7 +30,7 @@ internal class Character {
     public required Mastery Mastery { get; set; }
     public DateTime DeleteTime { get; set; }
     public DateTime CreationTime { get; set; }
-    public DateTime LastModified { get; set; }
+    public DateTime LastModified { get; init; }
 
     [return: NotNullIfNotNull(nameof(other))]
     public static implicit operator Character?(Maple2.Model.Game.Character? other) {

@@ -109,7 +109,7 @@ public class FieldPlayer : Actor<Player> {
         StateSyncTimeTracking = 0;
         StateSyncTrackingTick = Environment.TickCount64;
 
-        scheduler = new EventQueue();
+        scheduler = new EventQueue(Logger);
         scheduler.ScheduleRepeated(() => {
             session.ConditionUpdate(ConditionType.stay_map, codeLong: session.Field!.MapId);
         }, TimeSpan.FromSeconds(60), skipFirst: true);

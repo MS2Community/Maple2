@@ -9,8 +9,8 @@ public partial class MovementState {
     private SkillRecord? castSkill = null;
     public NpcTask? CastTask { get; private set; } = null;
     private Vector3 castMoveOffset;
-    private string castMoveStartKeyframe;
-    private string castMoveEndKeyframe;
+    private string castMoveStartKeyframe = string.Empty;
+    private string castMoveEndKeyframe = string.Empty;
     private float castMoveLastTick = -1;
     private bool castMoveFinished;
 

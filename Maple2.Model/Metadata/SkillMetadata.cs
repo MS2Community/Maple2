@@ -129,7 +129,7 @@ public record SkillMetadataRange(
     float RotateZDegree,
     Vector3 RangeAdd,
     Vector3 RangeOffset,
-    SkillTargetType IncludeCaster, // 0,1,2
+    IncludeCasterType IncludeCaster,
     ApplyTargetType ApplyTarget, // 0,1,2,3,5,6,7,8
     SkillTargetType CastTarget); // 0,1,2,3,4,5,7
 

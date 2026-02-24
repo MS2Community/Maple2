@@ -74,10 +74,12 @@ message ChatResponse {
 message GameResetRequest {
   message Daily {}
   message Weekly {}
+  message Monthly {}
 
   oneof reset {
     Daily daily = 1;
     Weekly weekly = 2;
+    Monthly monthly = 3;
   }
 }
 

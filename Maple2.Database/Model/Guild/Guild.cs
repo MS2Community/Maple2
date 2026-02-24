@@ -17,10 +17,10 @@ internal class Guild {
     public int Funds { get; set; }
     public int HouseRank { get; set; }
     public int HouseTheme { get; set; }
-    public IList<GuildRank> Ranks { get; set; }
-    public IList<GuildBuff> Buffs { get; set; }
-    public IList<GuildPoster> Posters { get; set; }
-    public IList<GuildNpc> Npcs { get; set; }
+    public IList<GuildRank> Ranks { get; set; } = [];
+    public IList<GuildBuff> Buffs { get; set; } = [];
+    public IList<GuildPoster> Posters { get; set; } = [];
+    public IList<GuildNpc> Npcs { get; set; } = [];
 
     public long LeaderId { get; set; }
     public IList<GuildMember>? Members { get; set; }

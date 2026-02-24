@@ -11,7 +11,7 @@ internal class Nurturing {
     public short ClaimedGiftForStage { get; set; }
     public DateTime CreationTime { get; set; }
     public DateTime LastFeedTime { get; set; }
-    public long[] PlayedBy { get; set; }
+    public long[] PlayedBy { get; set; } = [];
 
     public static void Configure(EntityTypeBuilder<Nurturing> builder) {
         builder.ToTable("nurturing");

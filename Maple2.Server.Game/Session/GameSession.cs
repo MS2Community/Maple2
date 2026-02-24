@@ -110,12 +110,11 @@ public sealed partial class GameSession : Core.Network.Session {
     public RideManager Ride { get; set; } = null!;
     public MentoringManager Mentoring { get; set; } = null!;
 
-
     public GameSession(TcpClient tcpClient, GameServer server, IComponentContext context) : base(tcpClient) {
         this.server = server;
         State = SessionState.ChangeMap;
         CommandHandler = context.Resolve<CommandRouter>(new NamedParameter("session", this));
-        Scheduler = new EventQueue();
+        Scheduler = new EventQueue(Logger);
         Scheduler.ScheduleRepeated(() => Send(TimeSyncPacket.Request()), TimeSpan.FromSeconds(1));
 
         OnLoop += Scheduler.InvokeAll;
@@ -327,7 +326,26 @@ public sealed partial class GameSession : Core.Network.Session {
         Send(FishingPacket.LoadAlbum(Player.Value.Unlock.FishAlbum.Values));
         Pet?.Load();
         Send(PetPacket.LoadCollection(Player.Value.Unlock.Pets));
-        // LegionBattle
+        Send(LegionBattlePacket.Load(ServerTableMetadata.TimeEventTable.WorldBoss));
+        try {
+            TimeEventResponse bossResponse = World.TimeEvent(new TimeEventRequest {
+                GetActiveWorldBosses = new TimeEventRequest.Types.GetActiveWorldBosses(),
+            });
+            if (bossResponse.ActiveWorldBosses.Count > 0) {
+                var bossGroups = new List<ICollection<MapWorldBoss>>();
+                foreach (TimeEventResponse.Types.ActiveWorldBoss active in bossResponse.ActiveWorldBosses) {
+                    if (!ServerTableMetadata.TimeEventTable.WorldBoss.TryGetValue(active.MetadataId, out WorldBossMetadata? bossMetadata)) {
+                        continue;
+                    }
+                    int bossNpcId = bossMetadata.NpcIds.Length > 0 ? bossMetadata.NpcIds[0] : 0;
+                    int bossMapId = bossMetadata.TargetMapIds.Length > 0 ? bossMetadata.TargetMapIds[0] : 0;
+                    bossGroups.Add(active.AliveChannels.Select(ch => new MapWorldBoss(bossNpcId, bossMapId, (short) ch, active.SpawnTimestamp)).ToList());
+                }
+                Send(WorldMapPacket.Load(bossGroups, []));
+            }
+        } catch (RpcException ex) {
+            Logger.Warning(ex, "Failed to fetch active field bosses");
+        }
         // CharacterAbility
         Config.LoadKeyTable();
         Send(GuideRecordPacket.Load(Config.GuideRecords));
@@ -370,7 +388,7 @@ public sealed partial class GameSession : Core.Network.Session {
         NpcScript = null;
         MiniGameRecord = null;
 
-        Buffs.LeaveField();
+        Buffs?.LeaveField();
 
         if (Field != null) {
             Scheduler.Stop();
@@ -421,10 +439,9 @@ public sealed partial class GameSession : Core.Network.Session {
 
         return true;
     }
+
     public bool EnterField() {
-        if (Field == null) {
-            return false;
-        }
+        if (Field == null) return false;
 
         if (!Player.Value.Unlock.Maps.Contains(Player.Value.Character.MapId)) {
             if (Field.Metadata.Property.ExploreType > 0) {
@@ -491,6 +508,8 @@ public sealed partial class GameSession : Core.Network.Session {
         Send(PremiumCubPacket.LoadItems(Player.Value.Account.PremiumRewardsClaimed));
         ConditionUpdate(ConditionType.map, codeLong: Player.Value.Character.MapId);
         ConditionUpdate(ConditionType.job_change, codeLong: (int) Player.Value.Character.Job.Code());
+
+        SessionSave();
 
         // Update the client with the latest channel list.
         ChannelsResponse response = World.Channels(new ChannelsRequest());
@@ -645,10 +664,34 @@ public sealed partial class GameSession : Core.Network.Session {
         // Home
         Player.Value.Home.DecorationRewardTimestamp = 0;
         Send(CubePacket.DesignRankReward(Player.Value.Home));
+        // Meso Market
+        Player.Value.Account.MesoMarketListed = 0;
+        Send(MesoMarketPacket.Quota(Player.Value.Account.MesoMarketListed, Player.Value.Account.MesoMarketPurchased));
+        // Shop restock
+        Shop.DailyReset();
+        // Dungeon daily clears
+        Dungeon.ResetDailyClears();
+    }
+
+    public void WeeklyReset() {
+        // Prestige Rewards
+        Player.Value.Account.PrestigeRewardsClaimed.Clear();
+        Send(PrestigePacket.Load(Player.Value.Account));
+        // Dungeon enter limits
+        Dungeon.UpdateDungeonEnterLimit();
+        // Dungeon weekly clears
+        Dungeon.ResetWeeklyClears();
+        // Shop restock
+        Shop.WeeklyReset();
+    }
+
+    public void MonthlyReset() {
+        // Meso Market
+        Player.Value.Account.MesoMarketPurchased = 0;
+        Send(MesoMarketPacket.Quota(Player.Value.Account.MesoMarketListed, Player.Value.Account.MesoMarketPurchased));
     }
 
     public void MigrateToPlanner(PlotMode plotMode) {
-        MigrationSave();
         try {
             var request = new MigrateOutRequest {
                 AccountId = AccountId,
@@ -666,6 +709,7 @@ public sealed partial class GameSession : Core.Network.Session {
             var endpoint = new IPEndPoint(IPAddress.Parse(response.IpAddress), response.Port);
             Send(MigrationPacket.GameToGame(endpoint, response.Token, Constant.DefaultHomeMapId));
             State = SessionState.ChangeMap;
+            MigrationSave();
         } catch (RpcException ex) {
             Send(MigrationPacket.GameToGameError(MigrationError.s_move_err_default));
             Send(NoticePacket.Disconnect(new InterfaceText(ex.Message)));
@@ -677,7 +721,6 @@ public sealed partial class GameSession : Core.Network.Session {
     public void Migrate(int mapId, long ownerId = 0) {
         bool isInstanced = ServerTableMetadata.InstanceFieldTable.Entries.ContainsKey(mapId);
 
-        MigrationSave();
         try {
             var request = new MigrateOutRequest {
                 AccountId = AccountId,
@@ -701,6 +744,7 @@ public sealed partial class GameSession : Core.Network.Session {
             }
 
             State = SessionState.ChangeMap;
+            MigrationSave();
         } catch (RpcException ex) {
             Send(MigrationPacket.GameToGameError(MigrationError.s_move_err_default));
             Send(NoticePacket.Disconnect(new InterfaceText(ex.Message)));
@@ -759,7 +803,7 @@ public sealed partial class GameSession : Core.Network.Session {
                 LastOnlineTime = DateTime.UtcNow.ToEpochSeconds(),
                 MapId = 0,
                 Channel = -1,
-                Async = true,
+                Async = false,
             });
 
             Party.CheckDisband();
@@ -796,10 +840,6 @@ public sealed partial class GameSession : Core.Network.Session {
             Interlocked.Exchange(ref gameDisposeState, 2);
         }
         return;
-
-        void TrySaveComponent(GameStorage.Request db, Action<GameStorage.Request> action) {
-            try { action(db); } catch (Exception ex) { Logger.Error(ex, "Error saving component for {Player}", PlayerName); }
-        }
 
         void SafeDispose(IDisposable? disp) {
             if (disp == null) return;
@@ -853,33 +893,55 @@ public sealed partial class GameSession : Core.Network.Session {
     }
     #endregion
 
+    public override string ToString() {
+        return $"GameSession: {Player?.Value?.Character?.Name} ({CharacterId}) [{State}] // Account: {AccountId}, Machine: {MachineId}, Channel: {Player?.Value?.Character?.Channel}, Map: {Player?.Value?.Character?.MapId}]";
+    }
+
     public void MigrationSave() {
         if (preMigrationSaved) return;
+
         try {
             AcquireLock(AccountId, 5);
-            using GameStorage.Request db = GameStorage.Context();
-            db.BeginTransaction();
-            db.SavePlayer(Player);
-            TrySaveComponent(db, UgcMarket.Save);
-            TrySaveComponent(db, Config.Save);
-            TrySaveComponent(db, Shop.Save);
-            TrySaveComponent(db, Item.Save);
-            TrySaveComponent(db, Survival.Save);
-            TrySaveComponent(db, Housing.Save);
-            TrySaveComponent(db, GameEvent.Save);
-            TrySaveComponent(db, Achievement.Save);
-            TrySaveComponent(db, Quest.Save);
-            TrySaveComponent(db, Dungeon.Save);
-            db.Commit();
-            db.SaveChanges();
+            Save();
             preMigrationSaved = true;
         } catch (Exception ex) {
             Logger.Error(ex, "MigrationSave failed AccountId={AccountId} CharacterId={CharacterId}", AccountId, CharacterId);
         } finally {
             ReleaseLock(AccountId);
         }
+    }
 
-        void TrySaveComponent(GameStorage.Request db, Action<GameStorage.Request> action) {
+    public void SessionSave() {
+        try {
+            AcquireLock(AccountId, 5);
+            Save();
+        } catch (Exception ex) {
+            Logger.Error(ex, "SessionSave failed AccountId={AccountId} CharacterId={CharacterId}", AccountId, CharacterId);
+        } finally {
+            ReleaseLock(AccountId);
+        }
+    }
+
+    // Don't call this directly, since it does not acquire the account lock.
+    private void Save() {
+        using GameStorage.Request db = GameStorage.Context();
+        db.BeginTransaction();
+        db.SavePlayer(Player);
+        TrySaveComponent(UgcMarket.Save);
+        TrySaveComponent(Config.Save);
+        TrySaveComponent(Shop.Save);
+        TrySaveComponent(Item.Save);
+        TrySaveComponent(Survival.Save);
+        TrySaveComponent(Housing.Save);
+        TrySaveComponent(GameEvent.Save);
+        TrySaveComponent(Achievement.Save);
+        TrySaveComponent(Quest.Save);
+        TrySaveComponent(Dungeon.Save);
+        db.Commit();
+        db.SaveChanges();
+        return;
+
+        void TrySaveComponent(Action<GameStorage.Request> action) {
             try { action(db); } catch (Exception ex) { Logger.Error(ex, "Error saving component for {Player}", PlayerName); }
         }
     }

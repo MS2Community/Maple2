@@ -46,7 +46,9 @@ public class QuitHandler : PacketHandler<GameSession> {
             MigrateOutResponse response = World.MigrateOut(request);
             var endpoint = new IPEndPoint(IPAddress.Parse(response.IpAddress), response.Port);
             session.Send(MigrationPacket.GameToLogin(endpoint, response.Token));
-        } catch (RpcException) {
+        } catch (RpcException ex) {
+            Logger.Error(ex, "MigrateOut failed for account={AccountId} char={CharacterId}",
+                session.AccountId, session.CharacterId);
             session.Send(MigrationPacket.GameToLoginError(s_move_err_default));
         } finally {
             session.Disconnect();

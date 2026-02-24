@@ -304,7 +304,7 @@ public class BuffManager : IUpdatable {
         }
 
         return skillId == 0 ? nestedCompulsionDic.Values.Sum(compulsion => compulsion.Rate) :
-            nestedCompulsionDic.Values.Where(compulsion => compulsion.SkillIds.Contains(skillId)).Sum(compulsion => compulsion.Rate);
+            nestedCompulsionDic.Values.Where(compulsion => compulsion.SkillIds.Contains(skillId) || compulsion.SkillIds.Length == 0).Sum(compulsion => compulsion.Rate);
     }
 
     public float GetResistance(BasicAttribute attribute) {

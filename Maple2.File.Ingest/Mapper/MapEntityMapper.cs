@@ -103,14 +103,14 @@ public class MapEntityMapper : TypeMapper<MapEntity> {
                                 return new SpawnPointNPCListEntry(npcId, npcCount);
                             }).WhereNotNull().ToList();
                             if (npcSpawn.NpcCount == 0 || npcList.Count == 0) {
-                                Console.WriteLine($"No NPCs for {xblock}:{entity.EntityId}");
+                                //Console.WriteLine($"No NPCs for {xblock}:{entity.EntityId}");
                                 continue;
                             }
 
                             switch (npcSpawn) {
                                 case IEventSpawnPointNPC eventNpcSpawn:
                                     yield return new MapEntity(xblock, new Guid(entity.EntityId), entity.EntityName) {
-                                        Block = new EventSpawnPointNPC(npcSpawn.EntityId, npcSpawn.SpawnPointID, npcSpawn.Position, npcSpawn.Rotation, npcSpawn.IsVisible, npcSpawn.IsSpawnOnFieldCreate, npcSpawn.SpawnRadius, npcList, (int) npcSpawn.RegenCheckTime, (int) eventNpcSpawn.LifeTime, eventNpcSpawn.SpawnAnimation),
+                                        Block = new EventSpawnPointNPC(npcSpawn.EntityId, npcSpawn.SpawnPointID, npcSpawn.Position, npcSpawn.Rotation, npcSpawn.IsVisible, npcSpawn.IsSpawnOnFieldCreate, npcSpawn.SpawnRadius, (int) npcSpawn.NpcCount, npcList, (int) npcSpawn.RegenCheckTime, (int) eventNpcSpawn.LifeTime, eventNpcSpawn.SpawnAnimation),
                                     };
                                     continue;
                                 default:
@@ -195,6 +195,11 @@ public class MapEntityMapper : TypeMapper<MapEntity> {
                             }
 
                             switch (physXProp) {
+                                case IMS2CubeProp { skillID: > 0, skillLevel: > 0 } cubeProp:
+                                    yield return new MapEntity(xblock, new Guid(entity.EntityId), entity.EntityName) {
+                                        Block = new Ms2CubeSkill(cubeProp.skillID, (short) cubeProp.skillLevel, cubeProp.Position, cubeProp.Rotation),
+                                    };
+                                    continue;
                                 case IMS2Liftable liftable:
                                     yield return new MapEntity(xblock, new Guid(entity.EntityId), entity.EntityName) {
                                         Block = new Liftable((int) liftable.ItemID, liftable.ItemStackCount, liftable.ItemLifeTime, liftable.LiftableRegenCheckTime, liftable.LiftableFinishTime, liftable.MaskQuestID, liftable.MaskQuestState, liftable.EffectQuestID, liftable.EffectQuestState, liftable.IsReactEffect, liftable.Position, liftable.Rotation),

@@ -28,7 +28,7 @@ public partial class TriggerContext : ITriggerContext {
     public TriggerContext(FieldTrigger owner) {
         this.owner = owner;
 
-        Events = new EventQueue();
+        Events = new EventQueue(logger);
         Events.Start();
         StartTick = Environment.TickCount64;
     }

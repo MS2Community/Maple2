@@ -69,6 +69,26 @@ public class DungeonManager {
         session.Send(FieldEntrancePacket.Load(EnterLimits));
     }
 
+    public void ResetDailyClears() {
+        foreach (DungeonRecord record in Records.Values) {
+            record.UnionSubClears = 0;
+            record.ExtraSubClears = 0;
+        }
+        using GameStorage.Request db = session.GameStorage.Context();
+        db.SaveDungeonRecords(session.CharacterId, Records.Values.ToArray());
+        session.Send(DungeonRoomPacket.Load(Records));
+    }
+
+    public void ResetWeeklyClears() {
+        foreach (DungeonRecord record in Records.Values) {
+            record.UnionClears = 0;
+            record.ExtraClears = 0;
+        }
+        using GameStorage.Request db = session.GameStorage.Context();
+        db.SaveDungeonRecords(session.CharacterId, Records.Values.ToArray());
+        session.Send(DungeonRoomPacket.Load(Records));
+    }
+
     public void LoadField() {
         if (Lobby == null || session.Field is not DungeonFieldManager) {
             return;

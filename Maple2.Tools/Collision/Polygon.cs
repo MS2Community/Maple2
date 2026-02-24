@@ -88,13 +88,13 @@ public abstract class Polygon : IPolygon {
                 return false;
             }
         }
-        if (other is Polygon polygon) {
-            foreach (Vector2 axis in GetAxes(polygon)) {
-                Range range = AxisProjection(axis);
-                Range otherRange = other.AxisProjection(axis);
-                if (!range.Overlaps(otherRange)) {
-                    return false;
-                }
+        // Always test this polygon's edge normals (required for correct SAT)
+        // Previously only tested when other was also a Polygon, which broke Circle vs Polygon checks
+        foreach (Vector2 axis in GetAxes(other as Polygon)) {
+            Range range = AxisProjection(axis);
+            Range otherRange = other.AxisProjection(axis);
+            if (!range.Overlaps(otherRange)) {
+                return false;
             }
         }
 

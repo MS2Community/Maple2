@@ -4,7 +4,7 @@ namespace Maple2.Model.Game;
 
 public class Account {
     #region Immutable
-    public DateTime LastModified { get; init; }
+    public DateTime LastModified { get; set; }
     public long Id { get; init; }
 
     public required string Username { get; init; }

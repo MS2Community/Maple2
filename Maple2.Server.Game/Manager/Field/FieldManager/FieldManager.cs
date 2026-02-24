@@ -93,7 +93,7 @@ public partial class FieldManager : IField {
         Entities = entities;
         TriggerObjects = new TriggerCollection(entities);
 
-        Scheduler = new EventQueue();
+        Scheduler = new EventQueue(logger);
         FieldActor = new FieldActor(this, NextLocalId(), metadata, npcMetadata); // pulls from argument because member NpcMetadata is null here
         cancel = new CancellationTokenSource();
         thread = new Thread(UpdateLoop);
@@ -160,13 +160,6 @@ public partial class FieldManager : IField {
                 new UgcMapGroup.Limits(0, 0, 0, 0, 0, 0)));
         }
 
-        foreach (TriggerModel trigger in Entities.TriggerModels.Values) {
-            AddTrigger(trigger);
-        }
-        foreach (Portal portal in Entities.Portals.Values) {
-            SpawnPortal(portal);
-        }
-
         foreach ((Guid guid, BreakableActor breakable) in Entities.BreakableActors) {
             AddBreakable(guid.ToString("N"), breakable);
         }
@@ -181,8 +174,25 @@ public partial class FieldManager : IField {
             AddSpawnPointNpc(spawnPointNpc);
         }
 
-        foreach ((int id, SpawnPointPC spawnPoint) in Entities.PlayerSpawns) {
-            fieldPlayerSpawnPoints[id] = new FieldPlayerSpawnPoint(this, NextLocalId(), spawnPoint);
+        foreach (SpawnPointPC spawnPoint in Entities.PlayerSpawns) {
+            int fieldId = spawnPoint.SpawnPointId;
+            if (fieldPlayerSpawnPoints.ContainsKey(fieldId)) {
+                // Duplicate spawn point id (ex. unassigned ID), use next local id
+                fieldId = NextLocalId();
+            }
+            fieldPlayerSpawnPoints[fieldId] = new FieldPlayerSpawnPoint(this, NextLocalId(), spawnPoint, fieldId);
+        }
+
+        foreach (TriggerModel trigger in Entities.TriggerModels.Values) {
+            AddTrigger(trigger);
+        }
+
+        foreach (Portal portal in Entities.Portals.Values) {
+            SpawnPortal(portal);
+        }
+
+        foreach (FieldTrigger trigger in fieldTriggers.Values) {
+            trigger.Update(FieldTick);
         }
 
         IList<MapMetadata> bonusMaps = MapMetadata.GetMapsByType(Metadata.Property.Continent, MapType.PocketRealm);
@@ -218,6 +228,14 @@ public partial class FieldManager : IField {
             }
 
             AddSkill(skill, regionSkill.Interval, regionSkill.Position, regionSkill.Rotation);
+        }
+
+        foreach (Ms2CubeSkill cubeSkill in Entities.CubeSkills) {
+            if (!SkillMetadata.TryGet(cubeSkill.SkillId, cubeSkill.Level, out SkillMetadata? skill)) {
+                continue;
+            }
+
+            AddCubeSkill(skill, cubeSkill.Position, cubeSkill.Rotation);
         }
 
         foreach (BannerTable.Entry entry in TableMetadata.BannerTable.Entries) {
@@ -333,6 +351,7 @@ public partial class FieldManager : IField {
         foreach (FieldMobSpawn mobSpawn in fieldMobSpawns.Values) mobSpawn.Update(FieldTick);
         foreach (FieldSpawnPointNpc spawnPointNpc in fieldSpawnPointNpcs.Values) spawnPointNpc.Update(FieldTick);
         foreach (FieldSkill skill in fieldSkills.Values) skill.Update(FieldTick);
+        foreach (FieldSkill skill in cubeSkills.Values) skill.Update(FieldTick);
         foreach (FieldPortal portal in fieldPortals.Values) portal.Update(FieldTick);
         UpdateBanners();
 
@@ -461,6 +480,10 @@ public partial class FieldManager : IField {
             return playerSpawnPoint != null;
         }
         return fieldPlayerSpawnPoints.TryGetValue(id, out playerSpawnPoint);
+    }
+
+    public List<FieldPlayerSpawnPoint> GetPlayerSpawns() {
+        return fieldPlayerSpawnPoints.Values.ToList();
     }
 
     public bool TryGetItem(int objectId, [NotNullWhen(true)] out FieldItem? fieldItem) {

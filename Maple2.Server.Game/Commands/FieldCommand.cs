@@ -98,11 +98,9 @@ public class FieldCommand : GameCommand {
                 ctx.Console.Out.WriteLine($"No xblock data found for map: {session.Field.MapId}");
                 return;
             }
-
-            foreach ((int id, SpawnPointPC spawnPoint) in mapEntityMetadata.PlayerSpawns) {
-                if (session.Field.TryGetPlayerSpawn(id, out FieldPlayerSpawnPoint? fieldPlayerSpawnPoint)) {
-                    ctx.Console.Out.WriteLine($"Id: {id}, Position: {spawnPoint.Position}. Enabled: {fieldPlayerSpawnPoint.Enable}");
-                }
+            List<FieldPlayerSpawnPoint> playerSpawns = session.Field.GetPlayerSpawns();
+            foreach (FieldPlayerSpawnPoint playerSpawn in playerSpawns) {
+                ctx.Console.Out.WriteLine($"Id: {playerSpawn.Id}, Position: {playerSpawn.Position}. Enabled: {playerSpawn.Enable}");
             }
         }
     }

@@ -28,6 +28,7 @@ public partial class GameStorage {
             return query.AsEnumerable()
                 .ToList() // ToList before Select so 'This MySqlConnection is already in use.' exception doesn't occur.
                 .Select(ToPlot)
+                .Where(plot => plot != null)
                 .ToList()!;
         }
 
@@ -293,10 +294,11 @@ public partial class GameStorage {
         }
 
         public bool InitUgcMap(IEnumerable<UgcMapMetadata> maps) {
-            // If there are entries, we assume it's already initialized.
-            if (Context.UgcMap.Any()) {
-                return true;
-            }
+            HashSet<(int MapId, int Number)> existing = Context.UgcMap
+                .Select(m => new { m.MapId, m.Number })
+                .AsEnumerable()
+                .Select(m => (m.MapId, m.Number))
+                .ToHashSet();
 
             foreach (UgcMapMetadata map in maps) {
                 if (map.Id == Constant.DefaultHomeMapId) {
@@ -304,6 +306,10 @@ public partial class GameStorage {
                 }
 
                 foreach (UgcMapGroup group in map.Plots.Values) {
+                    if (existing.Contains((map.Id, group.Number))) {
+                        continue;
+                    }
+
                     Context.UgcMap.Add(new UgcMap {
                         MapId = map.Id,
                         Number = group.Number,

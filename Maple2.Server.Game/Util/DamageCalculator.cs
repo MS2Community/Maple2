@@ -77,10 +77,8 @@ public static class DamageCalculator {
         if (property.CanCrit) {
             if (property.CompulsionTypes.Contains(CompulsionType.Critical)) {
                 damageType = DamageType.Critical;
-            }
-
-            if (damageType != DamageType.Critical) {
-                damageType = caster.Stats.GetCriticalRate(target.Stats.Values[BasicAttribute.CriticalEvasion].Total, caster.Buffs.TotalCompulsionRate(BuffCompulsionEventType.CritChanceOverride, property.SkillId));
+            } else {
+                damageType = caster.Stats.GetCriticalRate(target.Stats.Values[BasicAttribute.CriticalEvasion].Total, property.SkillId);
             }
         }
 

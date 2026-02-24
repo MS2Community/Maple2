@@ -51,8 +51,13 @@ public class ItemBoxManager {
             ItemFunction.OpenItemBox => OpenItemBox(item, itemBoxParams[0], itemBoxParams[1], itemBoxParams[2], itemBoxParams[3], itemBoxParams.Length == 5 ? itemBoxParams[4] : 1, count),
             ItemFunction.OpenItemBoxWithKey => OpenItemBoxWithKey(item, itemBoxParams[0], itemBoxParams[1], itemBoxParams[2], itemBoxParams[5], count),
             ItemFunction.OpenGachaBox => OpenGachaBox(item, itemBoxParams[0], count),
-            _ => throw new ArgumentOutOfRangeException(item.Metadata.Function?.Type.ToString(), "Invalid box type"),
+            _ => LogAndReturnError(item.Metadata.Function?.Type.ToString()),
         };
+    }
+
+    private ItemBoxError LogAndReturnError(string? type) {
+        logger.Error("Invalid box type: {Type}", type);
+        return ItemBoxError.s_err_cannot_open_multi_itembox_inventory_fail;
     }
 
     public ItemBoxError OpenLulluBox(Item item, int count = 1, bool autoPay = false) {

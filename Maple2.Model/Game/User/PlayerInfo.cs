@@ -136,7 +136,7 @@ public class CharacterInfo {
     public int RetryHeartbeat { get; set; } = 3;
     // Guild
     public long GuildId { get; set; }
-    public string GuildName { get; set; }
+    public string GuildName { get; set; } = string.Empty;
 
     public long UpdateTime { get; set; }
     public bool Online => Channel >= 0;

@@ -10,21 +10,38 @@ using Maple2.Tools.Collision;
 namespace Maple2.Server.Game.Util;
 
 public static class SkillUtils {
+    public static Prism GetPrism(this SkillMetadataRange range, in Vector3 position, float angle, ApplyTargetType applyTarget) {
+        // Region buffs use the same box shape but are centered on the target instead of projecting forward from the caster.
+        if (range.Type == SkillRegion.Box && applyTarget is ApplyTargetType.RegionBuff or ApplyTargetType.RegionBuff2) {
+            float adjustedAngle = angle + range.RotateZDegree + 180;
+            float length = range.Distance + range.RangeAdd.Y;
+            float width = range.Width + range.RangeAdd.X;
+            var origin = new Vector2(position.X + range.RangeOffset.X, position.Y + range.RangeOffset.Y);
+            return new Prism(new Rectangle(origin, width, length, adjustedAngle),
+                position.Z + range.RangeOffset.Z, range.Height + range.RangeAdd.Z);
+        }
+
+        return range.GetPrism(position, angle);
+    }
+
     public static Prism GetPrism(this SkillMetadataRange range, in Vector3 position, float angle) {
         if (range.Type == SkillRegion.None) {
             return new Prism(IPolygon.Null, 0, 0);
         }
 
-        var origin = new Vector2(position.X, position.Y);
+        float adjustedAngle = angle + range.RotateZDegree + 180;
+        var origin = new Vector2(position.X + range.RangeOffset.X, position.Y + range.RangeOffset.Y);
+        float boxWidth = range.Width + range.RangeAdd.X;
         IPolygon polygon = range.Type switch {
-            SkillRegion.Box => new Rectangle(origin, range.Width + range.RangeAdd.X, range.Distance + range.RangeAdd.Y, angle),
+            // Box projects forward from caster (0 to distance), same as Frustum but with equal widths.
+            SkillRegion.Box => new Trapezoid(origin, boxWidth, boxWidth, range.Distance + range.RangeAdd.Y, adjustedAngle),
             SkillRegion.Cylinder => new Circle(origin, range.Distance),
-            SkillRegion.Frustum => new Trapezoid(origin, range.Width, range.EndWidth, range.Distance, angle),
+            SkillRegion.Frustum => new Trapezoid(origin, range.Width, range.EndWidth, range.Distance, adjustedAngle),
             SkillRegion.HoleCylinder => new HoleCircle(origin, range.Width, range.EndWidth),
             _ => throw new ArgumentOutOfRangeException($"Invalid range type: {range.Type}"),
         };
 
-        return new Prism(polygon, position.Z, range.Height + range.RangeAdd.Z);
+        return new Prism(polygon, position.Z + range.RangeOffset.Z, range.Height + range.RangeAdd.Z);
     }
 
     public static IEnumerable<T> Filter<T>(this Prism prism, IEnumerable<T> entities, int limit = 10) where T : IActor {
@@ -38,7 +55,7 @@ public static class SkillUtils {
                 continue;
             }
 
-            if (entity.IsDead) {
+            if (entity.IsDead && entity is not FieldNpc { IsCorpse: true }) {
                 continue;
             }
 
@@ -62,7 +79,7 @@ public static class SkillUtils {
                 continue;
             }
 
-            if (entity.IsDead) {
+            if (entity.IsDead && entity is not FieldNpc { IsCorpse: true }) {
                 continue;
             }
             if (ignore != null && ignore.Contains(entity)) {

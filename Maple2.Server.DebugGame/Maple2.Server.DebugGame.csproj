@@ -15,7 +15,7 @@
         <PackageReference Include="Silk.NET.Direct3D.Compilers" Version="2.21.0"/>
         <PackageReference Include="Silk.NET.Direct3D11" Version="2.21.0"/>
         <PackageReference Include="Silk.NET.DXGI" Version="2.21.0"/>
-        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7"/>
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12"/>
     </ItemGroup>
 
     <ItemGroup>

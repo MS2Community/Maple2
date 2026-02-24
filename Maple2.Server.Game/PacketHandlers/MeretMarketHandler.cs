@@ -120,7 +120,7 @@ public class MeretMarketHandler : FieldPacketHandler {
         long itemUid = packet.ReadLong();
         long price = packet.ReadLong();
         bool promote = packet.ReadBool();
-        string[] tags = packet.ReadUnicodeString().Split(",").ToArray();
+        string[] tags = packet.ReadUnicodeString().Split(",");
         string description = packet.ReadUnicodeString();
         long listingFee = packet.ReadLong();
 
@@ -183,7 +183,7 @@ public class MeretMarketHandler : FieldPacketHandler {
         long ugcMarketItemId = packet.ReadLong();
         long price = packet.ReadLong();
         bool promote = packet.ReadBool();
-        string[] tags = packet.ReadUnicodeString().Split(",").ToArray();
+        string[] tags = packet.ReadUnicodeString().Split(",");
         string description = packet.ReadUnicodeString();
         long listingFee = packet.ReadLong();
 

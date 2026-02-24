@@ -63,6 +63,9 @@ public class QuestHandler : FieldPacketHandler {
             case Command.GoToNpc:
                 HandleGoToNpc(session, packet);
                 break;
+            case Command.GoToDungeon:
+                HandleGoToDungeon(session, packet);
+                break;
             case Command.SkyFortress:
                 HandleSkyFortressTeleport(session);
                 break;
@@ -190,6 +193,16 @@ public class QuestHandler : FieldPacketHandler {
         session.Send(session.PrepareField(quest.Metadata.GoToNpc.MapId, portalId: quest.Metadata.GoToNpc.PortalId)
             ? FieldEnterPacket.Request(session.Player)
             : FieldEnterPacket.Error(MigrationError.s_move_err_default));
+    }
+
+    private static void HandleGoToDungeon(GameSession session, IByteReader packet) {
+        int questId = packet.ReadInt();
+
+        if (!session.Quest.TryGetQuest(questId, out Quest? quest) || quest.State != QuestState.Started) {
+            return;
+        }
+
+        session.Dungeon.CreateDungeonRoom(quest.Metadata.GoToDungeon.MapId, false);
     }
 
     private void HandleMapleGuide(GameSession session, IByteReader packet) {

@@ -23,6 +23,7 @@ public class WorldServer {
     private readonly ServerTableMetadataStorage serverTableMetadata;
     private readonly ItemMetadataStorage itemMetadata;
     private readonly GlobalPortalLookup globalPortalLookup;
+    private readonly WorldBossLookup worldBossLookup;
     private readonly PlayerInfoLookup playerInfoLookup;
     private readonly Thread thread;
     private readonly Thread heartbeatThread;
@@ -35,15 +36,16 @@ public class WorldServer {
 
     private readonly LoginClient login;
 
-    public WorldServer(GameStorage gameStorage, ChannelClientLookup channelClients, ServerTableMetadataStorage serverTableMetadata, GlobalPortalLookup globalPortalLookup, PlayerInfoLookup playerInfoLookup, LoginClient login, ItemMetadataStorage itemMetadata) {
+    public WorldServer(GameStorage gameStorage, ChannelClientLookup channelClients, ServerTableMetadataStorage serverTableMetadata, GlobalPortalLookup globalPortalLookup, WorldBossLookup worldBossLookup, PlayerInfoLookup playerInfoLookup, LoginClient login, ItemMetadataStorage itemMetadata) {
         this.gameStorage = gameStorage;
         this.channelClients = channelClients;
         this.serverTableMetadata = serverTableMetadata;
         this.globalPortalLookup = globalPortalLookup;
+        this.worldBossLookup = worldBossLookup;
         this.playerInfoLookup = playerInfoLookup;
         this.login = login;
         this.itemMetadata = itemMetadata;
-        scheduler = new EventQueue();
+        scheduler = new EventQueue(logger);
         scheduler.Start();
         memoryStringBoards = [];
 
@@ -53,7 +55,10 @@ public class WorldServer {
         db.DeleteUnownedItems();
 
         StartDailyReset();
+        StartWeeklyReset();
+        StartMonthlyReset();
         StartWorldEvents();
+        StartWorldBossEvents();
         ScheduleGameEvents();
         FieldPlotExpiryCheck();
         thread = new Thread(Loop);
@@ -175,6 +180,75 @@ public class WorldServer {
     }
     #endregion
 
+    #region Weekly Reset
+    private void StartWeeklyReset() {
+        using GameStorage.Request db = gameStorage.Context();
+        DateTime lastReset = db.GetLastWeeklyReset();
+
+        DateTime now = DateTime.Now;
+        int daysSinceReset = ((int) now.DayOfWeek - (int) Constant.ResetDay + 7) % 7;
+        DateTime lastResetMidnight = now.Date.AddDays(-daysSinceReset);
+
+        if (lastReset < lastResetMidnight) {
+            db.WeeklyReset();
+        }
+
+        DateTime nextReset = now.NextDayOfWeek(Constant.ResetDay).Date;
+        TimeSpan timeUntilReset = nextReset - now;
+        scheduler.Schedule(ScheduleWeeklyReset, timeUntilReset);
+    }
+
+    private void ScheduleWeeklyReset() {
+        WeeklyReset();
+        scheduler.ScheduleRepeated(WeeklyReset, TimeSpan.FromDays(7), strict: true);
+    }
+
+    private void WeeklyReset() {
+        using GameStorage.Request db = gameStorage.Context();
+        db.WeeklyReset();
+        foreach ((int channelId, ChannelClient channelClient) in channelClients) {
+            channelClient.GameReset(new GameResetRequest {
+                Weekly = new GameResetRequest.Types.Weekly(),
+            });
+        }
+    }
+    #endregion
+
+    #region Monthly Reset
+    private void StartMonthlyReset() {
+        using GameStorage.Request db = gameStorage.Context();
+        DateTime lastReset = db.GetLastMonthlyReset();
+
+        DateTime now = DateTime.Now;
+        DateTime firstOfMonth = new DateTime(now.Year, now.Month, 1);
+
+        if (lastReset < firstOfMonth) {
+            db.MonthlyReset();
+        }
+
+        DateTime nextMonth = firstOfMonth.AddMonths(1);
+        TimeSpan timeUntilReset = nextMonth - now;
+        scheduler.Schedule(ScheduleMonthlyReset, timeUntilReset);
+    }
+
+    private void ScheduleMonthlyReset() {
+        MonthlyReset();
+        DateTime now = DateTime.Now;
+        DateTime nextMonth = new DateTime(now.Year, now.Month, 1).AddMonths(1);
+        scheduler.Schedule(ScheduleMonthlyReset, nextMonth - now);
+    }
+
+    private void MonthlyReset() {
+        using GameStorage.Request db = gameStorage.Context();
+        db.MonthlyReset();
+        foreach ((int channelId, ChannelClient channelClient) in channelClients) {
+            channelClient.GameReset(new GameResetRequest {
+                Monthly = new GameResetRequest.Types.Monthly(),
+            });
+        }
+    }
+    #endregion
+
     private void StartWorldEvents() {
         // Global Portal
         IReadOnlyDictionary<int, GlobalPortalMetadata> globalEvents = serverTableMetadata.TimeEventTable.GlobalPortal;
@@ -233,6 +307,93 @@ public class WorldServer {
         }
 
         scheduler.Schedule(() => GlobalPortal(data, nextRunTime), nextRunTime - DateTime.Now);
+    }
+
+    private void StartWorldBossEvents() {
+        int scheduled = 0;
+        foreach ((int _, WorldBossMetadata boss) in serverTableMetadata.TimeEventTable.WorldBoss) {
+            if (boss.EndTime < DateTime.Now) {
+                continue;
+            }
+            if (boss.CycleTime == TimeSpan.Zero) {
+                continue;
+            }
+
+            DateTime startTime = boss.StartTime;
+            if (DateTime.Now > startTime) {
+                // Catch up to the next scheduled spawn after now
+                while (startTime < DateTime.Now) {
+                    startTime += boss.CycleTime;
+                }
+                if (startTime > boss.EndTime) {
+                    continue;
+                }
+            }
+
+            TimeSpan delay = startTime - DateTime.Now;
+            scheduler.Schedule(() => SpawnWorldBoss(boss, startTime), delay);
+            scheduled++;
+        }
+        logger.Information("WorldBoss scheduler started — {Count} bosses scheduled", scheduled);
+    }
+
+    private void SpawnWorldBoss(WorldBossMetadata metadata, DateTime spawnTime) {
+        bool shouldSpawn = !(metadata.Probability < 100 && Random.Shared.Next(100) >= metadata.Probability);
+
+        // Compute next spawn time before Create() so it can be broadcast with the announce
+        DateTime nextSpawn = spawnTime + metadata.CycleTime;
+        if (metadata.RandomTime > TimeSpan.Zero) {
+            nextSpawn += TimeSpan.FromMilliseconds(Random.Shared.Next((int) metadata.RandomTime.TotalMilliseconds));
+        }
+        long nextSpawnTimestamp = nextSpawn <= metadata.EndTime ? new DateTimeOffset(nextSpawn).ToUnixTimeSeconds() : 0;
+
+        if (!shouldSpawn) {
+            logger.Debug("WorldBoss {Id} roll failed (probability {Probability}%) — skipping spawn, next at {NextSpawn:HH:mm:ss} UTC",
+                metadata.Id, metadata.Probability, nextSpawn.ToUniversalTime());
+        } else if (worldBossLookup.TryGet(metadata.Id, out _)) {
+            logger.Debug("WorldBoss {Id} still active from previous cycle — skipping spawn", metadata.Id);
+        } else {
+            long spawnTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            long endTick = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (long) metadata.LifeTime.TotalMilliseconds;
+            if (worldBossLookup.Create(metadata, endTick, nextSpawnTimestamp, out int eventId)) {
+                if (worldBossLookup.TryGet(metadata.Id, out WorldBossManager? manager)) {
+                    manager.Boss.SpawnTimestamp = spawnTimestamp;
+                    manager.Announce();
+                }
+                logger.Information("WorldBoss {Id} (NpcId: {NpcId}) spawned — eventId: {EventId}, alive for {LifeTime:mm\\:ss}, next spawn at {NextSpawn:HH:mm:ss} UTC",
+                    metadata.Id, metadata.NpcIds.Length > 0 ? metadata.NpcIds[0] : 0, eventId, metadata.LifeTime, nextSpawn.ToUniversalTime());
+
+                TimeSpan warnDelay = metadata.LifeTime - TimeSpan.FromMinutes(1);
+                _ = MonitorWorldBossLifetimeAsync(metadata.Id, warnDelay, metadata.LifeTime, tokenSource.Token);
+            }
+        }
+
+        if (nextSpawn > metadata.EndTime) {
+            logger.Information("WorldBoss {Id} will not respawn — next spawn {NextSpawn} is past EndTime {EndTime}", metadata.Id, nextSpawn, metadata.EndTime);
+            return;
+        }
+
+        scheduler.Schedule(() => SpawnWorldBoss(metadata, nextSpawn), nextSpawn - DateTime.Now);
+    }
+
+    private async Task MonitorWorldBossLifetimeAsync(int metadataId, TimeSpan warnDelay, TimeSpan lifeTime, CancellationToken token) {
+        try {
+            if (warnDelay > TimeSpan.Zero) {
+                await Task.Delay(warnDelay, token);
+                if (worldBossLookup.TryGet(metadataId, out WorldBossManager? warnManager)) {
+                    warnManager.WarnChannels();
+                }
+                await Task.Delay(TimeSpan.FromMinutes(1), token);
+            } else {
+                await Task.Delay(lifeTime, token);
+            }
+            worldBossLookup.Dispose(metadataId);
+            logger.Information("WorldBoss {Id} lifetime expired — despawning", metadataId);
+        } catch (OperationCanceledException) {
+            // Server shutting down — do not despawn or log as error
+        } catch (Exception ex) {
+            logger.Error(ex, "Error monitoring field boss lifetime for metadata {MetadataId}", metadataId);
+        }
     }
 
     private void ScheduleGameEvents() {

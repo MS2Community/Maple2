@@ -6,7 +6,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Maple2.Server.World.Migrations {
     /// <inheritdoc />
+#pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
     public partial class ugcbannerslots : Migration {
+#pragma warning restore CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder) {
             migrationBuilder.RenameColumn(

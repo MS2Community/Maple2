@@ -4,6 +4,7 @@ using DotRecast.Recast;
 using DotRecast.Recast.Geom;
 
 namespace Maple2.File.Ingest.Utils;
+
 internal class InputGeomProvider : IInputGeomProvider {
     public readonly float[] vertices;
 

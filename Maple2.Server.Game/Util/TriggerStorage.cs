@@ -7,6 +7,8 @@ using Maple2.Server.Game.Trigger.Helpers;
 using Maple2.Tools;
 using Serilog;
 using static Maple2.Server.Game.Trigger.Helpers.Trigger;
+// ReSharper disable HeuristicUnreachableCode
+#pragma warning disable CS0162 // Unreachable code detected
 
 namespace Maple2.Server.Game.Util;
 

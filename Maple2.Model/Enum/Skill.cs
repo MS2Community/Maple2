@@ -89,6 +89,17 @@ public enum SkillTargetType {
     RegionPet = 8,
 }
 
+public enum IncludeCasterType {
+    Exclude = 0,
+    Priority = 1,
+    Last = 2,
+}
+
+public enum DotTargetType {
+    Caster = 0,
+    Owner = 1,
+}
+
 public enum ApplyTargetType {
     None = 0,
     Hostile = 1,

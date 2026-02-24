@@ -32,10 +32,11 @@ public class MapEntityStorage(MetadataContext context) : MetadataStorage<string,
             var liftableTargetBoxes = new Dictionary<Vector3B, LiftableTargetBox>();
             var objectWeapons = new Dictionary<Vector3B, ObjectWeapon>();
             var portals = new Dictionary<int, Portal>();
-            var playerSpawns = new Dictionary<int, SpawnPointPC>();
+            var playerSpawns = new List<SpawnPointPC>();
             var npcSpawns = new List<SpawnPointNPC>();
             var regionSpawns = new Dictionary<int, Ms2RegionSpawn>();
             var regionSkills = new List<Ms2RegionSkill>();
+            var cubeSkills = new List<Ms2CubeSkill>();
             var eventNpcSpawns = new Dictionary<int, EventSpawnPointNPC>();
             var eventItemSpawns = new Dictionary<int, EventSpawnPointItem>();
             TaxiStation? taxi = null;
@@ -68,11 +69,14 @@ public class MapEntityStorage(MetadataContext context) : MetadataStorage<string,
                     case Ms2RegionSpawn regionSpawn:
                         regionSpawns[regionSpawn.Id] = regionSpawn;
                         break;
+                    case Ms2CubeSkill cubeSkill:
+                        cubeSkills.Add(cubeSkill);
+                        break;
                     case Ms2RegionSkill regionSkill:
                         regionSkills.Add(regionSkill);
                         break;
                     case SpawnPointPC playerSpawn:
-                        playerSpawns[playerSpawn.SpawnPointId] = playerSpawn;
+                        playerSpawns.Add(playerSpawn);
                         break;
                     case SpawnPointNPC npcSpawn:
                         if (npcSpawn is EventSpawnPointNPC eventNpcSpawn) {
@@ -125,6 +129,7 @@ public class MapEntityStorage(MetadataContext context) : MetadataStorage<string,
                 EventItemSpawns = eventItemSpawns,
                 RegionSpawns = regionSpawns,
                 RegionSkills = regionSkills,
+                CubeSkills = cubeSkills,
                 Taxi = taxi,
                 BoundingBox = bounding ?? LargeBoundingBox,
                 BreakableActors = breakableActors,
