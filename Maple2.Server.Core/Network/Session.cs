@@ -37,6 +37,7 @@ public abstract class Session : IDisposable {
 
     private bool disposed;
     private int disconnecting; // 0 = not disconnecting, 1 = disconnect in progress/already triggered (reentrancy guard)
+    private volatile bool sendFailed; // set on first SendRaw failure to stop send queue drain
     private readonly uint siv;
     private readonly uint riv;
 
@@ -335,6 +336,7 @@ public abstract class Session : IDisposable {
             // Use async write with timeout to prevent indefinite blocking
             Task writeTask = networkStream.WriteAsync(packet.Buffer, 0, packet.Length);
             if (!writeTask.Wait(SEND_TIMEOUT_MS)) {
+                sendFailed = true;
                 Logger.Warning("SendRaw timeout after {Timeout}ms, disconnecting account={AccountId} char={CharacterId}",
                     SEND_TIMEOUT_MS, AccountId, CharacterId);
 
@@ -356,10 +358,12 @@ public abstract class Session : IDisposable {
                 throw writeTask.Exception?.GetBaseException() ?? new Exception("Write task faulted");
             }
         } catch (Exception ex) when (ex.InnerException is IOException or SocketException || ex is IOException or SocketException) {
-            // Expected when client closes the connection (e.g., during migration)
+            // Connection was closed by the client or is no longer valid
+            sendFailed = true;
             Logger.Debug("SendRaw connection closed account={AccountId} char={CharacterId}", AccountId, CharacterId);
             Disconnect();
         } catch (Exception ex) {
+            sendFailed = true;
             Logger.Warning(ex, "[LIFECYCLE] SendRaw write failed account={AccountId} char={CharacterId}", AccountId, CharacterId);
             Disconnect();
         }
@@ -368,7 +372,7 @@ public abstract class Session : IDisposable {
     private void SendWorker() {
         try {
             foreach ((byte[] packet, int length) in sendQueue.GetConsumingEnumerable()) {
-                if (disposed) break;
+                if (disposed || sendFailed) break;
 
                 // Encrypt outside lock, then send with timeout
                 PoolByteWriter encryptedPacket;
