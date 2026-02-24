@@ -32,7 +32,7 @@ public enum GameEventUserValueType {
     // Snowman Event
     SnowflakeCount = 1700,
     DailyCompleteCount = 1701,
-    AccumCompleteCount  = 1702,
+    AccumCompleteCount = 1702,
     AccumCompleteRewardReceived = 1703,
 
     // Rock Paper Scissors Event
