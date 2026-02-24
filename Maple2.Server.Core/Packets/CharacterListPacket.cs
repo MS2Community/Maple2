@@ -140,9 +140,9 @@ public static class CharacterListPacket {
         writer.WriteLong(character.Id);
         writer.WriteUnicodeString(character.Name);
         writer.Write<Gender>(character.Gender);
-        writer.WriteByte(1);
+        writer.WriteByte(1); // charObj+0x11c8, client stores this value
         writer.WriteLong();
-        writer.WriteInt();
+        writer.WriteInt(); // read and discarded by client
         writer.WriteInt(character.MapId);
         writer.WriteInt(character.InstanceMapId);
         writer.WriteInt(character.RoomId);
@@ -153,9 +153,9 @@ public static class CharacterListPacket {
         writer.WriteInt(); // CurrentHp
         writer.WriteInt(); // MaxHp
         writer.WriteShort();
-        writer.WriteLong();
-        writer.WriteLong(character.StorageCooldown);
-        writer.WriteLong(character.DoctorCooldown);
+        writer.WriteLong(); // read and discarded by client
+        writer.WriteLong(character.StorageCooldown); // charObj+0x1184, set by HomeBank (0xDC)
+        writer.WriteLong(character.DoctorCooldown); // charObj+0x1188, set by HomeDoctor (0xDD)
         writer.WriteInt(character.ReturnMaps.Peek());
         writer.Write<Vector3>(character.ReturnPosition);
         writer.WriteInt(); // GearScore
@@ -167,24 +167,24 @@ public static class CharacterListPacket {
         writer.WriteUnicodeString(character.Motto);
         writer.WriteUnicodeString(character.Picture);
         writer.WriteByte(); // Club Count
-        writer.WriteByte(); // PCBang related?
+        writer.WriteByte(); // charObj+0xff8, set by SetPcBang (0xB5)
         writer.WriteClass<Mastery>(character.Mastery);
         #region Unknown
         writer.WriteUnicodeString();
         writer.WriteLong();
         #endregion
-        writer.WriteInt(); // Unknown Count
-        writer.WriteByte();
-        writer.WriteBool(false);
-        writer.WriteLong(); // Birthday
-        writer.WriteInt();
-        writer.WriteInt();
-        writer.WriteLong(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-        writer.WriteInt(account.PrestigeLevel); // PrestigeLevel
+        writer.WriteInt(); // count for long list
+        writer.WriteByte(); // MentorRole (charObj+0x11cc)
+        writer.WriteBool(false); // read and discarded by client
+        writer.WriteLong(); // Birthday (charObj+0x11e8, set by BirthdayCard 0x111)
+        writer.WriteInt(); // SuperChatId (charObj+0x11f0, set/cleared by SuperWorldChat 0x112)
+        writer.WriteInt(); // charObj+0x11f4, SuperChat cosmetic/effect ID
+        writer.WriteLong(DateTimeOffset.UtcNow.ToUnixTimeSeconds()); // charObj+0x11f8
+        writer.WriteInt(account.PrestigeLevel);
         writer.WriteLong(character.LastModified.ToEpochSeconds());
-        writer.WriteInt(); // Unknown Count
-        writer.WriteInt(); // Unknown Count
-        writer.WriteShort(); // Survival related?
+        writer.WriteInt(); // count for long list (charObj+0x1B8 region)
+        writer.WriteInt(); // count for long list (charObj+0x1E8 region)
+        writer.WriteShort(); // charObj+0x120c, Survival (triggers field player refresh)
         writer.WriteLong();
     }
 }
