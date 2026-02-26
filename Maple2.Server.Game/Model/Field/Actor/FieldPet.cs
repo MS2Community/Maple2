@@ -64,7 +64,7 @@ public sealed class FieldPet : FieldNpc {
         }
 
         var targetRecord = new DamageRecordTarget(this);
-        int damageAmount = TamingPoint - Math.Min(TamingPoint + attack.Pet.TamingPoint, Constant.TamingPetMaxPoint);
+        int damageAmount = TamingPoint - Math.Min(TamingPoint + attack.Pet.TamingPoint, Field.ServerTableMetadata.ConstantsTable.TamingPetMaxPoint);
         TamingPoint -= damageAmount;
         targetRecord.AddDamage(damageAmount == 0 ? DamageType.Miss : DamageType.Normal, damageAmount);
 
@@ -73,7 +73,7 @@ public sealed class FieldPet : FieldNpc {
                 IsDead = true;
                 OnDeath();
                 DropItem(caster);
-            } else if (TamingPoint >= Constant.TamingPetMaxPoint) { // trap has chance to fail
+            } else if (TamingPoint >= Field.ServerTableMetadata.ConstantsTable.TamingPetMaxPoint) { // trap has chance to fail
                 IsDead = true;
                 OnDeath();
                 DropItem(caster);

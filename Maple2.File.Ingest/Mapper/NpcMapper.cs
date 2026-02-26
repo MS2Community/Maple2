@@ -31,14 +31,13 @@ public class NpcMapper : TypeMapper<NpcMetadata> {
                     AniSpeed: data.model.anispeed
                 ),
                 Distance: new NpcMetadataDistance(
-                    Avoid: data.distance.avoid,
-                    Sight: data.distance.sight,
-                    SightHeightUp: data.distance.sightHeightUP,
-                    SightHeightDown: data.distance.sightHeightDown
-                    // TODO: Need to move to runtime due to server table constants being used as default value
-                    //LastSightRadius: data.distance.customLastSightRadius == 0 ? Constant.NpcLastSightRadius : data.distance.customLastSightRadius,
-                    //LastSightHeightUp: data.distance.customLastSightHeightUp == 0 ? Constant.NpcLastSightHeightUp : data.distance.customLastSightHeightUp,
-                    //LastSightHeightDown: data.distance.customLastSightHeightDown == 0 ? Constant.NpcLastSightHeightDown : data.distance.customLastSightHeightDown
+                    data.distance.avoid,
+                    data.distance.sight,
+                    data.distance.sightHeightUP,
+                    data.distance.sightHeightDown,
+                    data.distance.customLastSightRadius,
+                    data.distance.customLastSightHeightUp,
+                    data.distance.customLastSightHeightDown
                 ),
                 Skill: new NpcMetadataSkill(
                     Entries: data.skill.ids.Select((skillId, i) =>
