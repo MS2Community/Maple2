@@ -3,6 +3,7 @@ using Maple2.File.Ingest.Utils;
 using Maple2.File.IO;
 using Maple2.File.Parser;
 using Maple2.File.Parser.Enum;
+using Maple2.File.Parser.Flat.Convert;
 using Maple2.File.Parser.Xml.Table.Server;
 using Maple2.Model;
 using Maple2.Model.Common;
@@ -12,6 +13,7 @@ using Maple2.Model.Game;
 using Maple2.Model.Game.Shop;
 using Maple2.Model.Metadata;
 using System.Globalization;
+using System.Numerics;
 using System.Reflection;
 using System.Xml;
 using DayOfWeek = System.DayOfWeek;
@@ -2118,11 +2120,78 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
         PropertyInfo[] constantsProperties = constants.GetType().GetProperties();
         foreach (PropertyInfo constantsProperty in constantsProperties) {
             foreach ((string key, Parser.Xml.Table.Constants.Key constant) in parser.ParseConstants()) {
-                if (!key.Trim().Equals(constantsProperty.Name.Trim())) continue;
-                constantsProperty.SetValue(constants, Convert.ChangeType(constant.value, constantsProperty.PropertyType));
+                string constantPropertyName = constantsProperty.Name.Trim();
+                if (!key.Trim().Equals(constantPropertyName)) continue;
+                Type constantsPropertyType = constantsProperty.PropertyType;
+                string cleanConstantValue = CleanConstantsInput(constant.value.Trim(), constantPropertyName, constantsPropertyType);
+                SetValue(constantsProperty, constants, cleanConstantValue);
                 break;
             }
         }
         return constants;
+    }
+
+    private string CleanConstantsInput(string input, string propName, Type type) {
+        // check if string contains the ending 'f' for float designation, strip it if it does.
+        if (type == typeof(float) && input.Contains('f')) {
+            input = input.TrimEnd('f', 'F');
+        }
+        // 1 does not automatically equate to true during bool conversion
+        if (type == typeof(bool) && input == "1") {
+            input = "true";
+        }
+        // 0 does not automatically equate to false during bool conversion
+        if (type == typeof(bool) && input == "0") {
+            input = "false";
+        }
+        // Convert into a TimeSpan friendly input string instead of an int value
+        if (type == typeof(TimeSpan) && propName == "UgcHomeSaleWaitingTime") {
+            input = TimeSpan.FromSeconds(int.Parse(input)).ToString(); // TODO: may not be correct conversion to TimeSpan
+        }
+        // Remove prefix 0 on integers since they do not convert properly
+        if (type == typeof(int) && input[0] == '0' && input.Length > 1) {
+            input = input.Remove(0, 1);
+        }
+        return input;
+    }
+
+    private void SetValue(PropertyInfo prop, object? obj, object? value) {
+        if (obj == null && value == null || value == null) return;
+        HandleNonIConvertibleTypes(prop, ref value);
+        bool isConvertible = typeof(IConvertible).IsAssignableFrom(prop.PropertyType);
+        prop.SetValue(obj, isConvertible ? Convert.ChangeType(value, prop.PropertyType, CultureInfo.InvariantCulture) : value);
+    }
+
+    private object? HandleNonIConvertibleTypes(PropertyInfo prop, ref object? value) {
+        if (value == null) return value;
+        // Handle TimeSpan type
+        if (prop.PropertyType == typeof(TimeSpan)) {
+            // Special case - dashes (-) are used instead of colons (:)
+            if (prop.Name == "DailyTrophyResetDate") {
+                value = ((string)value).Replace('-', ':');
+            }
+            value = TimeSpan.Parse((string)value, CultureInfo.InvariantCulture);
+        }
+        // Handle array types (int[], short[], etc.)
+        if (prop.PropertyType.IsArray) {
+            var elementType = prop.PropertyType.GetElementType();
+            if (elementType == null) return value;
+            string[] segments = ((string)value).Split(',');
+            Array destinationArray = Array.CreateInstance(elementType, segments.Length);
+            for (int i = 0; i < segments.Length; i++) {
+                object convertedValue = Convert.ChangeType(segments[i].Trim(), elementType);
+                destinationArray.SetValue(convertedValue, i);
+            }
+            value = destinationArray;
+        }
+        // Handle Vector3 type
+        if (prop.PropertyType == typeof(Vector3)) {
+            string[] parts = ((string) value).Split(',');
+            if (parts.Length != 3) return value;
+            value = new Vector3(float.Parse(parts[0], CultureInfo.InvariantCulture),
+                float.Parse(parts[1], CultureInfo.InvariantCulture),
+                float.Parse(parts[2], CultureInfo.InvariantCulture));
+        }
+        return value;
     }
 }

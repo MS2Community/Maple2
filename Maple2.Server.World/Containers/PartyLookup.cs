@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using Maple2.Database.Storage;
 using Maple2.Model.Error;
 using Maple2.Model.Game;
 using Maple2.Model.Game.Party;
@@ -10,6 +11,8 @@ public class PartyLookup : IDisposable {
     private readonly ChannelClientLookup channelClients;
     private readonly PlayerInfoLookup playerLookup;
     private readonly PartySearchLookup partySearchLookup;
+    private ServerTableMetadataStorage serverTableMetadataStorage;
+
 
     private readonly ConcurrentDictionary<int, PartyManager> parties;
     private int nextPartyId = 1;
@@ -20,6 +23,10 @@ public class PartyLookup : IDisposable {
         this.partySearchLookup = partySearchLookup;
 
         parties = new ConcurrentDictionary<int, PartyManager>();
+    }
+
+    public void InjectDependencies(ServerTableMetadataStorage serverTableMetadataStorage) {
+        this.serverTableMetadataStorage = serverTableMetadataStorage;
     }
 
     public void Dispose() {
@@ -56,7 +63,7 @@ public class PartyLookup : IDisposable {
         }
 
         var party = new Party(partyId, leaderInfo.AccountId, leaderInfo.CharacterId, leaderInfo.Name);
-        var manager = new PartyManager(party) {
+        var manager = new PartyManager(party, serverTableMetadataStorage.ConstantsTable.PartyVoteReadyDurationSeconds) {
             ChannelClients = channelClients,
             PartyLookup = this,
         };

@@ -84,7 +84,10 @@ builder.Host.ConfigureContainer<ContainerBuilder>(autofac => {
         .OnActivated(e => {
             var channelLookup = e.Context.Resolve<ChannelClientLookup>();
             var playerInfoLookup = e.Context.Resolve<PlayerInfoLookup>();
+            var partyLookup = e.Context.Resolve<PartyLookup>();
+            var serverTableMetadataStorage = e.Context.Resolve<ServerTableMetadataStorage>();
             channelLookup.InjectDependencies(e.Instance, playerInfoLookup);
+            partyLookup.InjectDependencies(serverTableMetadataStorage);
         })
         .SingleInstance();
 });

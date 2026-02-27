@@ -1,10 +1,10 @@
 ﻿using System.Collections.Concurrent;
 using Grpc.Core;
+using Maple2.Database.Storage;
 using Maple2.Model.Enum;
 using Maple2.Model.Error;
 using Maple2.Model.Game;
 using Maple2.Model.Game.Party;
-using Maple2.Model.Metadata;
 using Maple2.Server.Channel.Service;
 using ChannelClient = Maple2.Server.Channel.Service.Channel.ChannelClient;
 
@@ -15,10 +15,12 @@ public class PartyManager : IDisposable {
     public required PartyLookup PartyLookup { get; init; }
     public readonly Party Party;
     private readonly ConcurrentDictionary<long, (string, DateTime)> pendingInvites;
+    private readonly int partyVoteReadyDurationSeconds;
 
-    public PartyManager(Party party) {
+    public PartyManager(Party party, int partyVoteReadyDurationSeconds) {
         Party = party;
         pendingInvites = new ConcurrentDictionary<long, (string, DateTime)>();
+        this.partyVoteReadyDurationSeconds = partyVoteReadyDurationSeconds;
     }
 
     public void Dispose() {
@@ -282,7 +284,7 @@ public class PartyManager : IDisposable {
         });
 
         Task.Factory.StartNew(() => {
-            Thread.Sleep(TimeSpan.FromSeconds(Constant.PartyVoteReadyDurationSeconds));
+            Thread.Sleep(TimeSpan.FromSeconds(partyVoteReadyDurationSeconds));
             if (Party.Vote == null) {
                 return;
             }
@@ -394,7 +396,7 @@ public class PartyManager : IDisposable {
 
         Task.Factory.StartNew(() => {
             // TODO: The duration is wrong.
-            Thread.Sleep(TimeSpan.FromSeconds(Constant.PartyVoteReadyDurationSeconds));
+            Thread.Sleep(TimeSpan.FromSeconds(partyVoteReadyDurationSeconds));
             if (Party.Vote == null) {
                 return;
             }
