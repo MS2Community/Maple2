@@ -131,22 +131,6 @@ public static class Constant {
     public const int PartyFinderListingsPageCount = 12;
     public const int ProposalItemId = 11600482;
     public const int bagSlotTabPetEquipCount = 48;
-    public const int BagSlotTabGameCountMax = 48;
-    public const int BagSlotTabSkinCountMax = 150;
-    public const int BagSlotTabSummonCountMax = 48;
-    public const int BagSlotTabMaterialCountMax = 48;
-    public const int BagSlotTabMasteryCountMax = 48;
-    public const int BagSlotTabLifeCountMax = 48;
-    public const int BagSlotTabQuestCountMax = 48;
-    public const int BagSlotTabGemCountMax = 48;
-    public const int BagSlotTabPetCountMax = 78;
-    public const int BagSlotTabPetEquipCountMax = 48;
-    public const int BagSlotTabActiveSkillCountMax = 48;
-    public const int BagSlotTabCoinCountMax = 48;
-    public const int BagSlotTabBadgeCountMax = 48;
-    public const int BagSlotTabMiscCountMax = 48;
-    public const int BagSlotTabLapenshardCountMax = 48;
-    public const int BagSlotTabPieceCountMax = 48;
     public const int MeretAirTaxiPrice = 15;
     public const int ClubMaxCount = 3;
 
