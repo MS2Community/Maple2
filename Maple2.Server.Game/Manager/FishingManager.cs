@@ -239,7 +239,7 @@ public class FishingManager {
 
         selectedFish = fishes.Get();
 
-        int fishingTick = session.ServerTableMetadata.ConstantsTable.FisherBoreDuration;
+        int fishingTick = session.ServerTableMetadata.ConstantsTable.fisherBoreDuration;
         bool hasAutoFish = session.Player.Buffs.HasBuff(BuffEventType.AutoFish);
 
         // Fishing Success

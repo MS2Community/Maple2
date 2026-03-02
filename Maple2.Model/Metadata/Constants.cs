@@ -293,6 +293,9 @@ public static class Constant {
         "http://maplestory2.nexon.net/en/news/article/32249/mushking-royale-championship-rewards";
     public const int HoldAttackSkillID = 10700252;
     public const string DiscordAppID = "555204064091045904";
+    public const int GuildFundMax = 20000;
+    public const int DropIconVisibleDistance = 400;
+    public const string MesoMarketTokenDetailUrl = "http://maplestory2.nexon.net/en/news/article/45213";
     #endregion
 }
 
