@@ -271,7 +271,7 @@ public record ConstantsTable(
     int HomeReturnPortalKeepTime = 0,
     string HomeReturnPortalKeepNif = "",
     int HomeReturnPortalDimensionY = 0,
-    float GlobalCubeSkillIntervalTime = 0f,
+    TimeSpan GlobalCubeSkillIntervalTime = new(),
     int RoomEnterPortalDurationTick = 0,
     int NpcBossCubeSkillCreateHeight = 0,
     int NPCUpdateTickNoUser = 0,

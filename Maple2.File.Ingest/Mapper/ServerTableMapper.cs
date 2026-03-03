@@ -2201,6 +2201,9 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
             if (prop.Name == "DailyTrophyResetDate") {
                 value = ((string)value).Replace('-', ':');
             }
+            if (prop.Name == "GlobalCubeSkillIntervalTime") {
+                value = $"0:0:{(string) value}";
+            }
             value = TimeSpan.Parse((string)value, CultureInfo.InvariantCulture);
         }
         // Handle array types (int[], short[], etc.)

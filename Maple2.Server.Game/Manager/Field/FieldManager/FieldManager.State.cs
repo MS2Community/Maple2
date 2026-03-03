@@ -725,7 +725,7 @@ public partial class FieldManager {
     private void AddCubeSkill(SkillMetadata metadata, in Vector3 position, in Vector3 rotation = default) {
         Vector3 adjustedPosition = position;
         adjustedPosition.Z += FieldAccelerationStructure.BLOCK_SIZE;
-        var fieldSkill = new FieldSkill(this, NextLocalId(), FieldActor, metadata, (int) Constant.GlobalCubeSkillIntervalTime.TotalMilliseconds, adjustedPosition) {
+        var fieldSkill = new FieldSkill(this, NextLocalId(), FieldActor, metadata, (int)ServerTableMetadata.ConstantsTable.GlobalCubeSkillIntervalTime.TotalMilliseconds, adjustedPosition) {
             Position = adjustedPosition,
             Rotation = rotation,
             Source = SkillSource.Cube,

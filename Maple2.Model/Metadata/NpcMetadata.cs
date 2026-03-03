@@ -18,24 +18,25 @@ public record NpcMetadata(
     NpcMetadataDropInfo DropInfo,
     NpcMetadataAction Action,
     NpcMetadataDead Dead,
+    NpcMetadataCorpse? Corpse,
     NpcMetadataLookAtTarget LookAtTarget) : ISearchResult {
     public NpcMetadata(NpcMetadata other, float lastSightRadius) : this(other.Id,
         other.Name, other.AiPath, other.Model, other.Stat, other.Basic, other.Distance, other.Skill, other.Property, other.DropInfo,
-        other.Action, other.Dead, other.LookAtTarget) {
+        other.Action, other.Dead, other.Corpse, other.LookAtTarget) {
         Distance = new NpcMetadataDistance(Distance.Avoid, Distance.Sight, Distance.SightHeightUp,
             Distance.SightHeightDown, lastSightRadius, Distance.LastSightHeightUp, Distance.LastSightHeightDown);
     }
 
     public NpcMetadata(NpcMetadata other, float lastSightRadius, float lastSightHeightUp) : this(other.Id,
         other.Name, other.AiPath, other.Model, other.Stat, other.Basic, other.Distance, other.Skill, other.Property, other.DropInfo,
-        other.Action, other.Dead, other.LookAtTarget) {
+        other.Action, other.Dead, other.Corpse, other.LookAtTarget) {
         Distance = new NpcMetadataDistance(Distance.Avoid, Distance.Sight, Distance.SightHeightUp,
             Distance.SightHeightDown, lastSightRadius, lastSightHeightUp, Distance.LastSightHeightDown);
     }
 
     public NpcMetadata(NpcMetadata other, float lastSightRadius, float lastSightHeightUp, float lastSightHeightDown) : this(other.Id,
         other.Name, other.AiPath, other.Model, other.Stat, other.Basic, other.Distance, other.Skill, other.Property, other.DropInfo,
-        other.Action, other.Dead, other.LookAtTarget) {
+        other.Action, other.Dead, other.Corpse, other.LookAtTarget) {
         Distance = new NpcMetadataDistance(Distance.Avoid, Distance.Sight, Distance.SightHeightUp,
             Distance.SightHeightDown, lastSightRadius, lastSightHeightUp, lastSightHeightDown);
     }
