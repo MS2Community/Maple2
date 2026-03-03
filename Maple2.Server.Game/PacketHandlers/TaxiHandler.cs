@@ -31,8 +31,11 @@ public class TaxiHandler : FieldPacketHandler {
     public required MapMetadataStorage MapMetadata { private get; init; }
     public required MapEntityStorage EntityMetadata { private get; init; }
     public required WorldMapGraphStorage WorldMapGraph { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
     // ReSharper restore All
     #endregion
+
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
@@ -136,12 +139,12 @@ public class TaxiHandler : FieldPacketHandler {
             return;
         }
 
-        if (session.Currency.Meret < session.ServerTableMetadata.ConstantsTable.MeratAirTaxiPrice) {
+        if (session.Currency.Meret < Constants.MeratAirTaxiPrice) {
             session.Send(NoticePacket.MessageBox(StringCode.s_err_lack_merat));
             return;
         }
 
-        session.Currency.Meret -= session.ServerTableMetadata.ConstantsTable.MeratAirTaxiPrice;
+        session.Currency.Meret -= Constants.MeratAirTaxiPrice;
 
         session.Send(session.PrepareField(mapId)
             ? FieldEnterPacket.Request(session.Player)

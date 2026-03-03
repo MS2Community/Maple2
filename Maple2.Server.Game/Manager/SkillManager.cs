@@ -17,6 +17,8 @@ public class SkillManager {
 
     private readonly ILogger logger = Log.ForContext<SkillManager>();
 
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+
     public SkillManager(GameSession session, SkillBook skillBook) {
         this.session = session;
 
@@ -121,11 +123,11 @@ public class SkillManager {
         if (SkillBook.MaxSkillTabs >= Constant.MaxSkillTabCount) {
             return false;
         }
-        if (session.Currency.Meret < session.ServerTableMetadata.ConstantsTable.SkillBookTreeAddTabFeeMerat) {
+        if (session.Currency.Meret < Constants.SkillBookTreeAddTabFeeMerat) {
             return false;
         }
 
-        session.Currency.Meret -= session.ServerTableMetadata.ConstantsTable.SkillBookTreeAddTabFeeMerat;
+        session.Currency.Meret -= Constants.SkillBookTreeAddTabFeeMerat;
         SkillBook.MaxSkillTabs++;
         session.Send(SkillBookPacket.Expand(SkillBook));
 

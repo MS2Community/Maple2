@@ -52,6 +52,8 @@ public sealed class ExperienceManager {
 
     private int ChainKillCount { get; set; }
 
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+
     public ExperienceManager(GameSession session) {
         this.session = session;
         Init();
@@ -89,7 +91,7 @@ public sealed class ExperienceManager {
     }
 
     private long GetRestExp(long expGained) {
-        long addedRestExp = Math.Min(RestExp, (long) (expGained * (session.ServerTableMetadata.ConstantsTable.RestExpAcquireRate / 10000.0f))); // convert int to a percentage
+        long addedRestExp = Math.Min(RestExp, (long) (expGained * (Constants.RestExpAcquireRate / 10000.0f))); // convert int to a percentage
         RestExp = Math.Max(0, RestExp - addedRestExp);
         Exp += expGained;
         return addedRestExp;
@@ -175,7 +177,7 @@ public sealed class ExperienceManager {
 
     public bool LevelUp() {
         int startLevel = Level;
-        for (int level = startLevel; level < session.ServerTableMetadata.ConstantsTable.characterMaxLevel; level++) {
+        for (int level = startLevel; level < Constants.characterMaxLevel; level++) {
             if (!session.TableMetadata.ExpTable.NextExp.TryGetValue(level, out long expToNextLevel) || expToNextLevel > Exp) {
                 break;
             }
@@ -203,7 +205,7 @@ public sealed class ExperienceManager {
     }
 
     private void AddPrestigeExp(ExpType expType) {
-        if (Level < session.ServerTableMetadata.ConstantsTable.AdventureLevelStartLevel) {
+        if (Level < Constants.AdventureLevelStartLevel) {
             return;
         }
 
@@ -211,20 +213,20 @@ public sealed class ExperienceManager {
             return;
         }
 
-        if (PrestigeCurrentExp - PrestigeExp + (PrestigeLevelsGained * session.ServerTableMetadata.ConstantsTable.AdventureLevelLvUpExp) >=
-            session.ServerTableMetadata.ConstantsTable.AdventureLevelLvUpExp) {
-            amount = (long) (amount * session.ServerTableMetadata.ConstantsTable.AdventureLevelFactor);
+        if (PrestigeCurrentExp - PrestigeExp + (PrestigeLevelsGained * Constants.AdventureLevelLvUpExp) >=
+            Constants.AdventureLevelLvUpExp) {
+            amount = (long) (amount * Constants.AdventureLevelFactor);
         }
 
         PrestigeCurrentExp = Math.Min(amount + PrestigeCurrentExp, long.MaxValue);
 
         int startLevel = PrestigeLevel;
-        for (int level = startLevel; level < session.ServerTableMetadata.ConstantsTable.AdventureLevelLimit; level++) {
-            if (session.ServerTableMetadata.ConstantsTable.AdventureLevelLvUpExp > PrestigeCurrentExp) {
+        for (int level = startLevel; level < Constants.AdventureLevelLimit; level++) {
+            if (Constants.AdventureLevelLvUpExp > PrestigeCurrentExp) {
                 break;
             }
 
-            PrestigeCurrentExp -= session.ServerTableMetadata.ConstantsTable.AdventureLevelLvUpExp;
+            PrestigeCurrentExp -= Constants.AdventureLevelLvUpExp;
             PrestigeLevel++;
         }
         session.Send(PrestigePacket.AddExp(PrestigeCurrentExp, amount));
@@ -234,7 +236,7 @@ public sealed class ExperienceManager {
     }
 
     public void PrestigeLevelUp(int amount = 1) {
-        PrestigeLevel = Math.Clamp(PrestigeLevel + amount, amount, session.ServerTableMetadata.ConstantsTable.AdventureLevelLimit);
+        PrestigeLevel = Math.Clamp(PrestigeLevel + amount, amount, Constants.AdventureLevelLimit);
         PrestigeLevelsGained += amount;
         session.ConditionUpdate(ConditionType.adventure_level, counter: amount);
         session.ConditionUpdate(ConditionType.adventure_level_up, counter: amount);
@@ -243,7 +245,7 @@ public sealed class ExperienceManager {
         }
 
         for (int i = 0; i < amount; i++) {
-            Item? item = session.Field?.ItemDrop.CreateItem(session.ServerTableMetadata.ConstantsTable.AdventureLevelLvUpRewardItem);
+            Item? item = session.Field?.ItemDrop.CreateItem(Constants.AdventureLevelLvUpRewardItem);
             if (item == null) {
                 break;
             }

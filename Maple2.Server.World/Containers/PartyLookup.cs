@@ -4,6 +4,7 @@ using Maple2.Database.Storage;
 using Maple2.Model.Error;
 using Maple2.Model.Game;
 using Maple2.Model.Game.Party;
+using Maple2.Model.Metadata;
 
 namespace Maple2.Server.World.Containers;
 
@@ -11,22 +12,20 @@ public class PartyLookup : IDisposable {
     private readonly ChannelClientLookup channelClients;
     private readonly PlayerInfoLookup playerLookup;
     private readonly PartySearchLookup partySearchLookup;
-    private ServerTableMetadataStorage serverTableMetadataStorage;
+    private readonly ServerTableMetadataStorage serverTableMetadata;
 
 
     private readonly ConcurrentDictionary<int, PartyManager> parties;
     private int nextPartyId = 1;
+    private ConstantsTable Constants => serverTableMetadata.ConstantsTable;
 
-    public PartyLookup(ChannelClientLookup channelClients, PlayerInfoLookup playerLookup, PartySearchLookup partySearchLookup) {
+    public PartyLookup(ChannelClientLookup channelClients, PlayerInfoLookup playerLookup, PartySearchLookup partySearchLookup, ServerTableMetadataStorage serverTableMetadata) {
         this.channelClients = channelClients;
         this.playerLookup = playerLookup;
         this.partySearchLookup = partySearchLookup;
+        this.serverTableMetadata = serverTableMetadata;
 
         parties = new ConcurrentDictionary<int, PartyManager>();
-    }
-
-    public void InjectDependencies(ServerTableMetadataStorage serverTableMetadataStorage) {
-        this.serverTableMetadataStorage = serverTableMetadataStorage;
     }
 
     public void Dispose() {
@@ -63,7 +62,7 @@ public class PartyLookup : IDisposable {
         }
 
         var party = new Party(partyId, leaderInfo.AccountId, leaderInfo.CharacterId, leaderInfo.Name);
-        var manager = new PartyManager(party, serverTableMetadataStorage.ConstantsTable.PartyVoteReadyDurationSeconds) {
+        var manager = new PartyManager(party, Constants.PartyVoteReadyDurationSeconds) {
             ChannelClients = channelClients,
             PartyLookup = this,
         };

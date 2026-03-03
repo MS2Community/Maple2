@@ -9,6 +9,7 @@ namespace Maple2.Server.Game.Manager;
 public class CurrencyManager {
     private readonly GameSession session;
 
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
     private Currency Currency => session.Player.Value.Currency;
 
     public CurrencyManager(GameSession session) {
@@ -98,57 +99,57 @@ public class CurrencyManager {
             long overflow;
             switch (type) {
                 case CurrencyType.ValorToken:
-                    delta = Math.Min(value, session.ServerTableMetadata.ConstantsTable.HonorTokenMax) - Currency.ValorToken;
-                    overflow = Math.Max(0, value - session.ServerTableMetadata.ConstantsTable.HonorTokenMax);
-                    Currency.ValorToken = Math.Min(value, session.ServerTableMetadata.ConstantsTable.HonorTokenMax);
+                    delta = Math.Min(value, Constants.HonorTokenMax) - Currency.ValorToken;
+                    overflow = Math.Max(0, value - Constants.HonorTokenMax);
+                    Currency.ValorToken = Math.Min(value, Constants.HonorTokenMax);
                     if (delta > 0) {
                         session.ConditionUpdate(ConditionType.get_honor_token, delta);
                     }
                     break;
                 case CurrencyType.Treva:
-                    delta = Math.Min(value, session.ServerTableMetadata.ConstantsTable.KarmaTokenMax) - Currency.Treva;
-                    overflow = Math.Max(0, value - session.ServerTableMetadata.ConstantsTable.KarmaTokenMax);
-                    Currency.Treva = Math.Min(value, session.ServerTableMetadata.ConstantsTable.KarmaTokenMax);
+                    delta = Math.Min(value, Constants.KarmaTokenMax) - Currency.Treva;
+                    overflow = Math.Max(0, value - Constants.KarmaTokenMax);
+                    Currency.Treva = Math.Min(value, Constants.KarmaTokenMax);
                     if (delta > 0) {
                         session.ConditionUpdate(ConditionType.get_karma_token, delta);
                     }
                     break;
                 case CurrencyType.Rue:
-                    delta = Math.Min(value, session.ServerTableMetadata.ConstantsTable.LuTokenMax) - Currency.Rue;
-                    overflow = Math.Max(0, value - session.ServerTableMetadata.ConstantsTable.LuTokenMax);
-                    Currency.Rue = Math.Min(value, session.ServerTableMetadata.ConstantsTable.LuTokenMax);
+                    delta = Math.Min(value, Constants.LuTokenMax) - Currency.Rue;
+                    overflow = Math.Max(0, value - Constants.LuTokenMax);
+                    Currency.Rue = Math.Min(value, Constants.LuTokenMax);
                     if (delta > 0) {
                         session.ConditionUpdate(ConditionType.get_lu_token, delta);
                     }
                     break;
                 case CurrencyType.HaviFruit:
-                    delta = Math.Min(value, session.ServerTableMetadata.ConstantsTable.HabiTokenMax) - Currency.HaviFruit;
-                    overflow = Math.Max(0, value - session.ServerTableMetadata.ConstantsTable.HabiTokenMax);
-                    Currency.HaviFruit = Math.Min(value, session.ServerTableMetadata.ConstantsTable.HabiTokenMax);
+                    delta = Math.Min(value, Constants.HabiTokenMax) - Currency.HaviFruit;
+                    overflow = Math.Max(0, value - Constants.HabiTokenMax);
+                    Currency.HaviFruit = Math.Min(value, Constants.HabiTokenMax);
                     if (delta > 0) {
                         session.ConditionUpdate(ConditionType.get_habi_token, delta);
                     }
                     break;
                 case CurrencyType.ReverseCoin:
-                    delta = Math.Min(value, session.ServerTableMetadata.ConstantsTable.ReverseCoinMax) - Currency.ReverseCoin;
-                    overflow = Math.Max(0, value - session.ServerTableMetadata.ConstantsTable.ReverseCoinMax);
-                    Currency.ReverseCoin = Math.Min(value, session.ServerTableMetadata.ConstantsTable.ReverseCoinMax);
+                    delta = Math.Min(value, Constants.ReverseCoinMax) - Currency.ReverseCoin;
+                    overflow = Math.Max(0, value - Constants.ReverseCoinMax);
+                    Currency.ReverseCoin = Math.Min(value, Constants.ReverseCoinMax);
                     if (delta > 0) {
                         session.ConditionUpdate(ConditionType.get_reverse_coin, delta);
                     }
                     break;
                 case CurrencyType.MentorToken:
-                    delta = Math.Min(value, session.ServerTableMetadata.ConstantsTable.MentorTokenMax) - Currency.MentorToken;
-                    overflow = Math.Max(0, value - session.ServerTableMetadata.ConstantsTable.MentorTokenMax);
-                    Currency.MentorToken = Math.Min(value, session.ServerTableMetadata.ConstantsTable.MentorTokenMax);
+                    delta = Math.Min(value, Constants.MentorTokenMax) - Currency.MentorToken;
+                    overflow = Math.Max(0, value - Constants.MentorTokenMax);
+                    Currency.MentorToken = Math.Min(value, Constants.MentorTokenMax);
                     if (delta > 0) {
                         session.ConditionUpdate(ConditionType.get_mentor_token, delta);
                     }
                     break;
                 case CurrencyType.MenteeToken:
-                    delta = Math.Min(value, session.ServerTableMetadata.ConstantsTable.MenteeTokenMax) - Currency.MenteeToken;
-                    overflow = Math.Max(0, value - session.ServerTableMetadata.ConstantsTable.MenteeTokenMax);
-                    Currency.MenteeToken = Math.Min(value, session.ServerTableMetadata.ConstantsTable.MenteeTokenMax);
+                    delta = Math.Min(value, Constants.MenteeTokenMax) - Currency.MenteeToken;
+                    overflow = Math.Max(0, value - Constants.MenteeTokenMax);
+                    Currency.MenteeToken = Math.Min(value, Constants.MenteeTokenMax);
                     if (delta > 0) {
                         session.ConditionUpdate(ConditionType.get_mentee_token, delta);
                     }

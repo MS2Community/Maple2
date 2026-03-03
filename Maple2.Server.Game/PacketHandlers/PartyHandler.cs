@@ -36,8 +36,11 @@ public class PartyHandler : FieldPacketHandler {
     #region Autofac Autowired
     // ReSharper disable MemberCanBePrivate.Global
     public required WorldClient World { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
     // ReSharper restore All
     #endregion
+
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
@@ -285,7 +288,7 @@ public class PartyHandler : FieldPacketHandler {
             return;
         }
 
-        if (session.Party.Party.LastVoteTime.FromEpochSeconds().AddSeconds(session.ServerTableMetadata.ConstantsTable.PartyVoteReadyDurationSeconds)
+        if (session.Party.Party.LastVoteTime.FromEpochSeconds().AddSeconds(Constants.PartyVoteReadyDurationSeconds)
             > DateTime.Now && session.Party.Party.Vote != null) {
             session.Send(PartyPacket.Error(PartyError.s_party_err_already_vote));
             return;
@@ -316,7 +319,7 @@ public class PartyHandler : FieldPacketHandler {
             return;
         }
 
-        if (session.Party.Party.LastVoteTime.FromEpochSeconds().AddSeconds(session.ServerTableMetadata.ConstantsTable.PartyVoteReadyDurationSeconds) >
+        if (session.Party.Party.LastVoteTime.FromEpochSeconds().AddSeconds(Constants.PartyVoteReadyDurationSeconds) >
             DateTime.Now && session.Party.Party.Vote != null) {
             session.Send(PartyPacket.Error(PartyError.s_party_err_already_vote));
             return;

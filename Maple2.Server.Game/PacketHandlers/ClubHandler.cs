@@ -34,8 +34,11 @@ public class ClubHandler : FieldPacketHandler {
     // ReSharper disable MemberCanBePrivate.Global
     public required WorldClient World { private get; init; }
     public required BanWordStorage BanWordStorage { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata {  private get; init; }
     // ReSharper restore All
     #endregion
+
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
@@ -71,7 +74,7 @@ public class ClubHandler : FieldPacketHandler {
             session.Send(ClubPacket.Error(ClubError.s_club_err_name_value));
             return;
         }
-        if (clubName.Length < session.ServerTableMetadata.ConstantsTable.ClubNameLengthMin || clubName.Length > session.ServerTableMetadata.ConstantsTable.ClubNameLengthMax) {
+        if (clubName.Length < Constants.ClubNameLengthMin || clubName.Length > Constants.ClubNameLengthMax) {
             session.Send(ClubPacket.Error(ClubError.s_club_err_name_value));
             return;
         }
@@ -243,7 +246,7 @@ public class ClubHandler : FieldPacketHandler {
             session.Send(ClubPacket.Error(ClubError.s_club_err_name_value));
             return;
         }
-        if (newName.Length < session.ServerTableMetadata.ConstantsTable.ClubNameLengthMin || newName.Length > session.ServerTableMetadata.ConstantsTable.ClubNameLengthMax) {
+        if (newName.Length < Constants.ClubNameLengthMin || newName.Length > Constants.ClubNameLengthMax) {
             session.Send(ClubPacket.Error(ClubError.s_club_err_name_value));
             return;
         }

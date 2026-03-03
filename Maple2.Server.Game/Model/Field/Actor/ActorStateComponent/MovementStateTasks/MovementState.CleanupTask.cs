@@ -10,6 +10,9 @@ public partial class MovementState {
         private readonly MovementState movement;
         private readonly FieldPlayer player;
         private readonly Vector3? lastPosition;
+
+        private ConstantsTable Constants => player.Session.ServerTableMetadata.ConstantsTable;
+
         public override bool CancelOnInterrupt => false;
 
         public NpcCleanupPatrolDataTask(FieldPlayer player, TaskState taskState, MovementState movement) : base(taskState, NpcTaskPriority.Cleanup) {
@@ -33,8 +36,8 @@ public partial class MovementState {
                 return;
             }
 
-            float maxDistance = player.Session.ServerTableMetadata.ConstantsTable.TalkableDistance *
-                                player.Session.ServerTableMetadata.ConstantsTable.TalkableDistance;
+            float maxDistance = Constants.TalkableDistance *
+                                Constants.TalkableDistance;
 
             // find nearest npc
             FieldNpc? closestNpc = player.Field.Npcs.Values

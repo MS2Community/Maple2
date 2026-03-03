@@ -1,10 +1,11 @@
-﻿using Maple2.Model.Enum;
+﻿using Maple2.Database.Storage;
+using Maple2.Model.Enum;
 using Maple2.Model.Metadata;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
-using Maple2.Server.Game.PacketHandlers.Field;
 using Maple2.Server.Core.Packets;
 using Maple2.Server.Game.LuaFunctions;
+using Maple2.Server.Game.PacketHandlers.Field;
 using Maple2.Server.Game.Session;
 
 namespace Maple2.Server.Game.PacketHandlers;
@@ -12,10 +13,19 @@ namespace Maple2.Server.Game.PacketHandlers;
 public class HomeDoctorHandler : FieldPacketHandler {
     public override RecvOp OpCode => RecvOp.RequestHomeDoctor;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+
+    // ReSharper restore All
+    #endregion
+
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
+
     public override void Handle(GameSession session, IByteReader packet) {
         if (session.Field is null) return;
         long time = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        if (session.Player.Value.Character.DoctorCooldown + session.ServerTableMetadata.ConstantsTable.HomeDoctorCallCooltime > time) {
+        if (session.Player.Value.Character.DoctorCooldown + Constants.HomeDoctorCallCooltime > time) {
             return;
         }
 

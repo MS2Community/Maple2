@@ -32,8 +32,11 @@ public class NpcTalkHandler : FieldPacketHandler {
     // ReSharper disable MemberCanBePrivate.Global
     public required NpcMetadataStorage NpcMetadata { private get; init; }
     public required ScriptMetadataStorage ScriptMetadata { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
     // ReSharper restore All
     #endregion
+
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
@@ -237,7 +240,7 @@ public class NpcTalkHandler : FieldPacketHandler {
             case ScriptEventType.EnchantSelect:
             case ScriptEventType.PeachySelect:
                 if (!session.ScriptMetadata.TryGet(npcId, out ScriptMetadata? script) ||
-                    !script.States.TryGetValue(session.ServerTableMetadata.ConstantsTable.EnchantMasterScriptID, out ScriptState? state)) {
+                    !script.States.TryGetValue(Constants.EnchantMasterScriptID, out ScriptState? state)) {
                     return;
                 }
 

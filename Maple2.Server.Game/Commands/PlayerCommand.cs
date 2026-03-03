@@ -115,6 +115,7 @@ public class PlayerCommand : GameCommand {
 
     private class LevelCommand : Command {
         private readonly GameSession session;
+        private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
 
         public LevelCommand(GameSession session) : base("level", "Set player level.") {
             this.session = session;
@@ -127,8 +128,8 @@ public class PlayerCommand : GameCommand {
 
         private void Handle(InvocationContext ctx, short level) {
             try {
-                if (level < 1 || level > session.ServerTableMetadata.ConstantsTable.characterMaxLevel) {
-                    ctx.Console.Error.WriteLine($"Invalid level: {level}. Must be between 1 and {session.ServerTableMetadata.ConstantsTable.characterMaxLevel}.");
+                if (level < 1 || level > Constants.characterMaxLevel) {
+                    ctx.Console.Error.WriteLine($"Invalid level: {level}. Must be between 1 and {Constants.characterMaxLevel}.");
                     return;
                 }
 
@@ -180,6 +181,7 @@ public class PlayerCommand : GameCommand {
 
     private class PrestigeCommand : Command {
         private readonly GameSession session;
+        private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
 
         public PrestigeCommand(GameSession session) : base("prestige", "Sets prestige level") {
             this.session = session;
@@ -191,8 +193,8 @@ public class PlayerCommand : GameCommand {
 
         private void Handle(InvocationContext ctx, int level) {
             try {
-                if (level < 1 ||  level > session.ServerTableMetadata.ConstantsTable.AdventureLevelLimit) {
-                    ctx.Console.Error.WriteLine($"Invalid level: {level}. Must be between 1 and {session.ServerTableMetadata.ConstantsTable.AdventureLevelLimit}.");
+                if (level < 1 ||  level > Constants.AdventureLevelLimit) {
+                    ctx.Console.Error.WriteLine($"Invalid level: {level}. Must be between 1 and {Constants.AdventureLevelLimit}.");
                     return;
                 }
 
@@ -209,6 +211,7 @@ public class PlayerCommand : GameCommand {
 
     private class JobCommand : Command {
         private readonly GameSession session;
+        private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
 
         public JobCommand(GameSession session) : base("job", "Set player job.") {
             this.session = session;
@@ -328,7 +331,7 @@ public class PlayerCommand : GameCommand {
 
             session.Player.Buffs.Clear();
             session.Player.Buffs.Initialize();
-            session.Player.Buffs.LoadFieldBuffs(session.ServerTableMetadata.ConstantsTable.shadowWorldBuffHpUp, session.ServerTableMetadata.ConstantsTable.shadowWorldBuffMoveProtect);
+            session.Player.Buffs.LoadFieldBuffs(Constants.shadowWorldBuffHpUp, Constants.shadowWorldBuffMoveProtect);
             session.Stats.Refresh();
             session.Field?.Broadcast(JobPacket.Advance(session.Player, session.Config.Skill.SkillInfo));
         }

@@ -36,8 +36,11 @@ public class QuestHandler : FieldPacketHandler {
     #region Autofac Autowired
     // ReSharper disable MemberCanBePrivate.Global
     public required TableMetadataStorage TableMetadata { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
     // ReSharper restore All
     #endregion
+
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
@@ -67,7 +70,7 @@ public class QuestHandler : FieldPacketHandler {
                 HandleGoToDungeon(session, packet);
                 break;
             case Command.SkyFortress:
-                HandleSkyFortressTeleport(session);
+                HandleSkyFortressTeleport(session, Constants);
                 break;
             case Command.MapleGuide:
                 HandleMapleGuide(session, packet);
@@ -265,13 +268,13 @@ public class QuestHandler : FieldPacketHandler {
         session.Quest.CompleteFieldMission(mission);
     }
 
-    private static void HandleSkyFortressTeleport(GameSession session) {
-        if (!session.Quest.TryGetQuest(session.ServerTableMetadata.ConstantsTable.FameContentsRequireQuestID, out Quest? quest) || quest.State != QuestState.Completed) {
+    private static void HandleSkyFortressTeleport(GameSession session, ConstantsTable constants) {
+        if (!session.Quest.TryGetQuest(constants.FameContentsRequireQuestID, out Quest? quest) || quest.State != QuestState.Completed) {
             return;
         }
 
-        session.Send(session.PrepareField(session.ServerTableMetadata.ConstantsTable.FameContentsSkyFortressGotoMapID,
-            session.ServerTableMetadata.ConstantsTable.FameContentsSkyFortressGotoPortalID)
+        session.Send(session.PrepareField(constants.FameContentsSkyFortressGotoMapID,
+            constants.FameContentsSkyFortressGotoPortalID)
             ? FieldEnterPacket.Request(session.Player)
             : FieldEnterPacket.Error(MigrationError.s_move_err_default));
     }

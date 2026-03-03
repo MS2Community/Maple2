@@ -24,10 +24,12 @@ public class Tombstone : IByteSerializable {
     public int Unknown1 { get; } = 1;
     public bool Unknown2 { get; }
 
+    private ConstantsTable Constants => Owner.Session.ServerTableMetadata.ConstantsTable;
+
     public Tombstone(FieldPlayer owner, int totalDeaths) {
         Owner = owner;
-        TotalHitCount = (byte) Math.Min(totalDeaths * owner.Session.ServerTableMetadata.ConstantsTable.hitPerDeadCount,
-            owner.Session.ServerTableMetadata.ConstantsTable.hitPerDeadCount * owner.Session.ServerTableMetadata.ConstantsTable.maxDeadCount);
+        TotalHitCount = (byte) Math.Min(totalDeaths * Constants.hitPerDeadCount,
+            Constants.hitPerDeadCount * Constants.maxDeadCount);
         hitsRemaining = TotalHitCount;
     }
     public void WriteTo(IByteWriter writer) {

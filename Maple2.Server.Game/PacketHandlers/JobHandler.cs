@@ -1,10 +1,12 @@
-﻿using Maple2.Model;
+﻿using Maple2.Database.Storage;
+using Maple2.Model;
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
+using Maple2.Model.Metadata;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
-using Maple2.Server.Game.PacketHandlers.Field;
 using Maple2.Server.Game.Model;
+using Maple2.Server.Game.PacketHandlers.Field;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
 
@@ -21,6 +23,15 @@ public class JobHandler : FieldPacketHandler {
         Reset = 10,
         AutoDistribute = 11,
     }
+
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+
+    // ReSharper restore All
+    #endregion
+
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
@@ -93,7 +104,7 @@ public class JobHandler : FieldPacketHandler {
 
         session.Player.Buffs.Clear();
         session.Player.Buffs.Initialize();
-        session.Player.Buffs.LoadFieldBuffs(session.ServerTableMetadata.ConstantsTable.shadowWorldBuffHpUp, session.ServerTableMetadata.ConstantsTable.shadowWorldBuffMoveProtect);
+        session.Player.Buffs.LoadFieldBuffs(Constants.shadowWorldBuffHpUp, Constants.shadowWorldBuffMoveProtect);
         session.Stats.Refresh();
         session.Field.Broadcast(JobPacket.Advance(session.Player, session.Config.Skill.SkillInfo));
         session.ConditionUpdate(ConditionType.job, codeLong: (int) session.NpcScript.JobCondition.ChangeToJobCode);

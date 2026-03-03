@@ -98,6 +98,8 @@ public class FieldPlayer : Actor<Player> {
 
     private readonly EventQueue scheduler;
 
+    private ConstantsTable Constants => Session.ServerTableMetadata.ConstantsTable;
+
     public FieldPlayer(GameSession session, Player player) : base(session.Field!, player.ObjectId, player, session.NpcMetadata) {
         Session = session;
         Animation = Session.Animation;
@@ -168,7 +170,7 @@ public class FieldPlayer : Actor<Player> {
             return;
         }
 
-        if (InBattle && tickCount - battleTick > Session.ServerTableMetadata.ConstantsTable.UserBattleDurationTick) {
+        if (InBattle && tickCount - battleTick > Constants.UserBattleDurationTick) {
             InBattle = false;
         }
 
@@ -402,7 +404,7 @@ public class FieldPlayer : Actor<Player> {
 
         // Apply death penalty if field requires it
         if (Field.Metadata.Property.DeathPenalty) {
-            Session.Config.UpdateDeathPenalty(Field.FieldTick + Session.ServerTableMetadata.ConstantsTable.UserRevivalPaneltyTick);
+            Session.Config.UpdateDeathPenalty(Field.FieldTick + Constants.UserRevivalPaneltyTick);
         }
 
         // Update revival condition
@@ -474,7 +476,7 @@ public class FieldPlayer : Actor<Player> {
         Stat stat = Stats.Values[BasicAttribute.Health];
         stat.Add(-amount);
         if (!IsDead) {
-            lastRegenTime[BasicAttribute.Health] = Field.FieldTick + Session.ServerTableMetadata.ConstantsTable.RecoveryHPWaitTick;
+            lastRegenTime[BasicAttribute.Health] = Field.FieldTick + Constants.RecoveryHPWaitTick;
         }
         Session.Send(StatsPacket.Update(this, BasicAttribute.Health));
 
@@ -547,7 +549,7 @@ public class FieldPlayer : Actor<Player> {
 
         Stats.Values[BasicAttribute.Stamina].Add(-amount);
         if (!IsDead) {
-            lastRegenTime[BasicAttribute.Stamina] = Field.FieldTick + Session.ServerTableMetadata.ConstantsTable.RecoveryEPWaitTick;
+            lastRegenTime[BasicAttribute.Stamina] = Field.FieldTick + Constants.RecoveryEPWaitTick;
         }
         Field.Broadcast(StatsPacket.Update(this, BasicAttribute.Stamina));
     }

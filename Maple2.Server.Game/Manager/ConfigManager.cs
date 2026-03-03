@@ -18,6 +18,8 @@ public class ConfigManager {
 
     private readonly GameSession session;
 
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+
     private readonly IDictionary<int, KeyBind> keyBinds;
     private short activeHotBar;
     private readonly List<HotBar> hotBars;
@@ -97,12 +99,12 @@ public class ConfigManager {
         ExplorationProgress = load.ExplorationProgress;
 
         statLimits = new Dictionary<string, int>() {
-            { "StatPointLimit_str", session.ServerTableMetadata.ConstantsTable.StatPointLimit_str },
-            { "StatPointLimit_dex", session.ServerTableMetadata.ConstantsTable.StatPointLimit_dex },
-            { "StatPointLimit_int", session.ServerTableMetadata.ConstantsTable.StatPointLimit_int },
-            { "StatPointLimit_luk", session.ServerTableMetadata.ConstantsTable.StatPointLimit_luk },
-            { "StatPointLimit_hp", session.ServerTableMetadata.ConstantsTable.StatPointLimit_hp },
-            { "StatPointLimit_cap", session.ServerTableMetadata.ConstantsTable.StatPointLimit_cap }
+            { "StatPointLimit_str", Constants.StatPointLimit_str },
+            { "StatPointLimit_dex", Constants.StatPointLimit_dex },
+            { "StatPointLimit_int", Constants.StatPointLimit_int },
+            { "StatPointLimit_luk", Constants.StatPointLimit_luk },
+            { "StatPointLimit_hp", Constants.StatPointLimit_hp },
+            { "StatPointLimit_cap", Constants.StatPointLimit_cap }
         };
 
         statAttributes = new StatAttributes(statLimits);
@@ -336,7 +338,7 @@ public class ConfigManager {
     /// <param name="endTick">The tick when the penalty ends, or 0 to reset</param>
     public void UpdateDeathPenalty(long endTick) {
         // Skip penalty for low level players
-        if (session.Player.Value.Character.Level < session.ServerTableMetadata.ConstantsTable.UserRevivalPaneltyMinLevel) {
+        if (session.Player.Value.Character.Level < Constants.UserRevivalPaneltyMinLevel) {
             return;
         }
 

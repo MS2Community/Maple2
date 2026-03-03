@@ -1,4 +1,5 @@
-﻿using Maple2.Model.Game;
+﻿using Maple2.Database.Storage;
+using Maple2.Model.Game;
 using Maple2.Model.Metadata;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
@@ -18,6 +19,14 @@ public class SystemShopHandler : FieldPacketHandler {
         Mentor = 7,
         Item = 10,
     }
+
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    // ReSharper restore All
+    #endregion
+
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
@@ -47,11 +56,11 @@ public class SystemShopHandler : FieldPacketHandler {
             return;
         }
 
-        if (!session.NpcMetadata.TryGet(session.ServerTableMetadata.ConstantsTable.SystemShopNPCIDHonorToken, out NpcMetadata? npc)) {
+        if (!session.NpcMetadata.TryGet(Constants.SystemShopNPCIDHonorToken, out NpcMetadata? npc)) {
             return;
         }
 
-        session.Shop.Load(npc.Basic.ShopId, session.ServerTableMetadata.ConstantsTable.SystemShopNPCIDHonorToken);
+        session.Shop.Load(npc.Basic.ShopId, Constants.SystemShopNPCIDHonorToken);
         session.Send(SystemShopPacket.Arena());
     }
 
@@ -61,7 +70,7 @@ public class SystemShopHandler : FieldPacketHandler {
             session.Shop.ClearActiveShop();
             return;
         }
-        if (!session.NpcMetadata.TryGet(session.ServerTableMetadata.ConstantsTable.SystemShopNPCIDFishing, out NpcMetadata? npc)) {
+        if (!session.NpcMetadata.TryGet(Constants.SystemShopNPCIDFishing, out NpcMetadata? npc)) {
             return;
         }
 
@@ -76,7 +85,7 @@ public class SystemShopHandler : FieldPacketHandler {
             return;
         }
 
-        if (!session.NpcMetadata.TryGet(session.ServerTableMetadata.ConstantsTable.SystemShopNPCIDMentee, out NpcMetadata? npc)) {
+        if (!session.NpcMetadata.TryGet(Constants.SystemShopNPCIDMentee, out NpcMetadata? npc)) {
             return;
         }
 
@@ -91,7 +100,7 @@ public class SystemShopHandler : FieldPacketHandler {
             return;
         }
 
-        if (!session.NpcMetadata.TryGet(session.ServerTableMetadata.ConstantsTable.SystemShopNPCIDMentor, out NpcMetadata? npc)) {
+        if (!session.NpcMetadata.TryGet(Constants.SystemShopNPCIDMentor, out NpcMetadata? npc)) {
             return;
         }
 

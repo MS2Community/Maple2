@@ -19,6 +19,8 @@ public sealed class ItemMergeManager {
     private Item? upgradeItem;
     private Item? catalystItem;
 
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+
     public ItemMergeManager(GameSession session) {
         this.session = session;
     }
@@ -86,7 +88,7 @@ public sealed class ItemMergeManager {
         session.Send(ItemMergePacket.Select(mergeSlot, ItemMerge.CostMultiplier(upgradeItem.Rarity)));
 
         if (!session.ScriptMetadata.TryGet(Constant.EmpowermentNpc, out ScriptMetadata? script) ||
-            !script.States.TryGetValue(session.ServerTableMetadata.ConstantsTable.MergeSmithScriptID, out ScriptState? state)) {
+            !script.States.TryGetValue(Constants.MergeSmithScriptID, out ScriptState? state)) {
             return;
         }
 

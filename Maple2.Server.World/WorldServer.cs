@@ -36,6 +36,8 @@ public class WorldServer {
 
     private readonly LoginClient login;
 
+    private ConstantsTable Constants => serverTableMetadata.ConstantsTable;
+
     public WorldServer(GameStorage gameStorage, ChannelClientLookup channelClients, ServerTableMetadataStorage serverTableMetadata, GlobalPortalLookup globalPortalLookup, WorldBossLookup worldBossLookup, PlayerInfoLookup playerInfoLookup, LoginClient login, ItemMetadataStorage itemMetadata) {
         this.gameStorage = gameStorage;
         this.channelClients = channelClients;
@@ -422,7 +424,7 @@ public class WorldServer {
                         SetPlotAsPending(db, plot);
                         forfeit = true;
                         // mark as open when 3 days has passed since the expiry time
-                    } else if (plot.OwnerId == 0 && plot.ExpiryTime + serverTableMetadata.ConstantsTable.UgcHomeSaleWaitingTime.TotalSeconds < DateTimeOffset.UtcNow.ToUnixTimeSeconds()) {
+                    } else if (plot.OwnerId == 0 && plot.ExpiryTime + Constants.UgcHomeSaleWaitingTime.TotalSeconds < DateTimeOffset.UtcNow.ToUnixTimeSeconds()) {
                         logger.Information("Marking plot {PlotId} as open (no owner)", plot.Id);
                         db.SetPlotOpen(plot.Id); // Mark as open
                     } else {
@@ -449,7 +451,7 @@ public class WorldServer {
         }
 
         // Schedule next check for the next soonest expiry
-        PlotInfo? nextPlot = db.GetSoonestPlotFromExpire(serverTableMetadata.ConstantsTable.UgcHomeSaleWaitingTime);
+        PlotInfo? nextPlot = db.GetSoonestPlotFromExpire(Constants.UgcHomeSaleWaitingTime);
         TimeSpan delay;
         if (nextPlot is not null) {
             DateTimeOffset nextExpiry = DateTimeOffset.FromUnixTimeSeconds(nextPlot.ExpiryTime);

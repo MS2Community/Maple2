@@ -1,4 +1,5 @@
-﻿using Maple2.Model.Game;
+﻿using Maple2.Database.Storage;
+using Maple2.Model.Game;
 using Maple2.Model.Metadata;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
@@ -18,6 +19,15 @@ public class ItemLockHandler : FieldPacketHandler {
         Commit = 3,
     }
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+
+    // ReSharper restore All
+    #endregion
+
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
+
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
         switch (command) {
@@ -31,7 +41,7 @@ public class ItemLockHandler : FieldPacketHandler {
                 HandleUnstage(session, packet);
                 return;
             case Command.Commit:
-                HandleCommit(session, packet);
+                HandleCommit(session, packet, Constants);
                 return;
         }
     }
@@ -69,7 +79,7 @@ public class ItemLockHandler : FieldPacketHandler {
         }
     }
 
-    private static void HandleCommit(GameSession session, IByteReader packet) {
+    private static void HandleCommit(GameSession session, IByteReader packet, ConstantsTable constants) {
         bool unlock = packet.ReadBool(); // false - lock|true - unlock
 
         lock (session.Item) {
@@ -86,7 +96,7 @@ public class ItemLockHandler : FieldPacketHandler {
 
                 if (unlock && item.IsLocked) {
                     item.IsLocked = false;
-                    item.UnlockTime = DateTimeOffset.UtcNow.AddSeconds(session.ServerTableMetadata.ConstantsTable.ItemUnLockTime).ToUnixTimeSeconds();
+                    item.UnlockTime = DateTimeOffset.UtcNow.AddSeconds(constants.ItemUnLockTime).ToUnixTimeSeconds();
                     updatedItems.Add(item);
                 } else if (!unlock && !item.IsLocked) {
                     item.IsLocked = true;

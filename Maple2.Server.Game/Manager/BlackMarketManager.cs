@@ -16,6 +16,8 @@ namespace Maple2.Server.Game.Manager;
 public sealed class BlackMarketManager {
     private readonly GameSession session;
 
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+
     private readonly ILogger logger = Log.Logger.ForContext<BlackMarketManager>();
 
     public BlackMarketManager(GameSession session) {
@@ -63,7 +65,7 @@ public sealed class BlackMarketManager {
             AccountId = session.AccountId,
             CharacterId = session.CharacterId,
             Deposit = depositFee,
-            ExpiryTime = DateTime.Now.AddDays(session.ServerTableMetadata.ConstantsTable.BlackMarketSellEndDay).ToEpochSeconds(),
+            ExpiryTime = DateTime.Now.AddDays(Constants.BlackMarketSellEndDay).ToEpochSeconds(),
             Price = price,
             Quantity = quantity,
         };
