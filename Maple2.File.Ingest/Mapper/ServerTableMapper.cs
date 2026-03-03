@@ -4,6 +4,7 @@ using Maple2.File.IO;
 using Maple2.File.Parser;
 using Maple2.File.Parser.Enum;
 using Maple2.File.Parser.Flat.Convert;
+using Maple2.File.Parser.Xml.Table;
 using Maple2.File.Parser.Xml.Table.Server;
 using Maple2.Model;
 using Maple2.Model.Common;
@@ -12,11 +13,11 @@ using Maple2.Model.Error;
 using Maple2.Model.Game;
 using Maple2.Model.Game.Shop;
 using Maple2.Model.Metadata;
+using Newtonsoft.Json.Linq;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection;
 using System.Xml;
-using Maple2.File.Parser.Xml.Table;
 using DayOfWeek = System.DayOfWeek;
 using ExpType = Maple2.Model.Enum.ExpType;
 using Fish = Maple2.File.Parser.Xml.Table.Server.Fish;
@@ -2167,21 +2168,36 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
         if (type == typeof(float) && input.Contains('f')) {
             input = input.TrimEnd('f', 'F');
         }
-        // 1 does not automatically equate to true during bool conversion
-        if (type == typeof(bool) && input == "1") {
-            input = "true";
+        if (type == typeof(bool)) {
+            // 1 does not automatically equate to true during bool conversion
+            if (input == "1") {
+                input = "true";
+            }
+            // 0 does not automatically equate to false during bool conversion
+            if (input == "0") {
+                input = "false";
+            }
         }
-        // 0 does not automatically equate to false during bool conversion
-        if (type == typeof(bool) && input == "0") {
-            input = "false";
+        if (type == typeof(TimeSpan)) {
+            // Special case - dashes (-) are used instead of colons (:)
+            if (propName == "DailyTrophyResetDate") {
+                input = input.Replace('-', ':');
+            }
+            // Stored as 0.1 for 100ms
+            if (propName == "GlobalCubeSkillIntervalTime") {
+                input = $"0:0:{input}";
+            }
+            // Stored as an int value, convert to friendly input string for TimeSpan parsing
+            if (propName == "UgcHomeSaleWaitingTime") {
+                int.TryParse(input, out int result);
+                input = TimeSpan.FromSeconds(result).ToString(); // TODO: may not be correct conversion to TimeSpan
+            }
         }
-        // Convert into a TimeSpan friendly input string instead of an int value
-        if (type == typeof(TimeSpan) && propName == "UgcHomeSaleWaitingTime") {
-            input = TimeSpan.FromSeconds(int.Parse(input)).ToString(); // TODO: may not be correct conversion to TimeSpan
-        }
-        // Remove prefix 0 on integers since they do not convert properly
-        if (type == typeof(int) && input[0] == '0' && input.Length > 1) {
-            input = input.Remove(0, 1);
+        if (type == typeof(int)) {
+            // Remove prefix 0 on integers since they do not convert properly
+            if (input.Length > 1 && input[0] == '0') {
+                input = input.Remove(0, 1);
+            }
         }
         return input;
     }
@@ -2189,22 +2205,21 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
     private void SetValue(PropertyInfo prop, object? obj, object? value) {
         if (obj == null && value == null || value == null) return;
         HandleNonIConvertibleTypes(prop, ref value);
-        bool isConvertible = typeof(IConvertible).IsAssignableFrom(prop.PropertyType);
-        prop.SetValue(obj, isConvertible ? Convert.ChangeType(value, prop.PropertyType, CultureInfo.InvariantCulture) : value);
+        if (value == null) return;
+        if (typeof(IConvertible).IsAssignableFrom(prop.PropertyType)) {
+            TryParseObject(prop.PropertyType, value, out object? result);
+            prop.SetValue(obj, result);
+            return;
+        }
+        prop.SetValue(obj, value);
     }
 
     private object? HandleNonIConvertibleTypes(PropertyInfo prop, ref object? value) {
         if (value == null) return value;
         // Handle TimeSpan type
         if (prop.PropertyType == typeof(TimeSpan)) {
-            // Special case - dashes (-) are used instead of colons (:)
-            if (prop.Name == "DailyTrophyResetDate") {
-                value = ((string)value).Replace('-', ':');
-            }
-            if (prop.Name == "GlobalCubeSkillIntervalTime") {
-                value = $"0:0:{(string) value}";
-            }
-            value = TimeSpan.Parse((string)value, CultureInfo.InvariantCulture);
+            TimeSpan.TryParse((string) value, CultureInfo.InvariantCulture, out TimeSpan val);
+            value = val;
         }
         // Handle array types (int[], short[], etc.)
         if (prop.PropertyType.IsArray) {
@@ -2213,8 +2228,8 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
             string[] segments = ((string)value).Split(',');
             Array destinationArray = Array.CreateInstance(elementType, segments.Length);
             for (int i = 0; i < segments.Length; i++) {
-                object convertedValue = Convert.ChangeType(segments[i].Trim(), elementType);
-                destinationArray.SetValue(convertedValue, i);
+                TryParseObject(elementType, segments[i].Trim(), out object? parseResult);
+                destinationArray.SetValue(parseResult ?? default, i);
             }
             value = destinationArray;
         }
@@ -2222,10 +2237,58 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
         if (prop.PropertyType == typeof(Vector3)) {
             string[] parts = ((string) value).Split(',');
             if (parts.Length != 3) return value;
-            value = new Vector3(float.Parse(parts[0], CultureInfo.InvariantCulture),
-                float.Parse(parts[1], CultureInfo.InvariantCulture),
-                float.Parse(parts[2], CultureInfo.InvariantCulture));
+            float.TryParse(parts[0], CultureInfo.InvariantCulture, out float x);
+            float.TryParse(parts[1], CultureInfo.InvariantCulture, out float y);
+            float.TryParse(parts[2], CultureInfo.InvariantCulture, out float z);
+            value = new Vector3(x, y, z);
         }
         return value;
+    }
+
+    private bool TryParseObject(Type? elementType, object? input, out object? result) {
+        if (elementType == null || input == null) {
+            result = null;
+            return false;
+        }
+
+        string? inputString = Convert.ToString(input, CultureInfo.InvariantCulture);
+
+        // No TryParse method exists for a string, use the result directly.
+        if (elementType == typeof(string)) {
+            result = inputString;
+            return true;
+        }
+
+        Type[] argTypes = {
+        typeof(string),
+        typeof(IFormatProvider),
+        elementType.MakeByRefType()
+        };
+
+        var method = elementType.GetMethod("TryParse",
+            BindingFlags.Public | BindingFlags.Static,
+            null, argTypes, null);
+        if (method != null) {
+            object[] args = [inputString, CultureInfo.InvariantCulture, null];
+            bool success = (bool)method.Invoke(null, args);
+            result = args[2];
+            return success;
+        }
+
+        // Fallback without CulturueInfo provided, in case the type does not have a CultureInfo overload.
+        Type[] simpleArgs = { typeof(string), elementType.MakeByRefType() };
+        method = elementType.GetMethod("TryParse",
+            BindingFlags.Public | BindingFlags.Static,
+            null, simpleArgs, null);
+        if (method != null) {
+            object[] args = { inputString, null };
+            bool success = (bool) method.Invoke(null, args);
+            result = args[1];
+            return success;
+        }
+
+
+        result = null;
+        return false;
     }
 }
