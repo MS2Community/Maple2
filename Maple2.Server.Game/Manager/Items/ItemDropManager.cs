@@ -16,6 +16,8 @@ public class ItemDropManager {
         this.field = field;
     }
 
+    // level is the NPC's level. It gates both group-level and item-level min/max level checks within
+    // globalDropItemBox/globalDropItemSet (e.g. meso amounts in group 103 scale with NPC level).
     public ICollection<Item> GetGlobalDropItems(int globalDropBoxId, int level = 0) {
         if (!field.ServerTableMetadata.GlobalDropItemBoxTable.DropGroups.TryGetValue(globalDropBoxId, out Dictionary<int, IList<GlobalDropItemBoxTable.Group>>? dropGroup)) {
             return new List<Item>();
@@ -29,7 +31,7 @@ public class ItemDropManager {
                     continue;
                 }
 
-                // Check if player meets level requirements.
+                // Check if NPC level meets the group's level requirements.
                 if (group.MinLevel > level || (group.MaxLevel > 0 && group.MaxLevel < level)) {
                     continue;
                 }
@@ -95,6 +97,9 @@ public class ItemDropManager {
         return results;
     }
 
+    // level gates which drop groups are eligible. For mob drops this is the player's character level
+    // (MinLevel in individualDropItemTable is a player requirement, not NPC level — e.g. Shinjo's Feather
+    // requires player level 30+). For other callers (e.g. housing rewards) it may be a different score.
     public ICollection<Item> GetIndividualDropItems(GameSession session, int level, int individualDropBoxId, int index = -1, int dropGroupId = -1) {
         if (!field.ServerTableMetadata.IndividualDropItemTable.Entries.TryGetValue(individualDropBoxId, out IDictionary<int, IndividualDropItemTable.Entry>? entryDict)) {
             return new List<Item>();

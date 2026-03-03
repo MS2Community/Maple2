@@ -15,6 +15,7 @@ public class MapEntityMetadata {
     public required IReadOnlyList<SpawnPointNPC> NpcSpawns { get; init; }
     public required IReadOnlyDictionary<int, Ms2RegionSpawn> RegionSpawns { get; init; }
     public required IReadOnlyList<Ms2RegionSkill> RegionSkills { get; init; }
+    public required IReadOnlyList<Ms2CubeSkill> CubeSkills { get; init; }
     public required IReadOnlyDictionary<int, EventSpawnPointNPC> EventNpcSpawns { get; init; }
     public required IReadOnlyDictionary<int, EventSpawnPointItem> EventItemSpawns { get; init; }
     public TaxiStation? Taxi { get; init; }

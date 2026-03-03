@@ -407,6 +407,10 @@ public class HousingManager {
     public void InteriorCheckIn(Plot plot) {
         if (session.Field is null) return;
 
+        if (Home.DecorationRewardTimestamp != 0) {
+            return;
+        }
+
         Dictionary<HousingCategory, int> decorationCurrent = plot.Cubes.Values
             .Where(plotCube => plotCube.Metadata.Housing != null)
             .GroupBy(plotCube => plotCube.Metadata.Housing!.HousingCategory)
@@ -468,6 +472,7 @@ public class HousingManager {
         }
 
         Home.GainExp(decorationScore, tableMetadata.MasteryUgcHousingTable.Entries);
+        Home.DecorationRewardTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         session.Send(CubePacket.DesignRankReward(Home));
     }
 

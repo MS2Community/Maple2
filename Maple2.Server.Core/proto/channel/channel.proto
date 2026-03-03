@@ -308,10 +308,30 @@ message TimeEventRequest {
     int32 room_id = 2;
   }
 
+  message AnnounceWorldBoss {
+    int32 metadata_id = 1;
+    int32 event_id = 2;
+    int64 end_tick = 3;
+    int64 next_spawn_timestamp = 4;
+  }
+
+  message CloseWorldBoss {
+    int32 metadata_id = 1;
+    int32 event_id = 2;
+  }
+
+  message WarnWorldBoss {
+    int32 metadata_id = 1;
+    int32 event_id = 2;
+  }
+
   oneof TimeEvent {
     AnnounceGlobalPortal announce_global_portal = 1;
     CloseGlobalPortal close_global_portal = 2;
     GetField get_field = 3;
+    AnnounceWorldBoss announce_world_boss = 4;
+    CloseWorldBoss close_world_boss = 5;
+    WarnWorldBoss warn_world_boss = 6;
   }
 }
 

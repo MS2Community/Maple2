@@ -151,6 +151,7 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             record.AddDamage(DamageType.Normal, positiveDamage);
             Stats.Values[BasicAttribute.Health].Add(damageAmount);
             Field.Broadcast(StatsPacket.Update(this, BasicAttribute.Health));
+            OnDamageReceived(caster, positiveDamage);
         }
 
         foreach ((DamageType damageType, long amount) in targetRecord.Damage) {
@@ -173,6 +174,8 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             }
         }
     }
+
+    protected virtual void OnDamageReceived(IActor caster, long amount) { }
 
     public virtual void Reflect(IActor target) {
         if (Buffs.Reflect == null || Buffs.Reflect.Counter >= Buffs.Reflect.Metadata.Count) {
@@ -212,21 +215,33 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             Direction = record.Direction,
         };
 
+        SkillEffectMetadata[] splashEffects = record.Attack.Skills.Where(e => e.Splash != null).ToArray();
+
         foreach (IActor target in record.Targets.Values) {
             target.ApplyDamage(this, damage, record.Attack);
         }
 
         Field.Broadcast(SkillDamagePacket.Damage(damage));
 
-
         ApplyEffects(record.Attack.Skills, record.Caster, this, skillId: record.SkillId, targets: record.Targets.Values.ToArray());
         ApplyEffects(record.Attack.SkillsOnDamage, record.Caster, damage, record.Targets.Values.ToArray());
+
+        // Create splash skills at target positions.
+        // Always skip the caster: when IncludeCaster is set, the attack also has a CubeMagicPathId
+        // which handles splash placement independently — this loop must not create a duplicate.
         foreach (IActor target in record.Targets.Values) {
-            foreach (SkillEffectMetadata effect in record.Attack.Skills.Where(e => e.Splash != null)) {
+            if (target.ObjectId == record.Caster.ObjectId) {
+                if (splashEffects.Length > 0 && record.Attack.CubeMagicPathId == 0) {
+                    Logger.Warning("[TargetAttack] SkillId={SkillId} AttackPoint={AttackPoint} IncludeCaster={IncludeCaster} — caster skipped in splash loop but CubeMagicPathId=0. Splash may be lost.",
+                        record.SkillId, record.AttackPoint, record.Attack.Range.IncludeCaster);
+                }
+                continue;
+            }
+
+            foreach (SkillEffectMetadata effect in splashEffects) {
                 Field.AddSkill(record.Caster, effect, [target.Position], record.Caster.Rotation);
             }
         }
-
     }
 
     public virtual void SkillAttackPoint(SkillRecord record, byte attackPoint) {

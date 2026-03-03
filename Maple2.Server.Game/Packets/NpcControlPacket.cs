@@ -26,6 +26,15 @@ public static class NpcControlPacket {
         return pWriter;
     }
 
+    // flags=0: no HP bar, no additional effects (used for dead/corpse states)
+    public static ByteWriter Dead(FieldNpc npc) =>
+        SingleNpcPacket(npc, flags: 0, velocity: default, animSpeed: 100,
+            bossTargetId: 0, state: ActorState.None, seqId: -1);
+
+    public static ByteWriter CorpseHit(FieldNpc npc) =>
+        SingleNpcPacket(npc, flags: 0, velocity: default, animSpeed: 100,
+            bossTargetId: 0, state: ActorState.Hit, seqId: -1);
+
     public static ByteWriter Talk(FieldNpc npc) {
         var pWriter = Packet.Of(SendOp.NpcControl);
         pWriter.WriteShort(1);
@@ -38,35 +47,62 @@ public static class NpcControlPacket {
         return pWriter;
     }
 
+    private static ByteWriter SingleNpcPacket(FieldNpc npc, byte flags, Vector3S velocity,
+            short animSpeed, int bossTargetId, ActorState state, short seqId) {
+        var pWriter = Packet.Of(SendOp.NpcControl);
+        pWriter.WriteShort(1);
+
+        using var buffer = new PoolByteWriter();
+        buffer.WriteNpcEntry(npc, flags, velocity, animSpeed, bossTargetId, state, seqId);
+        pWriter.WriteShort((short) buffer.Length);
+        pWriter.WriteBytes(buffer.ToArray());
+        return pWriter;
+    }
+
     private static void NpcBuffer(this PoolByteWriter buffer, FieldNpc npc, bool isTalk = false) {
-        buffer.WriteInt(npc.ObjectId);
-        // Flags bit-1 (AdditionalEffectRelated), bit-2 (UIHpBarRelated)
-        buffer.WriteByte(2);
-
-        buffer.Write<Vector3S>(npc.Position);
-        buffer.WriteShort((short) (npc.Transform.RotationAnglesDegrees.Z * 10));
-        buffer.Write<Vector3S>(npc.MovementState.Velocity);
-        buffer.WriteShort((short) (npc.Animation.SequenceSpeed * 100));
-
-        if (npc.Value.IsBoss) {
-            buffer.WriteInt(npc.BattleState.TargetId); // ObjectId of Player being targeted?
-        }
-
-        short defaultSequenceId = npc.Animation.IdleSequenceId;
+        ActorState state;
+        short seqId;
 
         if (isTalk) {
-            buffer.Write<ActorState>(ActorState.Talk);
-            buffer.WriteShort(-1);
+            state = ActorState.Talk;
+            seqId = -1;
         } else {
-            buffer.Write<ActorState>(npc.MovementState.State);
-            buffer.WriteShort(npc.Animation.PlayingSequence?.Id ?? defaultSequenceId);
+            state = npc.MovementState.State;
+            seqId = npc.Animation.PlayingSequence?.Id ?? npc.Animation.IdleSequenceId;
         }
+
+        buffer.WriteNpcEntry(npc,
+            flags: 2, // bit-1 (AdditionalEffectRelated), bit-2 (UIHpBarRelated)
+            velocity: npc.MovementState.Velocity,
+            animSpeed: (short) (npc.Animation.SequenceSpeed * 100),
+            bossTargetId: npc.BattleState.TargetId,
+            state: state,
+            seqId: seqId);
+
+        // Set -1 to continue previous animation
+        npc.SequenceId = -1;
+    }
+
+    private static void WriteNpcEntry(this PoolByteWriter buffer, FieldNpc npc,
+            byte flags, Vector3S velocity, short animSpeed, int bossTargetId,
+            ActorState state, short seqId) {
+        buffer.WriteInt(npc.ObjectId);
+        buffer.WriteByte(flags);
+        buffer.Write<Vector3S>(npc.Position);
+        buffer.WriteShort((short) (npc.Transform.RotationAnglesDegrees.Z * 10));
+        buffer.Write<Vector3S>(velocity);
+        buffer.WriteShort(animSpeed);
+
+        if (npc.Value.IsBoss) {
+            buffer.WriteInt(bossTargetId);
+        }
+
+        buffer.Write<ActorState>(state);
+        buffer.WriteShort(seqId);
         buffer.WriteShort(npc.SequenceCounter);
 
         // Animation (-2 = Jump_A, -3 = Jump_B)
-        bool isJumpSequence = (npc.Animation.PlayingSequence?.Id ?? -1) is ANI_JUMP_A or ANI_JUMP_B;
-
-        if (isJumpSequence) {
+        if (seqId is ANI_JUMP_A or ANI_JUMP_B) {
             bool isAbsolute = false;
             buffer.WriteBool(isAbsolute);
 
@@ -79,22 +115,19 @@ public static class NpcControlPacket {
                 buffer.Write<Vector3>(new Vector3(0, 0, 0)); // end offset
             }
 
-            buffer.Write<ActorState>(npc.MovementState.State);
+            buffer.Write<ActorState>(state);
         }
 
-        switch (npc.MovementState.State) {
+        switch (state) {
             case ActorState.Hit:
-                buffer.WriteFloat(0); //UnknownF1;
-                buffer.WriteFloat(0); //UnknownF2;
-                buffer.WriteFloat(0); //UnknownF3;
-                buffer.WriteByte(0); //UnknownB;
+                buffer.WriteFloat(0); // UnknownF1
+                buffer.WriteFloat(0); // UnknownF2
+                buffer.WriteFloat(0); // UnknownF3
+                buffer.WriteByte(0);  // UnknownB
                 break;
             case ActorState.Spawn:
                 buffer.WriteInt(npc.SpawnPointId);
                 break;
         }
-
-        // Set -1 to continue previous animation
-        npc.SequenceId = -1;
     }
 }

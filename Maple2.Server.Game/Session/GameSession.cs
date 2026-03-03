@@ -326,7 +326,26 @@ public sealed partial class GameSession : Core.Network.Session {
         Send(FishingPacket.LoadAlbum(Player.Value.Unlock.FishAlbum.Values));
         Pet?.Load();
         Send(PetPacket.LoadCollection(Player.Value.Unlock.Pets));
-        // LegionBattle
+        Send(LegionBattlePacket.Load(ServerTableMetadata.TimeEventTable.WorldBoss));
+        try {
+            TimeEventResponse bossResponse = World.TimeEvent(new TimeEventRequest {
+                GetActiveWorldBosses = new TimeEventRequest.Types.GetActiveWorldBosses(),
+            });
+            if (bossResponse.ActiveWorldBosses.Count > 0) {
+                var bossGroups = new List<ICollection<MapWorldBoss>>();
+                foreach (TimeEventResponse.Types.ActiveWorldBoss active in bossResponse.ActiveWorldBosses) {
+                    if (!ServerTableMetadata.TimeEventTable.WorldBoss.TryGetValue(active.MetadataId, out WorldBossMetadata? bossMetadata)) {
+                        continue;
+                    }
+                    int bossNpcId = bossMetadata.NpcIds.Length > 0 ? bossMetadata.NpcIds[0] : 0;
+                    int bossMapId = bossMetadata.TargetMapIds.Length > 0 ? bossMetadata.TargetMapIds[0] : 0;
+                    bossGroups.Add(active.AliveChannels.Select(ch => new MapWorldBoss(bossNpcId, bossMapId, (short) ch, active.SpawnTimestamp)).ToList());
+                }
+                Send(WorldMapPacket.Load(bossGroups, []));
+            }
+        } catch (RpcException ex) {
+            Logger.Warning(ex, "Failed to fetch active field bosses");
+        }
         // CharacterAbility
         Config.LoadKeyTable();
         Send(GuideRecordPacket.Load(Config.GuideRecords));

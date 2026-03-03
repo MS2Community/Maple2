@@ -158,7 +158,6 @@ public class Home : IByteSerializable {
             DecorationLevel++;
         }
 
-        DecorationRewardTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         DecorationExp += exp;
     }
 

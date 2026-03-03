@@ -58,6 +58,10 @@ public class SkillRecord {
         }
 
         AttackPoint = attackPoint;
+        // Each attack point must start with a clean target set.
+        // Without this, targets from a prior attack point (e.g. a Friendly AP that includes the caster)
+        // bleed into subsequent attack points, causing incorrect damage and splash placement.
+        Targets.Clear();
         return true;
     }
 

@@ -39,6 +39,7 @@ public class MapEntity {
 [JsonDerivedType(typeof(EventSpawnPointItem), 561252102)]
 [JsonDerivedType(typeof(EventSpawnPointNPC), 2038856760)]
 [JsonDerivedType(typeof(Ms2RegionSkill), 821242714)]
+[JsonDerivedType(typeof(Ms2CubeSkill), 580235600)]
 // [JsonDerivedType(typeof(Ms2TriggerObject), 244177309)]
 [JsonDerivedType(typeof(Ms2TriggerActor), 1192557034)]
 [JsonDerivedType(typeof(Ms2TriggerAgent), 1641615524)]

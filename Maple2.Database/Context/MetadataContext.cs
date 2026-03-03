@@ -125,6 +125,7 @@ public sealed class MetadataContext(DbContextOptions options) : DbContext(option
         builder.Property(npc => npc.DropInfo).HasJsonConversion();
         builder.Property(npc => npc.Action).HasJsonConversion();
         builder.Property(npc => npc.Dead).HasJsonConversion();
+        builder.Property(npc => npc.Corpse).HasJsonConversion();
         builder.Property(npc => npc.LookAtTarget).HasJsonConversion();
     }
 

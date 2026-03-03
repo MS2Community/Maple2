@@ -60,6 +60,8 @@ public class DebugFieldRenderer : IFieldRenderer {
     public bool ShowTriggers = true;
     public bool ShowTriggerInformation = true;
     public bool ShowSkillHitboxes = false; // toggle for rendering active skill hitboxes
+    public bool ShowFieldSkillHitboxes = false; // toggle for rendering field (region) skill hitboxes
+    public bool ShowCubeSkillHitboxes = false; // toggle for rendering cube skill hitboxes
     public bool PlayerMoveMode;
     public bool ForceMove;
 
@@ -294,6 +296,14 @@ public class DebugFieldRenderer : IFieldRenderer {
         // Render skill hitboxes
         if (ShowSkillHitboxes) {
             RenderSkillHitboxes(window);
+        }
+        if (ShowFieldSkillHitboxes) {
+            float zOffset = 0;
+            RenderFieldSkillHitboxes(window, Field.DebugFieldSkills, new Vector4(0.1f, 0.7f, 1.0f, 0.7f), zOffset);
+        }
+        if (ShowCubeSkillHitboxes) {
+            float zOffset = 0;
+            RenderFieldSkillHitboxes(window, Field.DebugCubeSkills, new Vector4(1.0f, 0.2f, 0.2f, 0.7f), zOffset);
         }
     }
 
@@ -1240,6 +1250,36 @@ public class DebugFieldRenderer : IFieldRenderer {
         }
     }
 
+    private void RenderFieldSkillHitboxes(DebugFieldWindow window, IEnumerable<FieldSkill> skills, Vector4 color, float zOffset) {
+        instanceBuffer.Color = color;
+
+        foreach (FieldSkill skill in skills) {
+            if (!skill.Enabled) {
+                continue;
+            }
+
+            SkillMetadata? metadata = skill.Value;
+            if (metadata?.Data?.Motions == null) {
+                continue;
+            }
+
+            float angle = skill.UseDirection ? skill.Rotation.Z : 0;
+            foreach (SkillMetadataMotion motion in metadata.Data.Motions) {
+                foreach (SkillMetadataAttack attack in motion.Attacks) {
+                    foreach (Vector3 point in skill.Points) {
+                        Vector3 adjustedPoint = point;
+                        if (zOffset != 0) {
+                            adjustedPoint.Z += zOffset;
+                        }
+                        Prism prism = attack.Range.GetPrism(adjustedPoint, angle, attack.Range.ApplyTarget);
+
+                        RenderPrism(window, prism, attack.Range);
+                    }
+                }
+            }
+        }
+    }
+
     private void RenderActorSkillHitbox(DebugFieldWindow window, IActor actor) {
         // Get the active SkillRecord from the appropriate source
         SkillRecord? skillRecord = null;
@@ -1282,8 +1322,9 @@ public class DebugFieldRenderer : IFieldRenderer {
             float height = prism.Height.Max - prism.Height.Min;
 
             var rotation = Matrix4x4.CreateRotationX((float) (Math.PI / 2));
+            // CoreModels.Cylinder has radius 0.5 and height 1.0, so scale by 2x radius and 1x height.
             instanceBuffer.Transformation = Matrix4x4.Transpose(
-                Matrix4x4.CreateScale(new Vector3(radius, height * 0.5f, radius)) *
+                Matrix4x4.CreateScale(new Vector3(radius * 2, height, radius * 2)) *
                 rotation *
                 Matrix4x4.CreateTranslation(center));
 

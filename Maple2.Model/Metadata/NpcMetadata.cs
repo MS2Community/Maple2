@@ -137,6 +137,16 @@ public record NpcMetadataDead(
     float LifeTime,
     int ExtendRoomTime);
 
+public record NpcMetadataCorpse(
+    float Width,
+    float Height,
+    float Depth,
+    float Added,
+    float OffsetNametag,
+    string CorpseEffect,
+    bool HitAble,
+    Vector3 Rotation);
+
 public record NpcMetadataLookAtTarget(
     string TargetDummy,
     bool LookAtMyPlayerWhenTalking,

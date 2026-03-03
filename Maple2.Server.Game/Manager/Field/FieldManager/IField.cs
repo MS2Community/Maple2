@@ -62,7 +62,8 @@ public interface IField : IDisposable {
     public void AddSkill(SkillMetadata metadata, int interval, in Vector3 position, in Vector3 rotation = default, int triggerId = 0);
     public void AddSkill(SkillRecord record);
     public void AddSkill(IActor caster, SkillEffectMetadata effect, Vector3[] points, in Vector3 rotation = default);
-    public IEnumerable<IActor> GetTargets(IActor actor, Prism[] prisms, ApplyTargetType targetType, int limit, ICollection<IActor>? ignore = null);
+    public IEnumerable<IActor> GetTargets(IActor caster, Prism[] prisms, SkillMetadataRange range, int targetCount, ICollection<IActor>? ignore = null);
+    public IEnumerable<IActor> GetTargets(SkillRecord record, ICollection<IActor>? ignore = null);
     public void RemoveSkill(int objectId);
     public void Broadcast(ByteWriter packet, GameSession? sender = null);
     public void BroadcastAiMessage(ByteWriter packet);
