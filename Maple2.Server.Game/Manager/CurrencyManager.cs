@@ -9,7 +9,12 @@ namespace Maple2.Server.Game.Manager;
 public class CurrencyManager {
     private readonly GameSession session;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
     private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     private Currency Currency => session.Player.Value.Currency;
 
     public CurrencyManager(GameSession session) {

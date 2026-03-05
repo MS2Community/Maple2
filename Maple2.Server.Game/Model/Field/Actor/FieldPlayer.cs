@@ -1,20 +1,28 @@
-﻿using System.Numerics;
-using Maple2.Model.Enum;
+﻿using Maple2.Model.Enum;
 using Maple2.Model.Error;
 using Maple2.Model.Game;
 using Maple2.Model.Metadata;
 using Maple2.Model.Metadata.FieldEntity;
+using Maple2.Server.Core.Network;
 using Maple2.Server.Game.Manager;
 using Maple2.Server.Game.Model.Skill;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
 using Maple2.Tools.Collision;
 using Maple2.Tools.Scheduler;
+using System.Numerics;
 
 namespace Maple2.Server.Game.Model;
 
 public class FieldPlayer : Actor<Player> {
     public readonly GameSession Session;
+
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => Session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     public Vector3 LastGroundPosition;
 
     public override StatsManager Stats => Session.Stats;
@@ -97,8 +105,6 @@ public class FieldPlayer : Actor<Player> {
     }
 
     private readonly EventQueue scheduler;
-
-    private ConstantsTable Constants => Session.ServerTableMetadata.ConstantsTable;
 
     public FieldPlayer(GameSession session, Player player) : base(session.Field!, player.ObjectId, player, session.NpcMetadata) {
         Session = session;

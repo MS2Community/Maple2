@@ -1,6 +1,7 @@
 ﻿using Maple2.Model.Enum;
 using Maple2.Model.Game;
 using Maple2.Model.Metadata;
+using Maple2.Server.Core.Network;
 using Maple2.Server.Game.Manager.Items;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
@@ -21,9 +22,13 @@ public class TradeManager : IDisposable {
     private readonly Trader receiver;
     private TradeState state;
 
-    private readonly object mutex = new();
-
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
     private ConstantsTable Constants => sender.Session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
+    private readonly object mutex = new();
 
     public TradeManager(GameSession sender, GameSession receiver) {
         this.sender = new Trader(sender);

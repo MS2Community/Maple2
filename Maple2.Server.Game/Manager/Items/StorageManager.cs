@@ -15,11 +15,17 @@ public sealed class StorageManager : IDisposable {
     private const int BATCH_SIZE = 10;
 
     private readonly GameSession session;
+
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     private readonly ItemCollection items;
     private long mesos;
     private short expand;
 
-    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
     public StorageManager(GameSession session) {
         this.session = session;
 

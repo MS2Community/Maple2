@@ -18,7 +18,11 @@ public class ConfigManager {
 
     private readonly GameSession session;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
     private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
 
     private readonly IDictionary<int, KeyBind> keyBinds;
     private short activeHotBar;

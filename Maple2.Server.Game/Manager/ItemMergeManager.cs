@@ -14,12 +14,16 @@ public sealed class ItemMergeManager {
 
     private readonly GameSession session;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     private readonly ILogger logger = Log.Logger.ForContext<ItemMergeManager>();
 
     private Item? upgradeItem;
     private Item? catalystItem;
-
-    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
 
     public ItemMergeManager(GameSession session) {
         this.session = session;

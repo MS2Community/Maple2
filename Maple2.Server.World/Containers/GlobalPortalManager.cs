@@ -9,9 +9,15 @@ using ChannelClient = Maple2.Server.Channel.Service.Channel.ChannelClient;
 namespace Maple2.Server.World.Containers;
 
 public class GlobalPortalManager : IDisposable {
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    // ReSharper disable UnusedAutoPropertyAccessor.Global
     public required GameStorage GameStorage { get; init; }
     public required ServerTableMetadataStorage ServerTableMetadata { get; init; }
     public required ChannelClientLookup ChannelClients { get; init; }
+    // ReSharper restore All
+    // ReSharper restore UnusedAutoPropertyAccessor.Global
+    #endregion
 
     public readonly GlobalPortal Portal;
     public int Channel;

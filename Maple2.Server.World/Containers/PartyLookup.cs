@@ -9,15 +9,15 @@ using Maple2.Model.Metadata;
 namespace Maple2.Server.World.Containers;
 
 public class PartyLookup : IDisposable {
+    #region Autofac Autowired
     private readonly ChannelClientLookup channelClients;
     private readonly PlayerInfoLookup playerLookup;
     private readonly PartySearchLookup partySearchLookup;
     private readonly ServerTableMetadataStorage serverTableMetadata;
-
+    #endregion
 
     private readonly ConcurrentDictionary<int, PartyManager> parties;
     private int nextPartyId = 1;
-    private ConstantsTable Constants => serverTableMetadata.ConstantsTable;
 
     public PartyLookup(ChannelClientLookup channelClients, PlayerInfoLookup playerLookup, PartySearchLookup partySearchLookup, ServerTableMetadataStorage serverTableMetadata) {
         this.channelClients = channelClients;
@@ -62,9 +62,10 @@ public class PartyLookup : IDisposable {
         }
 
         var party = new Party(partyId, leaderInfo.AccountId, leaderInfo.CharacterId, leaderInfo.Name);
-        var manager = new PartyManager(party, Constants.PartyVoteReadyDurationSeconds) {
+        var manager = new PartyManager(party) {
             ChannelClients = channelClients,
             PartyLookup = this,
+            ServerTableMetadata = serverTableMetadata 
         };
 
         if (!parties.TryAdd(partyId, manager)) {

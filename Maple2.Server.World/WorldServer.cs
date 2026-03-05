@@ -18,6 +18,7 @@ using LoginClient = Maple2.Server.Login.Service.Login.LoginClient;
 namespace Maple2.Server.World;
 
 public class WorldServer {
+    #region Autofac Autowired
     private readonly GameStorage gameStorage;
     private readonly ChannelClientLookup channelClients;
     private readonly ServerTableMetadataStorage serverTableMetadata;
@@ -25,6 +26,9 @@ public class WorldServer {
     private readonly GlobalPortalLookup globalPortalLookup;
     private readonly WorldBossLookup worldBossLookup;
     private readonly PlayerInfoLookup playerInfoLookup;
+    private ConstantsTable Constants => serverTableMetadata.ConstantsTable;
+    #endregion
+
     private readonly Thread thread;
     private readonly Thread heartbeatThread;
     private readonly EventQueue scheduler;
@@ -35,8 +39,6 @@ public class WorldServer {
     private readonly ILogger logger = Log.ForContext<WorldServer>();
 
     private readonly LoginClient login;
-
-    private ConstantsTable Constants => serverTableMetadata.ConstantsTable;
 
     public WorldServer(GameStorage gameStorage, ChannelClientLookup channelClients, ServerTableMetadataStorage serverTableMetadata, GlobalPortalLookup globalPortalLookup, WorldBossLookup worldBossLookup, PlayerInfoLookup playerInfoLookup, LoginClient login, ItemMetadataStorage itemMetadata) {
         this.gameStorage = gameStorage;

@@ -3,6 +3,7 @@ using Maple2.Database.Storage;
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
 using Maple2.Model.Metadata;
+using Maple2.Server.Core.Network;
 using Maple2.Server.Core.Packets;
 using Maple2.Server.Game.Manager.Field;
 using Maple2.Server.Game.Model.Skill;
@@ -24,7 +25,11 @@ public sealed class FieldPet : FieldNpc {
     public int TamingPoint;
     private long tamingTick;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
     private ConstantsTable Constants => Field.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
 
     public FieldPet(FieldManager field, int objectId, DtCrowdAgent agent, Npc npc, Item pet, PetMetadata petMetadata, string aiPath, FieldPlayer? owner = null) : base(field, objectId, agent, npc, aiPath) {
         this.owner = owner;

@@ -20,12 +20,16 @@ public class InventoryManager {
 
     private readonly GameSession session;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     private readonly Dictionary<InventoryType, ItemCollection> tabs;
     private readonly List<Item> delete;
 
     private readonly ILogger logger = Log.Logger.ForContext<InventoryManager>();
-
-    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
 
     public InventoryManager(GameStorage.Request db, GameSession session) {
         this.session = session;

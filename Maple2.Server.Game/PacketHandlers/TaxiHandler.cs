@@ -32,10 +32,9 @@ public class TaxiHandler : FieldPacketHandler {
     public required MapEntityStorage EntityMetadata { private get; init; }
     public required WorldMapGraphStorage WorldMapGraph { private get; init; }
     public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
-
-    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();

@@ -22,10 +22,9 @@ public class MeretMarketHandler : FieldPacketHandler {
     // ReSharper disable MemberCanBePrivate.Global
     public required TableMetadataStorage TableMetadata { private get; init; }
     public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
-
-    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     private enum Command : byte {
         LoadPersonalListings = 11,

@@ -2149,146 +2149,51 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
         var constants = new ConstantsTable();
         Dictionary<string, PropertyInfo> propertyLookup = typeof(ConstantsTable).GetProperties()
             .ToDictionary(p => p.Name.Trim(), p => p, StringComparer.OrdinalIgnoreCase);
-
         foreach ((string key, Constants.Key constant) in parser.ParseConstants()) {
             string trimmedKey = key.Trim();
             if (!propertyLookup.TryGetValue(trimmedKey, out PropertyInfo? property)) continue;
-            string cleanValue = CleanConstantsInput(
-                constant.value.Trim(),
-                trimmedKey,
-                property.PropertyType
-            );
-            SetValue(property, constants, cleanValue);
+            string cleanValue = CleanInput(constant.value.Trim(), trimmedKey, property.PropertyType);
+            GenericHelper.SetValue(property, constants, cleanValue);
         }
         return constants;
-    }
 
-    private string CleanConstantsInput(string input, string propName, Type type) {
-        // check if string contains the ending 'f' for float designation, strip it if it does.
-        if (type == typeof(float) && input.Contains('f')) {
-            input = input.TrimEnd('f', 'F');
-        }
-        if (type == typeof(bool)) {
-            // 1 does not automatically equate to true during bool conversion
-            if (input == "1") {
-                input = "true";
+        string CleanInput(string input, string propName, Type type) {
+            // check if string contains the ending 'f' for float designation, strip it if it does.
+            if (type == typeof(float) && input.Contains('f')) {
+                input = input.TrimEnd('f', 'F');
             }
-            // 0 does not automatically equate to false during bool conversion
-            if (input == "0") {
-                input = "false";
+            if (type == typeof(bool)) {
+                // 1 does not automatically equate to true during bool conversion
+                if (input == "1") {
+                    input = "true";
+                }
+                // 0 does not automatically equate to false during bool conversion
+                if (input == "0") {
+                    input = "false";
+                }
             }
-        }
-        if (type == typeof(TimeSpan)) {
-            // Special case - dashes (-) are used instead of colons (:)
-            if (propName == "DailyTrophyResetDate") {
-                input = input.Replace('-', ':');
+            if (type == typeof(TimeSpan)) {
+                // Special case - dashes (-) are used instead of colons (:)
+                if (propName == "DailyTrophyResetDate") {
+                    input = input.Replace('-', ':');
+                }
+                // Stored as 0.1 for 100ms
+                if (propName == "GlobalCubeSkillIntervalTime") {
+                    input = $"0:0:{input}";
+                }
+                // Stored as an int value, convert to friendly input string for TimeSpan parsing
+                if (propName == "UgcHomeSaleWaitingTime") {
+                    int.TryParse(input, out int result);
+                    input = TimeSpan.FromSeconds(result).ToString(); // TODO: may not be correct conversion to TimeSpan
+                }
             }
-            // Stored as 0.1 for 100ms
-            if (propName == "GlobalCubeSkillIntervalTime") {
-                input = $"0:0:{input}";
+            if (type == typeof(int)) {
+                // Remove prefix 0 on integers since they do not convert properly
+                if (input.Length > 1 && input[0] == '0') {
+                    input = input.Remove(0, 1);
+                }
             }
-            // Stored as an int value, convert to friendly input string for TimeSpan parsing
-            if (propName == "UgcHomeSaleWaitingTime") {
-                int.TryParse(input, out int result);
-                input = TimeSpan.FromSeconds(result).ToString(); // TODO: may not be correct conversion to TimeSpan
-            }
+            return input;
         }
-        if (type == typeof(int)) {
-            // Remove prefix 0 on integers since they do not convert properly
-            if (input.Length > 1 && input[0] == '0') {
-                input = input.Remove(0, 1);
-            }
-        }
-        return input;
-    }
-
-    private void SetValue(PropertyInfo prop, object? obj, object? value) {
-        if (obj == null && value == null || value == null) return;
-        HandleNonIConvertibleTypes(prop, ref value);
-        if (value == null) return;
-        if (typeof(IConvertible).IsAssignableFrom(prop.PropertyType)) {
-            TryParseObject(prop.PropertyType, value, out object? result);
-            prop.SetValue(obj, result);
-            return;
-        }
-        prop.SetValue(obj, value);
-    }
-
-    private object? HandleNonIConvertibleTypes(PropertyInfo prop, ref object? value) {
-        if (value == null) return value;
-        // Handle TimeSpan type
-        if (prop.PropertyType == typeof(TimeSpan)) {
-            TimeSpan.TryParse((string) value, CultureInfo.InvariantCulture, out TimeSpan val);
-            value = val;
-        }
-        // Handle array types (int[], short[], etc.)
-        if (prop.PropertyType.IsArray) {
-            var elementType = prop.PropertyType.GetElementType();
-            if (elementType == null) return value;
-            string[] segments = ((string)value).Split(',');
-            Array destinationArray = Array.CreateInstance(elementType, segments.Length);
-            for (int i = 0; i < segments.Length; i++) {
-                TryParseObject(elementType, segments[i].Trim(), out object? parseResult);
-                destinationArray.SetValue(parseResult ?? default, i);
-            }
-            value = destinationArray;
-        }
-        // Handle Vector3 type
-        if (prop.PropertyType == typeof(Vector3)) {
-            string[] parts = ((string) value).Split(',');
-            if (parts.Length != 3) return value;
-            float.TryParse(parts[0], CultureInfo.InvariantCulture, out float x);
-            float.TryParse(parts[1], CultureInfo.InvariantCulture, out float y);
-            float.TryParse(parts[2], CultureInfo.InvariantCulture, out float z);
-            value = new Vector3(x, y, z);
-        }
-        return value;
-    }
-
-    private bool TryParseObject(Type? elementType, object? input, out object? result) {
-        if (elementType == null || input == null) {
-            result = null;
-            return false;
-        }
-
-        string? inputString = Convert.ToString(input, CultureInfo.InvariantCulture);
-
-        // No TryParse method exists for a string, use the result directly.
-        if (elementType == typeof(string)) {
-            result = inputString;
-            return true;
-        }
-
-        Type[] argTypes = {
-        typeof(string),
-        typeof(IFormatProvider),
-        elementType.MakeByRefType()
-        };
-
-        var method = elementType.GetMethod("TryParse",
-            BindingFlags.Public | BindingFlags.Static,
-            null, argTypes, null);
-        if (method != null) {
-            object[] args = [inputString, CultureInfo.InvariantCulture, null];
-            bool success = (bool)method.Invoke(null, args);
-            result = args[2];
-            return success;
-        }
-
-        // Fallback without CulturueInfo provided, in case the type does not have a CultureInfo overload.
-        Type[] simpleArgs = { typeof(string), elementType.MakeByRefType() };
-        method = elementType.GetMethod("TryParse",
-            BindingFlags.Public | BindingFlags.Static,
-            null, simpleArgs, null);
-        if (method != null) {
-            object[] args = { inputString, null };
-            bool success = (bool) method.Invoke(null, args);
-            result = args[1];
-            return success;
-        }
-
-
-        result = null;
-        return false;
     }
 }

@@ -24,15 +24,6 @@ public class JobHandler : FieldPacketHandler {
         AutoDistribute = 11,
     }
 
-    #region Autofac Autowired
-    // ReSharper disable MemberCanBePrivate.Global
-    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
-
-    // ReSharper restore All
-    #endregion
-
-    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
-
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
         switch (command) {
@@ -104,7 +95,7 @@ public class JobHandler : FieldPacketHandler {
 
         session.Player.Buffs.Clear();
         session.Player.Buffs.Initialize();
-        session.Player.Buffs.LoadFieldBuffs(Constants.shadowWorldBuffHpUp, Constants.shadowWorldBuffMoveProtect);
+        session.Player.Buffs.LoadFieldBuffs();
         session.Stats.Refresh();
         session.Field.Broadcast(JobPacket.Advance(session.Player, session.Config.Skill.SkillInfo));
         session.ConditionUpdate(ConditionType.job, codeLong: (int) session.NpcScript.JobCondition.ChangeToJobCode);

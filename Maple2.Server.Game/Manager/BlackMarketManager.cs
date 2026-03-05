@@ -16,7 +16,11 @@ namespace Maple2.Server.Game.Manager;
 public sealed class BlackMarketManager {
     private readonly GameSession session;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
     private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
 
     private readonly ILogger logger = Log.Logger.ForContext<BlackMarketManager>();
 

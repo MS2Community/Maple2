@@ -143,8 +143,7 @@ public partial class FieldManager {
 
         AnimationMetadata? animation = NpcMetadata.GetAnimation(npc.Model.Name);
         string aiPath = disableAi ? string.Empty : npc.AiPath;
-        var fieldNpc = new FieldNpc(this, NextLocalId(), agent, new Npc(npc, animation, Constants.NpcLastingSightRadius,
-            Constants.NpcLastingSightHeightUp, Constants.NpcLastingSightHeightDown), aiPath,
+        var fieldNpc = new FieldNpc(this, NextLocalId(), agent, new Npc(npc, animation), aiPath,
             patrolDataUUID: spawnPointNpc?.PatrolData, spawnAnimation: spawnAnimation) {
             Owner = owner,
             Position = spawnPosition,
@@ -183,8 +182,7 @@ public partial class FieldManager {
         int objectId = player != null ? NextGlobalId() : NextLocalId();
         AnimationMetadata? animation = NpcMetadata.GetAnimation(npc.Model.Name);
 
-        var fieldPet = new FieldPet(this, objectId, agent, new Npc(npc, animation, Constants.NpcLastingSightRadius,
-            Constants.NpcLastingSightHeightUp,Constants.NpcLastingSightHeightDown),
+        var fieldPet = new FieldPet(this, objectId, agent, new Npc(npc, animation),
             pet, petMetadata, Constant.PetFieldAiPath, player) {
             Owner = owner,
             Position = position,

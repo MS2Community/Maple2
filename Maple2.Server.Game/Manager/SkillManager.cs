@@ -12,12 +12,16 @@ namespace Maple2.Server.Game.Manager;
 public class SkillManager {
     private readonly GameSession session;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     public readonly SkillBook SkillBook;
     public readonly SkillInfo SkillInfo;
 
     private readonly ILogger logger = Log.ForContext<SkillManager>();
-
-    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
 
     public SkillManager(GameSession session, SkillBook skillBook) {
         this.session = session;

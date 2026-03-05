@@ -110,8 +110,6 @@ public sealed partial class GameSession : Core.Network.Session {
     public RideManager Ride { get; set; } = null!;
     public MentoringManager Mentoring { get; set; } = null!;
 
-    private ConstantsTable Constants => Player.Session.ServerTableMetadata.ConstantsTable;
-
     public GameSession(TcpClient tcpClient, GameServer server, IComponentContext context) : base(tcpClient) {
         this.server = server;
         State = SessionState.ChangeMap;
@@ -436,7 +434,7 @@ public sealed partial class GameSession : Core.Network.Session {
         Player.Dispose();
         Player = Field.SpawnPlayer(this, Player, portalId, position, rotation);
         Config.Skill.UpdatePassiveBuffs();
-        Player.Buffs.LoadFieldBuffs(Constants.shadowWorldBuffHpUp, Constants.shadowWorldBuffMoveProtect);
+        Player.Buffs.LoadFieldBuffs();
         Player.CheckRegen();
 
         return true;
@@ -492,7 +490,7 @@ public sealed partial class GameSession : Core.Network.Session {
         Config.LoadRevival();
         Config.LoadStatAttributes();
         Config.LoadSkillPoints();
-        Player.Buffs.LoadFieldBuffs(Constants.shadowWorldBuffHpUp, Constants.shadowWorldBuffMoveProtect);
+        Player.Buffs.LoadFieldBuffs();
 
         TimeEventResponse globalEventResponse = World.TimeEvent(new TimeEventRequest {
             GetGlobalPortal = new TimeEventRequest.Types.GetGlobalPortal(),

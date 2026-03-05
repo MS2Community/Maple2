@@ -46,10 +46,9 @@ public class CharacterManagementHandler : PacketHandler<LoginSession> {
     public required ItemMetadataStorage ItemMetadata { private get; init; }
     public required TableMetadataStorage TableMetadata { private get; init; }
     public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
-
-    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     public override void Handle(LoginSession session, IByteReader packet) {
         var command = packet.Read<Command>();

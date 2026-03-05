@@ -55,6 +55,7 @@ public partial class FieldManager : IField {
     public TriggerCache TriggerCache { get; init; } = null!;
     public Factory FieldFactory { get; init; } = null!;
     public IGraphicsContext DebugGraphicsContext { get; init; } = null!;
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
 
@@ -71,8 +72,6 @@ public partial class FieldManager : IField {
     private readonly Thread thread;
     private readonly List<(FieldPacketHandler handler, GameSession session, ByteReader reader)> queuedPackets;
     private bool initialized;
-
-    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
 
     public bool Disposed { get; private set; }
 

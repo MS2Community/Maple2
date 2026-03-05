@@ -13,6 +13,13 @@ namespace Maple2.Server.Game.Manager;
 
 public sealed class ExperienceManager {
     private readonly GameSession session;
+
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     private long Exp {
         get => session.Player.Value.Character.Exp;
         set => session.Player.Value.Character.Exp = value;
@@ -51,8 +58,6 @@ public sealed class ExperienceManager {
     public IList<int> PrestigeRewardsClaimed => session.Player.Value.Account.PrestigeRewardsClaimed;
 
     private int ChainKillCount { get; set; }
-
-    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
 
     public ExperienceManager(GameSession session) {
         this.session = session;

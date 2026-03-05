@@ -115,7 +115,12 @@ public class PlayerCommand : GameCommand {
 
     private class LevelCommand : Command {
         private readonly GameSession session;
+
+        #region Autofac Autowired
+        // ReSharper disable MemberCanBePrivate.Global
         private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+        // ReSharper restore All
+        #endregion
 
         public LevelCommand(GameSession session) : base("level", "Set player level.") {
             this.session = session;
@@ -181,7 +186,12 @@ public class PlayerCommand : GameCommand {
 
     private class PrestigeCommand : Command {
         private readonly GameSession session;
+
+        #region Autofac Autowired
+        // ReSharper disable MemberCanBePrivate.Global
         private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+        // ReSharper restore All
+        #endregion
 
         public PrestigeCommand(GameSession session) : base("prestige", "Sets prestige level") {
             this.session = session;
@@ -211,7 +221,6 @@ public class PlayerCommand : GameCommand {
 
     private class JobCommand : Command {
         private readonly GameSession session;
-        private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
 
         public JobCommand(GameSession session) : base("job", "Set player job.") {
             this.session = session;
@@ -331,7 +340,7 @@ public class PlayerCommand : GameCommand {
 
             session.Player.Buffs.Clear();
             session.Player.Buffs.Initialize();
-            session.Player.Buffs.LoadFieldBuffs(Constants.shadowWorldBuffHpUp, Constants.shadowWorldBuffMoveProtect);
+            session.Player.Buffs.LoadFieldBuffs();
             session.Stats.Refresh();
             session.Field?.Broadcast(JobPacket.Advance(session.Player, session.Config.Skill.SkillInfo));
         }
