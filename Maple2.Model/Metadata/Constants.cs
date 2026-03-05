@@ -206,9 +206,9 @@ public static class Constant {
 
     // TODO: Remove once NpcMetadataDistance handles these at runtime, since they are now in DB and parsed through file ingest.
     #region Server table/constants.xml
-    public static readonly float NpcLastSightRadius = 0f;
-    public static readonly float NpcLastSightHeightUp = 0f;
-    public static readonly float NpcLastSightHeightDown = 0f;
+    public const float NpcLastSightRadius = 1800;
+    public const float NpcLastSightHeightUp = 525;
+    public const float NpcLastSightHeightDown = 225;
     #endregion
 }
 
