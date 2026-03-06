@@ -21,7 +21,7 @@ public class GameServer : Server<GameSession> {
     private readonly object mutex = new();
     private readonly FieldManager.Factory fieldFactory;
     private readonly HashSet<GameSession> connectingSessions;
-    private readonly Dictionary<long, GameSession> sessions;
+    private readonly ConcurrentDictionary<long, GameSession> sessions;
     private readonly ImmutableList<SystemBanner> bannerCache;
     private readonly ConcurrentDictionary<int, PremiumMarketItem> premiumMarketCache;
     private readonly GameStorage gameStorage;
@@ -36,7 +36,7 @@ public class GameServer : Server<GameSession> {
         _channel = (short) channel;
         this.fieldFactory = fieldFactory;
         connectingSessions = [];
-        sessions = new Dictionary<long, GameSession>();
+        sessions = new ConcurrentDictionary<long, GameSession>();
         this.gameStorage = gameStorage;
         this.debugGraphicsContext = debugGraphicsContext;
         this.itemMetadataStorage = itemMetadataStorage;
@@ -66,33 +66,34 @@ public class GameServer : Server<GameSession> {
     public override void OnConnected(GameSession session) {
         lock (mutex) {
             connectingSessions.Remove(session);
-            sessions[session.CharacterId] = session;
         }
+        sessions[session.CharacterId] = session;
     }
 
     public override void OnDisconnected(GameSession session) {
         lock (mutex) {
             connectingSessions.Remove(session);
-            sessions.Remove(session.CharacterId);
         }
+        // Only remove if this is still the registered session (reference equality).
+        // During same-channel migration, Disconnect() drains the send queue (up to 2s)
+        // before Dispose runs. In that window the client reconnects and the new session's
+        // OnConnected replaces this dict entry. Without this check, the old session's
+        // OnDisconnected would remove the new session, leaving the player unregistered
+        // and causing all subsequent heartbeats to fail.
+        // For cross-channel migration this is a non-issue since each server has its own dict.
+        sessions.TryRemove(KeyValuePair.Create(session.CharacterId, session));
     }
 
     public bool GetSession(long characterId, [NotNullWhen(true)] out GameSession? session) {
-        lock (mutex) {
-            return sessions.TryGetValue(characterId, out session);
-        }
+        return sessions.TryGetValue(characterId, out session);
     }
 
     public GameSession? GetSessionByAccountId(long accountId) {
-        lock (mutex) {
-            return sessions.Values.FirstOrDefault(session => session.AccountId == accountId);
-        }
+        return sessions.Values.FirstOrDefault(session => session.AccountId == accountId);
     }
 
     public List<GameSession> GetSessions() {
-        lock (mutex) {
-            return sessions.Values.ToList();
-        }
+        return sessions.Values.ToList();
     }
 
     protected override void AddSession(GameSession session) {
@@ -129,10 +130,8 @@ public class GameServer : Server<GameSession> {
             return;
         }
 
-        lock (mutex) {
-            foreach (GameSession session in sessions.Values) {
-                session.Send(GameEventPacket.Add(gameEvent));
-            }
+        foreach (GameSession session in sessions.Values) {
+            session.Send(GameEventPacket.Add(gameEvent));
         }
     }
 
@@ -141,10 +140,8 @@ public class GameServer : Server<GameSession> {
             return;
         }
 
-        lock (mutex) {
-            foreach (GameSession session in sessions.Values) {
-                session.Send(GameEventPacket.Remove(gameEvent.Id));
-            }
+        foreach (GameSession session in sessions.Values) {
+            session.Send(GameEventPacket.Remove(gameEvent.Id));
         }
     }
 
@@ -169,26 +166,20 @@ public class GameServer : Server<GameSession> {
     }
 
     public void DailyReset() {
-        lock (mutex) {
-            foreach (GameSession session in sessions.Values) {
-                session.DailyReset();
-            }
+        foreach (GameSession session in sessions.Values) {
+            session.DailyReset();
         }
     }
 
     public void WeeklyReset() {
-        lock (mutex) {
-            foreach (GameSession session in sessions.Values) {
-                session.WeeklyReset();
-            }
+        foreach (GameSession session in sessions.Values) {
+            session.WeeklyReset();
         }
     }
 
     public void MonthlyReset() {
-        lock (mutex) {
-            foreach (GameSession session in sessions.Values) {
-                session.MonthlyReset();
-            }
+        foreach (GameSession session in sessions.Values) {
+            session.MonthlyReset();
         }
     }
 
@@ -200,21 +191,19 @@ public class GameServer : Server<GameSession> {
                 session.Send(NoticePacket.Disconnect(new InterfaceText("GameServer Maintenance")));
                 session.Dispose();
             }
-            foreach (GameSession session in sessions.Values) {
-                session.Send(NoticePacket.Disconnect(new InterfaceText("GameServer Maintenance")));
-                session.Dispose();
-            }
-            fieldFactory.Dispose();
         }
+        foreach (GameSession session in sessions.Values) {
+            session.Send(NoticePacket.Disconnect(new InterfaceText("GameServer Maintenance")));
+            session.Dispose();
+        }
+        fieldFactory.Dispose();
 
         return base.StopAsync(cancellationToken);
     }
 
     public void Broadcast(ByteWriter packet) {
-        lock (mutex) {
-            foreach (GameSession session in sessions.Values) {
-                session.Send(packet);
-            }
+        foreach (GameSession session in sessions.Values) {
+            session.Send(packet);
         }
     }
 
