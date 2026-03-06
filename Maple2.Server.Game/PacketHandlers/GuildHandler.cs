@@ -65,7 +65,7 @@ public class GuildHandler : PacketHandler<GameSession> {
     public required WorldClient World { private get; init; }
     public required TableMetadataStorage TableMetadata { private get; init; }
     public required BanWordStorage BanWordStorage { private get; init; }
-    public required ServerTableMetadataStorage ServerTableMetadata {  private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
     private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion

@@ -203,7 +203,7 @@ public class PlayerCommand : GameCommand {
 
         private void Handle(InvocationContext ctx, int level) {
             try {
-                if (level < 1 ||  level > Constants.AdventureLevelLimit) {
+                if (level < 1 || level > Constants.AdventureLevelLimit) {
                     ctx.Console.Error.WriteLine($"Invalid level: {level}. Must be between 1 and {Constants.AdventureLevelLimit}.");
                     return;
                 }

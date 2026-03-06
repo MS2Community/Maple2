@@ -65,7 +65,7 @@ public class PartyLookup : IDisposable {
         var manager = new PartyManager(party) {
             ChannelClients = channelClients,
             PartyLookup = this,
-            ServerTableMetadata = serverTableMetadata 
+            ServerTableMetadata = serverTableMetadata
         };
 
         if (!parties.TryAdd(partyId, manager)) {

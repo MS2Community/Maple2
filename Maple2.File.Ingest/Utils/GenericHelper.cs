@@ -84,7 +84,7 @@ public static class GenericHelper {
             null, simpleArgs, null);
         if (method != null) {
             object[] args = { inputString, null! };
-            bool success = (bool)method.Invoke(null, args)!;
+            bool success = (bool) method.Invoke(null, args)!;
             result = args[1];
             return success;
         }
