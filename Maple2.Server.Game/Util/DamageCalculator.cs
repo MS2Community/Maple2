@@ -113,6 +113,9 @@ public static class DamageCalculator {
                 BasicAttribute attackTypeAttribute = caster.Stats.Values[BasicAttribute.PhysicalAtk].Total >= caster.Stats.Values[BasicAttribute.MagicalAtk].Total
                     ? BasicAttribute.PhysicalAtk
                     : BasicAttribute.MagicalAtk;
+                BasicAttribute resistanceAttribute = attackTypeAttribute == BasicAttribute.PhysicalAtk
+                    ? BasicAttribute.PhysicalRes
+                    : BasicAttribute.MagicalRes;
                 SpecialAttribute piercingAttribute = attackTypeAttribute == BasicAttribute.PhysicalAtk
                     ? SpecialAttribute.PhysicalPiercing
                     : SpecialAttribute.MagicalPiercing;
@@ -120,7 +123,7 @@ public static class DamageCalculator {
                     ? SpecialAttribute.OffensivePhysicalDamage
                     : SpecialAttribute.OffensiveMagicalDamage;
                 attackTypeAmount = Math.Max(caster.Stats.Values[BasicAttribute.PhysicalAtk].Total, caster.Stats.Values[BasicAttribute.MagicalAtk].Total) * 0.5f;
-                resistance = Damage.CalculateResistance(target.Stats.Values[attackTypeAttribute].Total, caster.Stats.Values[piercingAttribute].Multiplier());
+                resistance = Damage.CalculateResistance(target.Stats.Values[resistanceAttribute].Total, caster.Stats.Values[piercingAttribute].Multiplier());
                 finalDamage = caster.Stats.Values[finalDamageAttribute].Multiplier();
                 break;
         }

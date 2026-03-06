@@ -30,6 +30,7 @@ public class WorldServer {
     private readonly EventQueue scheduler;
     private readonly CancellationTokenSource tokenSource = new();
     private readonly ConcurrentDictionary<int, string> memoryStringBoards;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<long, long> _migratingUntil = new();
     private static int _globalIdCounter;
 
     private readonly ILogger logger = Log.ForContext<WorldServer>();
@@ -123,7 +124,31 @@ public class WorldServer {
             Async = true,
         });
     }
+    public void MarkMigrating(long characterId, int seconds = 45) {
+        if (characterId == 0) return;
+        long until = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + seconds;
+        _migratingUntil[characterId] = until;
+    }
 
+    public void ClearMigrating(long characterId) {
+        if (characterId == 0) return;
+        _migratingUntil.TryRemove(characterId, out _);
+    }
+
+    private bool IsMigrating(long characterId) {
+        if (characterId == 0) return false;
+
+        if (!_migratingUntil.TryGetValue(characterId, out long until)) {
+            return false;
+        }
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (now <= until) return true;
+
+        // expired
+        _migratingUntil.TryRemove(characterId, out _);
+        return false;
+    }
     private void Loop() {
         while (!tokenSource.Token.IsCancellationRequested) {
             try {

@@ -21,6 +21,7 @@ public partial class WorldService {
         switch (request.Server) {
             case Server.Login:
                 var loginEntry = new TokenEntry(request.Server, request.AccountId, request.CharacterId, new Guid(request.MachineId), 0, 0, 0, 0, 0, MigrationType.Normal);
+                worldServer.MarkMigrating(request.CharacterId, 45);
                 tokenCache.Set(token, loginEntry, AuthExpiry);
                 return Task.FromResult(new MigrateOutResponse {
                     IpAddress = Target.LoginIp.ToString(),
@@ -32,21 +33,26 @@ public partial class WorldService {
                     throw new RpcException(new Status(StatusCode.Unavailable, $"No available game channels"));
                 }
 
-                // Try to use requested channel or instanced channel
-                if (request.InstancedContent && channelClients.TryGetInstancedChannelId(out int channel)) {
+                // Channel selection priority:
+                // 1) If the Game server specifies a channel, keep it (even for instanced content).
+                //    This avoids routing players to a dedicated/invalid instanced channel (often 0),
+                //    which can desync presence and cause "fake offline" (client shows 65535).
+                // 2) Otherwise, if instanced content is requested, use an instanced channel if available.
+                // 3) Fallback to the first available channel.
+
+                int channel;
+                if (request.HasChannel && channelClients.TryGetActiveEndpoint(request.Channel, out _)) {
+                    channel = request.Channel;
+                } else if (request.InstancedContent && channelClients.TryGetInstancedChannelId(out channel)) {
                     if (!channelClients.TryGetActiveEndpoint(channel, out _)) {
                         throw new RpcException(new Status(StatusCode.Unavailable, "No available instanced game channel"));
                     }
-                } else if (request.HasChannel && channelClients.TryGetActiveEndpoint(request.Channel, out _)) {
-                    channel = request.Channel;
                 } else {
-                    // Fall back to first available channel
                     channel = channelClients.FirstChannel();
                     if (channel == -1) {
                         throw new RpcException(new Status(StatusCode.Unavailable, "No available game channels"));
                     }
                 }
-
                 if (!channelClients.TryGetActiveEndpoint(channel, out IPEndPoint? endpoint)) {
                     throw new RpcException(new Status(StatusCode.Unavailable, $"Channel {channel} not found"));
                 }
@@ -77,6 +83,7 @@ public partial class WorldService {
         }
 
         tokenCache.Remove(request.Token);
+        worldServer.ClearMigrating(data.CharacterId);
         return Task.FromResult(new MigrateInResponse {
             CharacterId = data.CharacterId,
             Channel = data.Channel,

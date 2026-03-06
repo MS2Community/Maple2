@@ -10,21 +10,25 @@ public class SoldUgcMarketItem : IByteSerializable {
     public required string Name { get; init; }
     public long SoldTime { get; init; }
     public long AccountId { get; init; }
-
+    public int Count { get; init; } = 1;
 
     public void WriteTo(IByteWriter writer) {
         writer.WriteLong(Id);
-        writer.WriteLong();
+        writer.WriteLong(); 
         writer.WriteUnicodeString(Name);
-        writer.WriteInt();
-        writer.WriteInt();
-        writer.WriteLong();
-        writer.WriteLong();
-        writer.WriteUnicodeString();
-        writer.WriteUnicodeString();
-        writer.WriteInt();
+
+        writer.WriteInt(Count);  
+        writer.WriteInt();      
+
+        writer.WriteLong(); 
+        writer.WriteLong(); 
+        writer.WriteUnicodeString(); 
+        writer.WriteUnicodeString(); 
+        writer.WriteInt(); 
+
         writer.WriteLong(Price);
         writer.WriteLong(SoldTime);
         writer.WriteLong(Profit);
     }
 }
+

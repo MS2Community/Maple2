@@ -2,6 +2,7 @@
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
 using Maple2.Tools.Extensions;
+using Microsoft.EntityFrameworkCore;
 using Z.EntityFramework.Plus;
 
 namespace Maple2.Database.Storage;
@@ -36,6 +37,140 @@ public partial class GameStorage {
                         JoinTime = member.CreationTime.ToEpochSeconds(),
                         CheckinTime = member.CheckinTime.ToEpochSeconds(),
                         DonationTime = member.DonationTime.ToEpochSeconds(),
+                    };
+                })
+                .WhereNotNull()
+                .ToList();
+        }
+
+
+        public IList<Guild> SearchGuilds(IPlayerInfoProvider provider, string guildName = "", GuildFocus? focus = null, int limit = 50) {
+            IQueryable<Model.Guild> query = Context.Guild;
+            if (!string.IsNullOrWhiteSpace(guildName)) {
+                query = query.Where(guild => EF.Functions.Like(guild.Name, $"%{guildName}%"));
+            }
+            if (focus.HasValue && (int) focus.Value != 0) {
+                query = query.Where(guild => guild.Focus == focus.Value);
+            }
+
+            List<long> guildIds = query.OrderBy(guild => guild.Name)
+                .Take(limit)
+                .Select(guild => guild.Id)
+                .ToList();
+
+            var result = new List<Guild>();
+            foreach (long id in guildIds) {
+                Guild? guild = LoadGuild(id, string.Empty);
+                if (guild == null) {
+                    continue;
+                }
+
+                foreach (GuildMember member in GetGuildMembers(provider, id)) {
+                    guild.Members.TryAdd(member.CharacterId, member);
+                    guild.AchievementInfo += member.Info.AchievementInfo;
+                }
+                result.Add(guild);
+            }
+
+            return result;
+        }
+
+        public GuildApplication? CreateGuildApplication(IPlayerInfoProvider provider, long guildId, long applicantId) {
+            Guild? guild = LoadGuild(guildId, string.Empty);
+            PlayerInfo? applicant = provider.GetPlayerInfo(applicantId);
+            if (guild == null || applicant == null) {
+                return null;
+            }
+
+            if (Context.GuildApplication.Any(app => app.GuildId == guildId && app.ApplicantId == applicantId)) {
+                Model.GuildApplication existing = Context.GuildApplication.First(app => app.GuildId == guildId && app.ApplicantId == applicantId);
+                return new GuildApplication {
+                    Id = existing.Id,
+                    Guild = guild,
+                    Applicant = applicant,
+                    CreationTime = existing.CreationTime.ToEpochSeconds(),
+                };
+            }
+
+            var app = new Model.GuildApplication {
+                GuildId = guildId,
+                ApplicantId = applicantId,
+            };
+            Context.GuildApplication.Add(app);
+            if (!SaveChanges()) {
+                return null;
+            }
+
+            return new GuildApplication {
+                Id = app.Id,
+                Guild = guild,
+                Applicant = applicant,
+                CreationTime = app.CreationTime.ToEpochSeconds(),
+            };
+        }
+
+        public GuildApplication? GetGuildApplication(IPlayerInfoProvider provider, long applicationId) {
+            Model.GuildApplication? app = Context.GuildApplication.FirstOrDefault(app => app.Id == applicationId);
+            if (app == null) {
+                return null;
+            }
+
+            Guild? guild = LoadGuild(app.GuildId, string.Empty);
+            PlayerInfo? applicant = provider.GetPlayerInfo(app.ApplicantId);
+            if (guild == null || applicant == null) {
+                return null;
+            }
+
+            return new GuildApplication {
+                Id = app.Id,
+                Guild = guild,
+                Applicant = applicant,
+                CreationTime = app.CreationTime.ToEpochSeconds(),
+            };
+        }
+
+        public IList<GuildApplication> GetGuildApplications(IPlayerInfoProvider provider, long guildId) {
+            List<Model.GuildApplication> applications = Context.GuildApplication.Where(app => app.GuildId == guildId)
+                .OrderByDescending(app => app.CreationTime)
+                .ToList();
+
+            return applications
+                .Select(app => {
+                    Guild? guild = LoadGuild(app.GuildId, string.Empty);
+                    PlayerInfo? applicant = provider.GetPlayerInfo(app.ApplicantId);
+                    if (guild == null || applicant == null) {
+                        return null;
+                    }
+
+                    return new GuildApplication {
+                        Id = app.Id,
+                        Guild = guild,
+                        Applicant = applicant,
+                        CreationTime = app.CreationTime.ToEpochSeconds(),
+                    };
+                })
+                .WhereNotNull()
+                .ToList();
+        }
+
+        public IList<GuildApplication> GetGuildApplicationsByApplicant(IPlayerInfoProvider provider, long applicantId) {
+            List<Model.GuildApplication> applications = Context.GuildApplication.Where(app => app.ApplicantId == applicantId)
+                .OrderByDescending(app => app.CreationTime)
+                .ToList();
+
+            return applications
+                .Select(app => {
+                    Guild? guild = LoadGuild(app.GuildId, string.Empty);
+                    PlayerInfo? applicant = provider.GetPlayerInfo(app.ApplicantId);
+                    if (guild == null || applicant == null) {
+                        return null;
+                    }
+
+                    return new GuildApplication {
+                        Id = app.Id,
+                        Guild = guild,
+                        Applicant = applicant,
+                        CreationTime = app.CreationTime.ToEpochSeconds(),
                     };
                 })
                 .WhereNotNull()
@@ -155,20 +290,18 @@ public partial class GameStorage {
         public bool SaveGuildMembers(long guildId, ICollection<GuildMember> members) {
             Dictionary<long, GuildMember> saveMembers = members
                 .ToDictionary(member => member.CharacterId, member => member);
-            IEnumerable<Model.GuildMember> existingMembers = Context.GuildMember
+            HashSet<long> existingMembers = Context.GuildMember
                 .Where(member => member.GuildId == guildId)
-                .Select(member => new Model.GuildMember {
-                    CharacterId = member.CharacterId,
-                });
+                .Select(member => member.CharacterId)
+                .ToHashSet();
 
-            foreach (Model.GuildMember member in existingMembers) {
-                if (saveMembers.Remove(member.CharacterId, out GuildMember? gameMember)) {
+            foreach ((long characterId, GuildMember gameMember) in saveMembers) {
+                if (existingMembers.Contains(characterId)) {
                     Context.GuildMember.Update(gameMember);
                 } else {
-                    Context.GuildMember.Remove(member);
+                    Context.GuildMember.Add(gameMember);
                 }
             }
-            Context.GuildMember.AddRange(saveMembers.Values.Select<GuildMember, Model.GuildMember>(member => member));
 
             return SaveChanges();
         }

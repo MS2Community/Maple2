@@ -197,6 +197,15 @@ public class FieldNpc : Actor<Npc> {
 
         playersListeningToDebug = playersListeningToDebugNow;
 
+	        // Defensive: if any upstream system produced a non-finite position, recover instead of
+	        // crashing during packet serialization (Vector3 -> Vector3S conversion can overflow on NaN).
+	        if (!float.IsFinite(Position.X) || !float.IsFinite(Position.Y) || !float.IsFinite(Position.Z)) {
+	            // Recover instead of crashing during packet serialization.
+	            Position = Origin;
+	            Navigation?.ClearPath();
+	            SendControl = true;
+	        }
+
         if (SendControl && !IsDead) {
             SequenceCounter++;
             Field.BroadcastNpcControl(this);

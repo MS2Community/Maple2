@@ -46,6 +46,11 @@ public partial class FieldManager {
     private readonly ConcurrentDictionary<int, FieldItem> fieldItems = new();
     private readonly ConcurrentDictionary<int, FieldMobSpawn> fieldMobSpawns = new();
     private readonly ConcurrentDictionary<string, FieldSpawnPointNpc> fieldSpawnPointNpcs = new();
+
+
+    // Tracks spawnPointIds that have died and may have been removed from Mobs/Npcs dictionaries.
+    // This allows triggers like MonsterDead(spawnId) to continue working even after the dead NPC is despawned.
+    private readonly ConcurrentDictionary<int, byte> deadSpawnPoints = new();
     private readonly ConcurrentDictionary<int, FieldPlayerSpawnPoint> fieldPlayerSpawnPoints = new();
     private readonly ConcurrentDictionary<int, FieldSpawnGroup> fieldSpawnGroups = new();
     private readonly ConcurrentDictionary<int, FieldSkill> fieldSkills = new();
@@ -115,6 +120,11 @@ public partial class FieldManager {
     }
 
     public FieldNpc? SpawnNpc(NpcMetadata npc, Vector3 position, Vector3 rotation, bool disableAi = false, FieldMobSpawn? owner = null, SpawnPointNPC? spawnPointNpc = null, string spawnAnimation = "") {
+
+        if (spawnPointNpc is not null) {
+            deadSpawnPoints.TryRemove(spawnPointNpc.SpawnPointId, out _);
+        }
+
         // Apply random offset if SpawnRadius is set
         Vector3 spawnPosition = position;
         if (spawnPointNpc?.SpawnRadius > 0) {
@@ -524,6 +534,8 @@ public partial class FieldManager {
         worldBossObjectId = 0;
         RemoveNpc(objectId);
     }
+
+    public bool IsSpawnPointDead(int spawnId) => deadSpawnPoints.ContainsKey(spawnId);
 
     public void ToggleNpcSpawnPoint(int spawnId) {
         List<FieldSpawnPointNpc> spawns = fieldSpawnPointNpcs.Values.Where(spawn => spawn.Value.SpawnPointId == spawnId).ToList();
@@ -951,6 +963,10 @@ public partial class FieldManager {
             }
             Broadcast(FieldPacket.RemoveNpc(objectId));
             Broadcast(ProxyObjectPacket.RemoveNpc(objectId));
+
+            if (npc.IsDead && npc.SpawnPointId != 0) {
+                deadSpawnPoints.TryAdd(npc.SpawnPointId, 1);
+            }
             npc.Dispose();
         }, removeDelay);
         return true;

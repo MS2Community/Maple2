@@ -95,6 +95,8 @@ public interface IField : IDisposable {
     public bool LiftupCube(in Vector3B coordinates, [NotNullWhen(true)] out LiftupWeapon? liftupWeapon);
     public void MovePlayerAlongPath(string pathName);
 
+    public bool IsSpawnPointDead(int spawnId);
+
     public bool RemoveNpc(int objectId, TimeSpan removeDelay = default);
     public bool RemovePet(int objectId, TimeSpan removeDelay = default);
 }

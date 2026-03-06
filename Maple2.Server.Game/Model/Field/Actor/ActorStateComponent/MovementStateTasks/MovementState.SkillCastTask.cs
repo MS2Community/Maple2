@@ -41,8 +41,17 @@ public partial class MovementState {
 
     private void SkillCastFaceTarget(SkillRecord cast, IActor target, int faceTarget) {
         Vector3 offset = target.Position - actor.Position;
-        float distance = offset.LengthSquared();
+        float distance = offset.X * offset.X + offset.Y * offset.Y;
+        float vertical = MathF.Abs(offset.Z);
 
+        // In MS2 data, many AI skill nodes use FaceTarget=0 while the skill's AutoTargeting.MaxDegree
+        // is a narrow cone. If we gate turning by MaxDegree (dot product), the NPC can end up casting
+        // while facing away (target behind the cone) and never correct its facing.
+        //
+        // To avoid "背对玩家放技能", we always rotate to face the current target when:
+        //  - the motion requests FaceTarget, and
+        //  - AutoTargeting distance/height constraints allow it.
+        // MaxDegree is ignored for *turning*.
         if (faceTarget != 1) {
             if (!cast.Motion.MotionProperty.FaceTarget || cast.Metadata.Data.AutoTargeting is null) {
                 return;
@@ -50,26 +59,28 @@ public partial class MovementState {
 
             var autoTargeting = cast.Metadata.Data.AutoTargeting;
 
-            bool shouldFaceTarget = autoTargeting.MaxDistance == 0 || distance <= autoTargeting.MaxDistance;
-            shouldFaceTarget |= autoTargeting.MaxHeight == 0 || offset.Y <= autoTargeting.MaxHeight;
+            bool inRange = autoTargeting.MaxDistance == 0 || distance <= autoTargeting.MaxDistance * autoTargeting.MaxDistance;
+            inRange &= autoTargeting.MaxHeight == 0 || vertical <= autoTargeting.MaxHeight;
+            if (!inRange) {
+                return;
+            }
 
-            if (!shouldFaceTarget) {
+            if (distance < 0.0001f) {
                 return;
             }
 
             distance = (float) Math.Sqrt(distance);
             offset *= (1 / distance);
-
-            float degreeCosine = (float) Math.Cos(autoTargeting.MaxDegree / 2);
-            float dot = Vector3.Dot(offset, actor.Transform.FrontAxis);
-
-            shouldFaceTarget = autoTargeting.MaxDegree == 0 || dot >= degreeCosine;
-
-            if (!shouldFaceTarget) {
-                return;
-            }
         } else {
+            if (distance < 0.0001f) {
+
+                return;
+
+            }
+
+
             distance = (float) Math.Sqrt(distance);
+
             offset *= (1 / distance);
         }
 
@@ -104,9 +115,12 @@ public partial class MovementState {
         }
 
         if (task.FacePos != new Vector3(0, 0, 0)) {
-            actor.Transform.LookTo(Vector3.Normalize(task.FacePos - actor.Position));
+            actor.Transform.LookTo(task.FacePos - actor.Position); // safe: LookTo normalizes with guards
         } else if (actor.BattleState.Target is not null) {
-            SkillCastFaceTarget(cast, actor.BattleState.Target, task.FaceTarget);
+            // Hard guarantee: NPCs should always face their current battle target when casting.
+            // Some boss skills have MotionProperty.FaceTarget=false or narrow AutoTargeting degrees,
+            // which previously allowed casting while facing away.
+            actor.Transform.LookTo(actor.BattleState.Target.Position - actor.Position); // safe: LookTo normalizes with guards
         }
 
         CastTask = task;

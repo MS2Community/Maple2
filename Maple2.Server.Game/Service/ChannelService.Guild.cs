@@ -4,6 +4,8 @@ using Maple2.Model.Game;
 using Maple2.Server.Channel.Service;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
+using WorldGuildInfoRequest = Maple2.Server.World.Service.GuildInfoRequest;
+using WorldGuildInfoResponse = Maple2.Server.World.Service.GuildInfoResponse;
 
 namespace Maple2.Server.Game.Service;
 
@@ -82,13 +84,25 @@ public partial class ChannelService {
                 continue;
             }
 
-            // Intentionally create a separate GuildMember instance for each session.
-            session.Guild.AddMember(add.RequestorName, new GuildMember {
+            var member = new GuildMember {
                 GuildId = guildId,
                 Info = info.Clone(),
                 Rank = (byte) add.Rank,
                 JoinTime = add.JoinTime,
-            });
+            };
+
+            if (session.CharacterId == add.CharacterId && session.Guild.Guild == null) {
+                WorldGuildInfoResponse response = session.World.GuildInfo(new WorldGuildInfoRequest {
+                    GuildId = guildId,
+                });
+
+                if (response.Guild != null) {
+                    session.Guild.SetGuild(response.Guild);
+                    session.Guild.Load();
+                }
+            }
+
+            session.Guild.AddMember(add.RequestorName, member);
         }
 
         return new GuildResponse();

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
+using Maple2.Database.Storage;
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
 using Maple2.Server.Core.Sync;
@@ -9,7 +10,7 @@ using WorldClient = Maple2.Server.World.Service.World.WorldClient;
 
 namespace Maple2.Server.Game.Util.Sync;
 
-public class PlayerInfoStorage {
+public class PlayerInfoStorage : IPlayerInfoProvider {
     private readonly WorldClient world;
     // TODO: Just using dictionary for now, might need eviction at some point (LRUCache)
     private readonly ConcurrentDictionary<long, PlayerInfo> cache;
@@ -24,6 +25,11 @@ public class PlayerInfoStorage {
 
         cache = new ConcurrentDictionary<long, PlayerInfo>();
         listeners = new ConcurrentDictionary<long, IDictionary<int, PlayerInfoListener>>();
+    }
+
+
+    public PlayerInfo? GetPlayerInfo(long id) {
+        return GetOrFetch(id, out PlayerInfo? info) ? info : null;
     }
 
     public bool GetOrFetch(long characterId, [NotNullWhen(true)] out PlayerInfo? info) {
@@ -83,10 +89,23 @@ public class PlayerInfoStorage {
     }
 
     public void SendUpdate(PlayerUpdateRequest request) {
-        try {
-            //PlayerInfoCache
-            world.UpdatePlayer(request);
-        } catch (RpcException) { /* ignored */ }
+        // 对“上线态/频道/地图”更新非常关键，不能静默吞掉失败
+        const int maxRetries = 3;
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                world.UpdatePlayer(request);
+                return;
+            } catch (RpcException ex) {
+                logger.Warning("SendUpdate(UpdatePlayer) failed attempt {Attempt}/{Max}. Status={Status}",
+                    i + 1, maxRetries, ex.Status);
+
+                // 小退避，避免瞬间打爆
+                Thread.Sleep(200 * (i + 1));
+            } catch (Exception ex) {
+                logger.Warning(ex, "SendUpdate(UpdatePlayer) unexpected failure");
+                Thread.Sleep(200 * (i + 1));
+            }
+        }
     }
 
     public bool ReceiveUpdate(PlayerUpdateRequest request) {

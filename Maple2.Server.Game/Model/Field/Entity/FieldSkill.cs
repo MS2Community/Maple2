@@ -29,7 +29,16 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
     private readonly long endTick;
     public long NextTick { get; private set; }
     private readonly ILogger logger = Log.ForContext<FieldSkill>();
-
+    private static Vector3 SanitizePosition(Vector3 v) {
+        if (float.IsNaN(v.X) || float.IsNaN(v.Y) || float.IsNaN(v.Z) ||
+            float.IsInfinity(v.X) || float.IsInfinity(v.Y) || float.IsInfinity(v.Z)) {
+            return Vector3.Zero;
+        }
+        v.X = Math.Clamp(v.X, short.MinValue, short.MaxValue);
+        v.Y = Math.Clamp(v.Y, short.MinValue, short.MaxValue);
+        v.Z = Math.Clamp(v.Z, short.MinValue, short.MaxValue);
+        return v;
+    }
     private ByteWriter GetDamagePacket(DamageRecord record) => Source switch {
         SkillSource.Cube => SkillDamagePacket.Tile(record),
         _ => SkillDamagePacket.Region(record),
@@ -126,13 +135,13 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                 SkillMetadataAttack attack = record.Attack;
                 record.TargetUid++;
                 var damage = new DamageRecord(record.Metadata, attack) {
-                    CasterId = ObjectId,
-                    OwnerId = ObjectId,
-                    SkillId = Value.Id,
-                    Level = Value.Level,
+                    CasterId = record.Caster.ObjectId,  
+                    OwnerId  = record.Caster.ObjectId,  
+                    SkillId  = record.SkillId,          
+                    Level    = record.Level,            
                     MotionPoint = record.MotionPoint,
                     AttackPoint = record.AttackPoint,
-                    Position = Position,
+                    Position = SanitizePosition(Position),
                     Direction = Rotation,
                 };
                 var targetRecords = new List<TargetRecord>();
@@ -215,6 +224,7 @@ public class FieldSkill : FieldEntity<SkillMetadata> {
                     if (targetRecords.Count > 0) {
                         Field.Broadcast(SkillDamagePacket.Target(record, targetRecords));
                         Field.Broadcast(GetDamagePacket(damage));
+						Field.Broadcast(SkillDamagePacket.Damage(damage)); 
                     }
 
                     Caster.ApplyEffects(attack.SkillsOnDamage, Caster, damage, targets: targets);

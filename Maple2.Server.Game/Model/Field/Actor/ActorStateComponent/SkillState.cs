@@ -54,7 +54,15 @@ public class SkillState {
                     if (attackTargets.Count > targetIndex) {
                         // if attack.direction == 3, use direction to target, if attack.direction == 0, use rotation maybe?
                         cast.Position = actor.Position;
-                        cast.Direction = Vector3.Normalize(attackTargets[targetIndex].Position - actor.Position);
+                        Vector3 dir = attackTargets[targetIndex].Position - actor.Position;
+                        if (float.IsNaN(dir.X) || float.IsNaN(dir.Y) || float.IsNaN(dir.Z) ||
+                            float.IsInfinity(dir.X) || float.IsInfinity(dir.Y) || float.IsInfinity(dir.Z) ||
+                            dir.LengthSquared() < 1e-6f) {
+                            // Keep current facing if target is on top of caster.
+                            cast.Direction = actor.Transform.FrontAxis;
+                        } else {
+                            cast.Direction = Vector3.Normalize(dir);
+                        }
                     }
 
                     actor.Field.Broadcast(SkillDamagePacket.Target(cast, targets));

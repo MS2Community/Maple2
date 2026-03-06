@@ -20,7 +20,19 @@ public static class SkillDamagePacket {
         Unknown7 = 7,
         Unknown8 = 8,
     }
-
+    private static void WriteVector3SSafe(ByteWriter w, Vector3 v) {
+        if (float.IsNaN(v.X) || float.IsNaN(v.Y) || float.IsNaN(v.Z) ||
+            float.IsInfinity(v.X) || float.IsInfinity(v.Y) || float.IsInfinity(v.Z)) {
+            v = Vector3.Zero;
+        }
+    
+        // 注意：4200 没问题，但 NaN/Inf 必须先处理，否则 Clamp 也救不了
+        v.X = Math.Clamp(v.X, short.MinValue, short.MaxValue);
+        v.Y = Math.Clamp(v.Y, short.MinValue, short.MaxValue);
+        v.Z = Math.Clamp(v.Z, short.MinValue, short.MaxValue);
+    
+        w.Write<Vector3S>(v);
+    }
     public static ByteWriter Target(SkillRecord record, ICollection<TargetRecord> targets) {
         var pWriter = Packet.Of(SendOp.SkillDamage);
         pWriter.Write<Command>(Command.Target);
@@ -30,7 +42,7 @@ public static class SkillDamagePacket {
         pWriter.WriteShort(record.Level);
         pWriter.WriteByte(record.MotionPoint);
         pWriter.WriteByte(record.AttackPoint);
-        pWriter.Write<Vector3S>(record.Position); // Impact
+        WriteVector3SSafe(pWriter, record.Position); // Impact
         pWriter.Write<Vector3>(record.Direction); // Impact
         pWriter.WriteBool(true); // SkillId:10600211 only
         pWriter.WriteInt(record.ServerTick);
@@ -53,8 +65,8 @@ public static class SkillDamagePacket {
         pWriter.WriteShort(record.Level);
         pWriter.WriteByte(record.MotionPoint);
         pWriter.WriteByte(record.AttackPoint);
-        pWriter.Write<Vector3S>(record.Position);  // Impact
-        pWriter.Write<Vector3S>(record.Direction);
+        WriteVector3SSafe(pWriter, record.Position);  // Impact
+        WriteVector3SSafe(pWriter, record.Direction);
 
         pWriter.WriteByte((byte) record.Targets.Count);
         foreach (DamageRecordTarget target in record.Targets.Values) {

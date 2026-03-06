@@ -211,13 +211,27 @@ public partial class TriggerContext {
         DebugLog("[MonsterDead] spawnIds:{SpawnIds}, arg2:{Arg2}", string.Join(", ", spawnIds), autoTarget);
         IEnumerable<FieldNpc> matchingMobs = Field.Mobs.Values.Where(x => spawnIds.Contains(x.SpawnPointId));
 
+        // If no mobs currently exist for these spawnIds, we may still want to treat them as dead
+        // (e.g. boss already died and was despawned). We use Field.IsSpawnPointDead to track that.
+        // However, if a spawnId has never existed and is not marked dead, it should NOT be treated as dead
+        // (prevents instant fail when an NPC failed to spawn).
+
+
         foreach (FieldNpc mob in matchingMobs) {
             if (!mob.IsDead) {
                 return false;
             }
         }
 
-        // Either no mobs were found or they are all dead
+        // If we found at least one matching mob, reaching here means all of them are dead.
+        // If we found none, then only consider the spawnIds dead if they are marked as dead by the field.
+        if (!matchingMobs.Any()) {
+            foreach (int spawnId in spawnIds) {
+                if (!Field.IsSpawnPointDead(spawnId)) {
+                    return false;
+                }
+            }
+        }
         return true;
     }
 

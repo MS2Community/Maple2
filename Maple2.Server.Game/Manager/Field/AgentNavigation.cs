@@ -21,6 +21,7 @@ public sealed class AgentNavigation {
     public List<RcVec3f>? currentPath = [];
     private int currentPathIndex = 0;
     private float currentPathProgress = 0;
+    private bool currentPathIsFallback = false;
 
     public AgentNavigation(FieldNpc fieldNpc, DtCrowdAgent dtAgent, DtCrowd dtCrowd) {
         npc = fieldNpc;
@@ -158,6 +159,10 @@ public sealed class AgentNavigation {
 
     public bool HasPath => currentPath != null && currentPath.Count > 0;
 
+    private static bool IsVayarianGuardian(int npcId) {
+        return npcId is 21500420 or 21500422 or 21500423 or 21500424;
+    }
+
     public bool UpdatePosition() {
         if (!field.FindNearestPoly(npc.Position, out _, out RcVec3f position)) {
             Logger.Error("Failed to find valid position from {Source} => {Position}", npc.Position, position);
@@ -216,6 +221,18 @@ public sealed class AgentNavigation {
 
         currentPathProgress += (float) timeSpan.TotalSeconds * speed / distance;
         RcVec3f end = RcVec3f.Lerp(currentPath[currentPathIndex], currentPath[currentPathIndex + 1], currentPathProgress);
+        if (currentPathIsFallback) {
+            // Keep the end point on the navmesh each tick; prevents straight-line fallback from pushing NPCs through walls/out of bounds.
+            if (field.FindNearestPoly(end, out _, out RcVec3f snappedEnd)) {
+                end = snappedEnd;
+                if (currentPath is not null && currentPathIndex + 1 < currentPath.Count) {
+                    currentPath[currentPathIndex + 1] = snappedEnd;
+                }
+            } else {
+                // Can't stay on mesh; stop movement.
+                currentPath = null;
+            }
+        }
 
         return (start, DotRecastHelper.FromNavMeshSpace(end));
     }
@@ -294,14 +311,45 @@ public sealed class AgentNavigation {
     private bool SetPathTo(RcVec3f target) {
         currentPath = [];
         currentPathIndex = 0;
+        currentPathIsFallback = false;
         currentPathProgress = 0;
+
         try {
-            currentPath = FindPath(agent.npos, target);
+            List<RcVec3f>? path = FindPath(agent.npos, target);
+            if (path is null) {
+                // Clamp target to nearest navmesh polygon to avoid drifting outside walkable area.
+                if (!field.FindNearestPoly(target, out _, out RcVec3f snappedTarget)) {
+                    Logger.Warning("[Fallback] Could not clamp target to navmesh. Target(nav)={Target}", target);
+                    return false;
+                }
+                target = snappedTarget;
+                Vector3 worldTarget = DotRecastHelper.FromNavMeshSpace(target);
+
+                if (IsVayarianGuardian(npc.Value.Id)) {
+                    // Scripted NPC jump/warp: advance trigger even when navmesh has no valid path.
+                    Logger.Warning("No path for Vayarian Guardian {NpcId}; snapping from {From} to {To}", npc.Value.Id, npc.Position, worldTarget);
+                    UpdatePosition(worldTarget);
+                    currentPath = null;
+                    return true;
+                }
+
+                Logger.Warning("Failed to find path from {FromNav} to {ToNav}; fallback: clamped straight-line on navmesh. World(from)={FromWorld} World(to)={ToWorld}", agent.npos, target, DotRecastHelper.FromNavMeshSpace(agent.npos), worldTarget);
+                currentPath = [agent.npos, target];
+                return true;
+            }
+
+            currentPath = path;
+            return true;
         } catch (Exception ex) {
             Logger.Error(ex, "Failed to find path to {Target}", target);
+            return false;
         }
-
-        return currentPath is not null;
+    }
+    public void ClearPath() {
+        currentPath?.Clear();
+        currentPathIndex = 0;
+        currentPathProgress = 0;
+        currentPathIsFallback = false;
     }
 
     public bool PathAwayFrom(Vector3 goal, int distance) {
@@ -315,11 +363,20 @@ public sealed class AgentNavigation {
         // get distance in navmesh space
         float fDistance = distance * DotRecastHelper.MapRotation.GetRightAxis().Length();
 
-        // get direction from agent to target
-        RcVec3f direction = RcVec3f.Normalize(RcVec3f.Subtract(target, position));
+        // get direction from agent to target (guard against zero-length vectors which would produce NaNs)
+        RcVec3f delta = RcVec3f.Subtract(target, position);
+        float lenSqr = RcVec3f.Dot(delta, delta);
+        RcVec3f direction;
+        if (lenSqr > 1e-6f) {
+            direction = RcVec3f.Normalize(delta);
+        } else {
+            // If goal overlaps agent (common during melee hit / on-hit stepback), choose a stable fallback direction.
+            // Alternate per-object id so mobs don't all backstep the same way.
+            direction = (npc.ObjectId & 1) == 0 ? new RcVec3f(1, 0, 0) : new RcVec3f(-1, 0, 0);
+        }
 
-        // get the point that is fDistance away from the target in the opposite direction
-        RcVec3f positionAway = RcVec3f.Add(position, RcVec3f.Normalize(direction) * -fDistance);
+        // get the point that is fDistance away from the agent in the opposite direction
+        RcVec3f positionAway = RcVec3f.Add(position, direction * -fDistance);
 
         // find the nearest poly to the positionAway
         if (!field.FindNearestPoly(positionAway, out _, out RcVec3f positionAwayNavMesh)) {
@@ -328,17 +385,35 @@ public sealed class AgentNavigation {
 
         return SetPathAway(positionAwayNavMesh);
     }
-
     private bool SetPathAway(RcVec3f target) {
         currentPath = [];
         currentPathIndex = 0;
+        currentPathIsFallback = false;
         currentPathProgress = 0;
-        try {
-            currentPath = FindPath(agent.npos, target);
-        } catch (Exception ex) {
-            Logger.Error(ex, "Failed to find path away from {Target}", target);
-        }
 
-        return currentPath is not null;
+        try {
+            List<RcVec3f>? path = FindPath(agent.npos, target);
+            if (path is null) {
+                Vector3 worldTarget = DotRecastHelper.FromNavMeshSpace(target);
+
+                if (IsVayarianGuardian(npc.Value.Id)) {
+                    // Scripted NPC jump/warp: advance trigger even when navmesh has no valid path.
+                    Logger.Warning("No path for Vayarian Guardian {NpcId}; snapping from {From} to {To}", npc.Value.Id, npc.Position, worldTarget);
+                    UpdatePosition(worldTarget);
+                    currentPath = null;
+                    return true;
+                }
+
+                Logger.Warning("Failed to find path from {FromNav} to {ToNav}; fallback: clamped straight-line on navmesh. World(from)={FromWorld} World(to)={ToWorld}", agent.npos, target, DotRecastHelper.FromNavMeshSpace(agent.npos), worldTarget);
+                currentPath = [agent.npos, target];
+                return true;
+            }
+
+            currentPath = path;
+            return true;
+        } catch (Exception ex) {
+            Logger.Error(ex, "Failed to find path to {Target}", target);
+            return false;
+        }
     }
 }

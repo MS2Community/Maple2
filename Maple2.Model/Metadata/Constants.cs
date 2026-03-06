@@ -123,7 +123,7 @@ public static class Constant {
 
     public const bool DebugTriggers = false; // Set to true to enable debug triggers. (It'll write triggers to files and load triggers from files instead of DB)
 
-    public const bool AllowUnicodeInNames = false; // Allow Unicode characters in character and guild names
+    public const bool AllowUnicodeInNames = true; // Allow Unicode characters in character and guild names
 
     public static IReadOnlyDictionary<string, int> ContentRewards { get; } = new Dictionary<string, int> {
         { "miniGame", 1005 },

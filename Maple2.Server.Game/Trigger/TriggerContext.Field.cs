@@ -144,9 +144,9 @@ public partial class TriggerContext {
     public void SetAgent(int[] triggerIds, bool visible) {
         WarnLog("[SetAgent] triggerIds:{Ids}, visible:{Visible}", string.Join(", ", triggerIds), visible);
         foreach (int triggerId in triggerIds) {
-            if (!Objects.Agents.TryGetValue(triggerId, out TriggerObjectAgent? agent)) {
-                continue;
-            }
+            // Some data packs are missing Ms2TriggerAgent entries in DB import.
+            // Create a lightweight placeholder so the client can still receive updates.
+            TriggerObjectAgent agent = Objects.GetOrAddAgent(triggerId);
 
             agent.Visible = visible;
             Broadcast(TriggerPacket.Update(agent));
@@ -275,10 +275,9 @@ public partial class TriggerContext {
     private void UpdateMesh(ArraySegment<int> triggerIds, bool visible, int delay, int interval, int fade = 0) {
         int intervalTotal = 0;
         foreach (int triggerId in triggerIds) {
-            if (!Objects.Meshes.TryGetValue(triggerId, out TriggerObjectMesh? mesh)) {
-                logger.Warning("Invalid mesh: {Id}", triggerId);
-                continue;
-            }
+            // Some data packs are missing Ms2TriggerMesh entries in DB import.
+            // Create a lightweight placeholder so the client can still receive updates.
+            TriggerObjectMesh mesh = Objects.GetOrAddMesh(triggerId);
             if (mesh.Visible == visible) {
                 continue;
             }

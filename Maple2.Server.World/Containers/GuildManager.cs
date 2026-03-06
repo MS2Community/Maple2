@@ -100,7 +100,8 @@ public class GuildManager : IDisposable {
             return GuildError.s_guild_err_fail_addmember;
         }
 
-        // Broadcast before adding this new member.
+        // Add the new member before broadcasting so the applicant also receives the guild member sync.
+        Guild.Members.TryAdd(member.CharacterId, member);
         Broadcast(new GuildRequest {
             AddMember = new GuildRequest.Types.AddMember {
                 CharacterId = member.CharacterId,
@@ -109,7 +110,6 @@ public class GuildManager : IDisposable {
                 JoinTime = member.JoinTime,
             },
         });
-        Guild.Members.TryAdd(member.CharacterId, member);
         return GuildError.none;
     }
 

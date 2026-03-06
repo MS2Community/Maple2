@@ -138,18 +138,44 @@ public class Transform {
     }
 
     public void LookTo(Vector3 direction, Vector3 up, bool snapToGroundPlane = true) {
+        // Defensive normalization: callers sometimes pass a zero vector (or already-invalid values),
+        // which would turn into NaN via Vector3.Normalize and then poison FrontAxis/RightAxis/UpAxis.
+        // That can later corrupt movement (e.g., skill cast keyframe movement) and ultimately navmesh queries.
+        if (float.IsNaN(direction.X) || float.IsNaN(direction.Y) || float.IsNaN(direction.Z) ||
+            float.IsInfinity(direction.X) || float.IsInfinity(direction.Y) || float.IsInfinity(direction.Z) ||
+            direction.LengthSquared() < 1e-6f) {
+            direction = FrontAxis;
+        }
+        if (float.IsNaN(up.X) || float.IsNaN(up.Y) || float.IsNaN(up.Z) ||
+            float.IsInfinity(up.X) || float.IsInfinity(up.Y) || float.IsInfinity(up.Z) ||
+            up.LengthSquared() < 1e-6f) {
+            up = new Vector3(0, 0, 1);
+        }
+
         direction = Vector3.Normalize(direction);
         up = Vector3.Normalize(up);
 
         if (snapToGroundPlane) {
-            direction = Vector3.Normalize(direction - Vector3.Dot(direction, up) * up); // plane projection formula
-
-            if (direction.IsNearlyEqual(new Vector3(0, 0, 0), 1e-3f)) {
-                direction = FrontAxis;
+            // Project direction onto plane defined by up.
+            Vector3 projected = direction - Vector3.Dot(direction, up) * up;
+            if (float.IsNaN(projected.X) || float.IsNaN(projected.Y) || float.IsNaN(projected.Z) ||
+                float.IsInfinity(projected.X) || float.IsInfinity(projected.Y) || float.IsInfinity(projected.Z) ||
+                projected.LengthSquared() < 1e-6f) {
+                projected = FrontAxis;
             }
+            direction = Vector3.Normalize(projected);
         }
 
         Vector3 right = Vector3.Cross(direction, up);
+        if (float.IsNaN(right.X) || float.IsNaN(right.Y) || float.IsNaN(right.Z) ||
+            float.IsInfinity(right.X) || float.IsInfinity(right.Y) || float.IsInfinity(right.Z) ||
+            right.LengthSquared() < 1e-6f) {
+            // Fallback: keep current basis if cross product degenerated.
+            right = RightAxis.LengthSquared() < 1e-6f ? Vector3.UnitX : Vector3.Normalize(RightAxis);
+        } else {
+            right = Vector3.Normalize(right);
+        }
+
         up = Vector3.Cross(right, direction);
 
         float scale = Scale;

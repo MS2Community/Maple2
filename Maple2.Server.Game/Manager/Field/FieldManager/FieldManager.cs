@@ -391,13 +391,30 @@ public partial class FieldManager : IField {
             return false;
         }
 
-        DtStatus status = Navigation.Crowd.GetNavMeshQuery().FindNearestPoly(point, new RcVec3f(2, 4, 2), Navigation.Crowd.GetFilter(0), out nearestRef, out position, out _);
-        if (status.Failed()) {
-            logger.Warning("Failed to find nearest poly from position {Source} in field {MapId}", point, MapId);
-            return false;
+        // Try progressively larger search extents; helps when an entity gets pushed off the navmesh (e.g., knockback).
+        // Keep the first extent small for performance, then widen only on failure.
+        ReadOnlySpan<RcVec3f> extentsList = stackalloc RcVec3f[] {
+            new RcVec3f(2, 4, 2),
+            new RcVec3f(8, 16, 8),
+            new RcVec3f(32, 64, 32),
+            new RcVec3f(128, 256, 128),
+        };
+
+        DtNavMeshQuery query = Navigation.Crowd.GetNavMeshQuery();
+        IDtQueryFilter filter = Navigation.Crowd.GetFilter(0);
+
+        for (int i = 0; i < extentsList.Length; i++) {
+            RcVec3f ext = extentsList[i];
+            DtStatus status = query.FindNearestPoly(point, ext, filter, out nearestRef, out position, out _);
+            if (status.Succeeded() && nearestRef != 0) {
+                return true;
+            }
         }
 
-        return true;
+        logger.Warning("Failed to find nearest poly from position {Source} in field {MapId}", point, MapId);
+        nearestRef = 0;
+        position = default;
+        return false;
     }
 
     public bool TryGetPlayerById(long characterId, [NotNullWhen(true)] out FieldPlayer? player) {

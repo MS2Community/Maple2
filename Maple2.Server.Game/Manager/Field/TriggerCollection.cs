@@ -1,36 +1,55 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using Maple2.Model.Game;
 using Maple2.Model.Metadata;
 
 namespace Maple2.Server.Game.Manager.Field;
 
 public sealed class TriggerCollection : IReadOnlyCollection<ITriggerObject> {
-    public readonly IReadOnlyDictionary<int, TriggerObjectActor> Actors;
-    public readonly IReadOnlyDictionary<int, TriggerObjectCamera> Cameras;
-    public readonly IReadOnlyDictionary<int, TriggerObjectCube> Cubes;
-    public readonly IReadOnlyDictionary<int, TriggerObjectEffect> Effects;
-    public readonly IReadOnlyDictionary<int, TriggerObjectLadder> Ladders;
-    public readonly IReadOnlyDictionary<int, TriggerObjectMesh> Meshes;
-    public readonly IReadOnlyDictionary<int, TriggerObjectRope> Ropes;
-    public readonly IReadOnlyDictionary<int, TriggerObjectSound> Sounds;
-    public readonly IReadOnlyDictionary<int, TriggerObjectAgent> Agents;
+    // NOTE: These collections need to be mutable at runtime.
+    // Some map packs / DB imports are missing Ms2TriggerMesh / Ms2TriggerAgent entries,
+    // but trigger scripts still reference those IDs (set_mesh / set_agent).
+    // The client already knows the objects by triggerId (from the map file), and only
+    // needs server updates to toggle visibility/collision.
+    //
+    // We therefore support creating lightweight placeholder trigger objects on demand.
+    private readonly Dictionary<int, TriggerObjectActor> actors;
+    private readonly Dictionary<int, TriggerObjectCamera> cameras;
+    private readonly Dictionary<int, TriggerObjectCube> cubes;
+    private readonly Dictionary<int, TriggerObjectEffect> effects;
+    private readonly Dictionary<int, TriggerObjectLadder> ladders;
+    private readonly Dictionary<int, TriggerObjectMesh> meshes;
+    private readonly Dictionary<int, TriggerObjectRope> ropes;
+    private readonly Dictionary<int, TriggerObjectSound> sounds;
+    private readonly Dictionary<int, TriggerObjectAgent> agents;
+    private readonly Dictionary<int, TriggerBox> boxes;
 
-    public readonly IReadOnlyDictionary<int, TriggerBox> Boxes;
+    public IReadOnlyDictionary<int, TriggerObjectActor> Actors => actors;
+    public IReadOnlyDictionary<int, TriggerObjectCamera> Cameras => cameras;
+    public IReadOnlyDictionary<int, TriggerObjectCube> Cubes => cubes;
+    public IReadOnlyDictionary<int, TriggerObjectEffect> Effects => effects;
+    public IReadOnlyDictionary<int, TriggerObjectLadder> Ladders => ladders;
+    public IReadOnlyDictionary<int, TriggerObjectMesh> Meshes => meshes;
+    public IReadOnlyDictionary<int, TriggerObjectRope> Ropes => ropes;
+    public IReadOnlyDictionary<int, TriggerObjectSound> Sounds => sounds;
+    public IReadOnlyDictionary<int, TriggerObjectAgent> Agents => agents;
+
+    public IReadOnlyDictionary<int, TriggerBox> Boxes => boxes;
 
     // These seem to get managed separately...
     // private readonly IReadOnlyDictionary<int, TriggerObjectAgent> Agents;
     // private readonly IReadOnlyDictionary<int, TriggerObjectSkill> Skills;
 
     public TriggerCollection(MapEntityMetadata entities) {
-        Dictionary<int, TriggerObjectActor> actors = new();
-        Dictionary<int, TriggerObjectCamera> cameras = new();
-        Dictionary<int, TriggerObjectCube> cubes = new();
-        Dictionary<int, TriggerObjectEffect> effects = new();
-        Dictionary<int, TriggerObjectLadder> ladders = new();
-        Dictionary<int, TriggerObjectMesh> meshes = new();
-        Dictionary<int, TriggerObjectRope> ropes = new();
-        Dictionary<int, TriggerObjectSound> sounds = new();
-        Dictionary<int, TriggerObjectAgent> agents = new();
+        actors = new();
+        cameras = new();
+        cubes = new();
+        effects = new();
+        ladders = new();
+        meshes = new();
+        ropes = new();
+        sounds = new();
+        agents = new();
 
         foreach (Ms2TriggerActor actor in entities.Trigger.Actors) {
             actors[actor.TriggerId] = new TriggerObjectActor(actor);
@@ -61,36 +80,55 @@ public sealed class TriggerCollection : IReadOnlyCollection<ITriggerObject> {
             agents[agent.TriggerId] = new TriggerObjectAgent(agent);
         }
 
-        Actors = actors;
-        Cameras = cameras;
-        Cubes = cubes;
-        Effects = effects;
-        Ladders = ladders;
-        Meshes = meshes;
-        Ropes = ropes;
-        Sounds = sounds;
-        Agents = agents;
-
-        Dictionary<int, TriggerBox> boxes = new();
+        boxes = new();
         foreach (Ms2TriggerBox box in entities.Trigger.Boxes) {
             boxes[box.TriggerId] = new TriggerBox(box);
         }
-
-        Boxes = boxes;
     }
 
-    public int Count => Actors.Count + Cameras.Count + Cubes.Count + Effects.Count + Ladders.Count + Meshes.Count + Ropes.Count + Sounds.Count + Agents.Count;
+    /// <summary>
+    /// Creates or retrieves a Trigger Mesh placeholder. Useful when a trigger script references
+    /// a mesh id that is missing from the DB import.
+    /// </summary>
+    public TriggerObjectMesh GetOrAddMesh(int triggerId) {
+        if (meshes.TryGetValue(triggerId, out TriggerObjectMesh? mesh)) {
+            return mesh;
+        }
+
+        // Scale/minimapInvisible are not important for updates; the client already has the actual mesh.
+        Ms2TriggerMesh meta = new Ms2TriggerMesh(1f, triggerId, Visible: true, MinimapInvisible: false);
+        mesh = new TriggerObjectMesh(meta);
+        meshes[triggerId] = mesh;
+        return mesh;
+    }
+
+    /// <summary>
+    /// Creates or retrieves a Trigger Agent placeholder. Useful when a trigger script references
+    /// an agent id that is missing from the DB import.
+    /// </summary>
+    public TriggerObjectAgent GetOrAddAgent(int triggerId) {
+        if (agents.TryGetValue(triggerId, out TriggerObjectAgent? agent)) {
+            return agent;
+        }
+
+        Ms2TriggerAgent meta = new Ms2TriggerAgent(triggerId, Visible: true);
+        agent = new TriggerObjectAgent(meta);
+        agents[triggerId] = agent;
+        return agent;
+    }
+
+    public int Count => actors.Count + cameras.Count + cubes.Count + effects.Count + ladders.Count + meshes.Count + ropes.Count + sounds.Count + agents.Count;
 
     public IEnumerator<ITriggerObject> GetEnumerator() {
-        foreach (TriggerObjectActor actor in Actors.Values) yield return actor;
-        foreach (TriggerObjectCamera camera in Cameras.Values) yield return camera;
-        foreach (TriggerObjectCube cube in Cubes.Values) yield return cube;
-        foreach (TriggerObjectEffect effect in Effects.Values) yield return effect;
-        foreach (TriggerObjectLadder ladder in Ladders.Values) yield return ladder;
-        foreach (TriggerObjectMesh mesh in Meshes.Values) yield return mesh;
-        foreach (TriggerObjectRope rope in Ropes.Values) yield return rope;
-        foreach (TriggerObjectSound sound in Sounds.Values) yield return sound;
-        foreach (TriggerObjectAgent agent in Agents.Values) yield return agent;
+        foreach (TriggerObjectActor actor in actors.Values) yield return actor;
+        foreach (TriggerObjectCamera camera in cameras.Values) yield return camera;
+        foreach (TriggerObjectCube cube in cubes.Values) yield return cube;
+        foreach (TriggerObjectEffect effect in effects.Values) yield return effect;
+        foreach (TriggerObjectLadder ladder in ladders.Values) yield return ladder;
+        foreach (TriggerObjectMesh mesh in meshes.Values) yield return mesh;
+        foreach (TriggerObjectRope rope in ropes.Values) yield return rope;
+        foreach (TriggerObjectSound sound in sounds.Values) yield return sound;
+        foreach (TriggerObjectAgent agent in agents.Values) yield return agent;
     }
 
     IEnumerator IEnumerable.GetEnumerator() {

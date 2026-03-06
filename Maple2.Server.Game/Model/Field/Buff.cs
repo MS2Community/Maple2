@@ -211,6 +211,9 @@ public class Buff : IUpdatable, IByteSerializable {
         if (updated.Count > 0) {
             Field.Broadcast(StatsPacket.Update(Owner, updated.ToArray()));
         }
+        if (Caster is FieldPlayer casterPlayer && casterPlayer.Session.Dungeon.UserRecord != null && record.HpAmount > 0) {
+            casterPlayer.Session.Dungeon.UserRecord.AccumulationRecords[DungeonAccumulationRecordType.TotalHealing] += record.HpAmount;
+        }
         Field.Broadcast(SkillDamagePacket.Heal(record));
     }
 

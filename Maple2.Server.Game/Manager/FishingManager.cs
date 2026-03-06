@@ -336,6 +336,21 @@ public class FishingManager {
             session.Field.Broadcast(FishingPacket.PrizeFish(session.PlayerName, selectedFish.Id));
         }
         session.ConditionUpdate(ConditionType.fish, codeLong: selectedFish.Id, targetLong: session.Field.MapId);
+        // ====== 钓鱼给角色经验 ======
+        long charExp = selectedFish.Exp;
+        
+        // 可选倍率：首次 / 奖牌鱼
+        if (caughtFishType == CaughtFishType.FirstKind) {
+            charExp *= 2;
+        }
+        if (caughtFishType == CaughtFishType.Prize) {
+            charExp *= 2;
+        }
+        
+        if (charExp > 0) {
+            session.Exp.AddExp(ExpType.fishing, modifier: 0f, additionalExp: charExp);
+        }
+        // ====== 角色经验结束 ======
 
         if (masteryExp == 0) {
             return;
