@@ -9,11 +9,10 @@ public class BonusAttack {
         }
 
         double weaponBonusAttackCoefficient = RarityMultiplier(rightHandRarity);
-        if (leftHandRarity == 0) {
-            return weaponBonusAttackCoefficient;
+        if (leftHandRarity > 0) {
+            weaponBonusAttackCoefficient = 0.5 * (weaponBonusAttackCoefficient + RarityMultiplier(leftHandRarity));
         }
 
-        weaponBonusAttackCoefficient = 0.5 * (weaponBonusAttackCoefficient + RarityMultiplier(leftHandRarity));
         return 4.96 * weaponBonusAttackCoefficient * JobBonusMultiplier(jobCode);
     }
 

@@ -73,8 +73,8 @@ public class StatsManager {
         return (1, 1);
 
         double BonusAttackCoefficient(FieldPlayer player) {
-            int leftHandRarity = player.Session.Item.Equips.Get(EquipSlot.RH)?.Rarity ?? 0;
-            int rightHandRarity = player.Session.Item.Equips.Get(EquipSlot.LH)?.Rarity ?? 0;
+            int rightHandRarity = player.Session.Item.Equips.Get(EquipSlot.RH)?.Rarity ?? 0;
+            int leftHandRarity = player.Session.Item.Equips.Get(EquipSlot.LH)?.Rarity ?? 0;
             return BonusAttack.Coefficient(rightHandRarity, leftHandRarity, player.Value.Character.Job.Code());
         }
     }
