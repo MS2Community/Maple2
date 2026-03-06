@@ -36,7 +36,7 @@ public class MesoMarketHandler : FieldPacketHandler {
         var command = packet.Read<Command>();
         switch (command) {
             case Command.Load:
-                HandleLoad(session, Constants);
+                HandleLoad(session);
                 return;
             case Command.Create:
                 HandleCreate(session, packet);
