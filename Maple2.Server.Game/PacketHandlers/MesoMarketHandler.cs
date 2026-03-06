@@ -53,7 +53,7 @@ public class MesoMarketHandler : FieldPacketHandler {
         }
     }
 
-    private static void HandleLoad(GameSession session, ConstantsTable constants) {
+    private static void HandleLoad(GameSession session) {
         session.Send(MesoMarketPacket.Load(AVERAGE_PRICE));
         session.Send(MesoMarketPacket.Quota(session.Player.Value.Account.MesoMarketListed, session.Player.Value.Account.MesoMarketPurchased));
 

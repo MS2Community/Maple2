@@ -33,8 +33,7 @@ public class Tombstone : IByteSerializable {
 
     public Tombstone(FieldPlayer owner, int totalDeaths) {
         Owner = owner;
-        TotalHitCount = (byte) Math.Min(totalDeaths * Constants.hitPerDeadCount,
-            Constants.hitPerDeadCount * Constants.maxDeadCount);
+        TotalHitCount = (byte) Math.Min(totalDeaths * Constants.hitPerDeadCount, Constants.hitPerDeadCount * Constants.maxDeadCount);
         hitsRemaining = TotalHitCount;
     }
     public void WriteTo(IByteWriter writer) {

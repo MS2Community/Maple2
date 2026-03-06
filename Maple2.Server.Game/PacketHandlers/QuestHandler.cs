@@ -69,7 +69,7 @@ public class QuestHandler : FieldPacketHandler {
                 HandleGoToDungeon(session, packet);
                 break;
             case Command.SkyFortress:
-                HandleSkyFortressTeleport(session, Constants);
+                HandleSkyFortressTeleport(session);
                 break;
             case Command.MapleGuide:
                 HandleMapleGuide(session, packet);
@@ -267,13 +267,13 @@ public class QuestHandler : FieldPacketHandler {
         session.Quest.CompleteFieldMission(mission);
     }
 
-    private static void HandleSkyFortressTeleport(GameSession session, ConstantsTable constants) {
-        if (!session.Quest.TryGetQuest(constants.FameContentsRequireQuestID, out Quest? quest) || quest.State != QuestState.Completed) {
+    private void HandleSkyFortressTeleport(GameSession session) {
+        if (!session.Quest.TryGetQuest(Constants.FameContentsRequireQuestID, out Quest? quest) || quest.State != QuestState.Completed) {
             return;
         }
 
-        session.Send(session.PrepareField(constants.FameContentsSkyFortressGotoMapID,
-            constants.FameContentsSkyFortressGotoPortalID)
+        session.Send(session.PrepareField(Constants.FameContentsSkyFortressGotoMapID,
+            Constants.FameContentsSkyFortressGotoPortalID)
             ? FieldEnterPacket.Request(session.Player)
             : FieldEnterPacket.Error(MigrationError.s_move_err_default));
     }
