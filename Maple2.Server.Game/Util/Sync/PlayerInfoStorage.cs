@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
+using Maple2.Database.Storage;
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
 using Maple2.Server.Core.Sync;
@@ -9,7 +10,7 @@ using WorldClient = Maple2.Server.World.Service.World.WorldClient;
 
 namespace Maple2.Server.Game.Util.Sync;
 
-public class PlayerInfoStorage {
+public class PlayerInfoStorage : IPlayerInfoProvider {
     private readonly WorldClient world;
     // TODO: Just using dictionary for now, might need eviction at some point (LRUCache)
     private readonly ConcurrentDictionary<long, PlayerInfo> cache;
@@ -24,6 +25,11 @@ public class PlayerInfoStorage {
 
         cache = new ConcurrentDictionary<long, PlayerInfo>();
         listeners = new ConcurrentDictionary<long, IDictionary<int, PlayerInfoListener>>();
+    }
+
+
+    public PlayerInfo? GetPlayerInfo(long id) {
+        return GetOrFetch(id, out PlayerInfo? info) ? info : null;
     }
 
     public bool GetOrFetch(long characterId, [NotNullWhen(true)] out PlayerInfo? info) {

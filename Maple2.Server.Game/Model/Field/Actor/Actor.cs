@@ -152,6 +152,15 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             Stats.Values[BasicAttribute.Health].Add(damageAmount);
             Field.Broadcast(StatsPacket.Update(this, BasicAttribute.Health));
             OnDamageReceived(caster, positiveDamage);
+
+            if (caster is FieldPlayer casterPlayer && casterPlayer.Session.Dungeon.UserRecord != null) {
+                casterPlayer.Session.Dungeon.UserRecord.AccumulationRecords[DungeonAccumulationRecordType.TotalDamage] += (int) positiveDamage;
+                casterPlayer.Session.Dungeon.UserRecord.AccumulationRecords[DungeonAccumulationRecordType.TotalHitCount] += targetRecord.Damage.Count(x => x.Amount > 0 && x.Type is DamageType.Normal or DamageType.Critical);
+                casterPlayer.Session.Dungeon.UserRecord.AccumulationRecords[DungeonAccumulationRecordType.TotalCriticalDamage] += (int) targetRecord.Damage.Where(x => x.Type == DamageType.Critical).Sum(x => x.Amount);
+            }
+            if (this is FieldPlayer targetPlayer && targetPlayer.Session.Dungeon.UserRecord != null) {
+                targetPlayer.Session.Dungeon.UserRecord.AccumulationRecords[DungeonAccumulationRecordType.IncomingDamage] += (int) positiveDamage;
+            }
         }
 
         foreach ((DamageType damageType, long amount) in targetRecord.Damage) {

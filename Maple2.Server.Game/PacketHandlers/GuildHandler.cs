@@ -39,8 +39,8 @@ public class GuildHandler : PacketHandler<GameSession> {
         SendApplication = 80,
         CancelApplication = 81,
         RespondApplication = 82,
-        Unknown83 = 83,
-        ListApplications = 84,
+        ListApplications = 83,
+        ListAppliedGuilds = 84,
         SearchGuilds = 85,
         SearchGuildName = 86,
         UseBuff = 88,
@@ -128,6 +128,9 @@ public class GuildHandler : PacketHandler<GameSession> {
                 return;
             case Command.ListApplications:
                 HandleListApplications(session);
+                return;
+            case Command.ListAppliedGuilds:
+                HandleListAppliedGuilds(session);
                 return;
             case Command.SearchGuilds:
                 HandleSearchGuilds(session, packet);
@@ -579,8 +582,48 @@ public class GuildHandler : PacketHandler<GameSession> {
     }
 
     private void HandleUpdateRank(GameSession session, IByteReader packet) {
-        packet.ReadByte();
+        if (session.Guild.Guild == null) {
+            return;
+        }
+
+        byte rankId = packet.ReadByte();
         var rank = packet.ReadClass<GuildRank>();
+        rank.Id = rankId;
+
+        if (!session.Guild.HasPermission(session.CharacterId, GuildPermission.EditRank)) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_no_authority));
+            return;
+        }
+        if (rankId >= session.Guild.Guild.Ranks.Count) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_invalid_grade_index));
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(rank.Name) || rank.Name.Length > Constant.GuildNameLengthMax) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_invalid_grade_data));
+            return;
+        }
+
+        session.Guild.Guild.Ranks[rankId].Name = rank.Name;
+        session.Guild.Guild.Ranks[rankId].Permission = rank.Permission;
+
+        using GameStorage.Request db = session.GameStorage.Context();
+        if (!db.SaveGuild(session.Guild.Guild)) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_unknown));
+            return;
+        }
+
+        foreach (GuildMember member in session.Guild.Guild.Members.Values) {
+            if (!session.FindSession(member.CharacterId, out GameSession? other) || other.Guild.Guild == null) {
+                continue;
+            }
+            if (rankId < other.Guild.Guild.Ranks.Count) {
+                other.Guild.Guild.Ranks[rankId].Name = rank.Name;
+                other.Guild.Guild.Ranks[rankId].Permission = rank.Permission;
+            }
+            other.Send(GuildPacket.NotifyUpdateRank(new InterfaceText("s_guild_change_grade_sucess", false), rank));
+        }
+
+        session.Send(GuildPacket.UpdateRank(rank));
     }
 
     private void HandleUpdateFocus(GameSession session, IByteReader packet) {
@@ -595,28 +638,187 @@ public class GuildHandler : PacketHandler<GameSession> {
 
     private void HandleSendApplication(GameSession session, IByteReader packet) {
         long guildId = packet.ReadLong();
+        if (session.Guild.Guild != null) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_has_guild));
+            return;
+        }
+
+        using GameStorage.Request db = session.GameStorage.Context();
+        Guild? guild = db.GetGuild(guildId);
+        if (guild == null) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_null_guild));
+            return;
+        }
+
+        GuildApplication? application = db.CreateGuildApplication(session.PlayerInfo, guildId, session.CharacterId);
+        if (application == null) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_unknown));
+            return;
+        }
+
+        session.Send(GuildPacket.SendApplication(application.Id, guild.Name));
+
+        foreach (GuildMember member in guild.Members.Values) {
+            if (!session.FindSession(member.CharacterId, out GameSession? guildSession)) {
+                continue;
+            }
+
+            GuildRank? rank = guild.Ranks.FirstOrDefault(x => x.Id == member.Rank);
+            if (rank == null) {
+                continue;
+            }
+
+            if (!rank.Permission.HasFlag(GuildPermission.InviteMembers)) {
+                continue;
+            }
+
+            guildSession.Send(GuildPacket.ReceiveApplication(application));
+        }
     }
 
     private void HandleCancelApplication(GameSession session, IByteReader packet) {
         long applicationId = packet.ReadLong();
+        using GameStorage.Request db = session.GameStorage.Context();
+        GuildApplication? application = db.GetGuildApplication(session.PlayerInfo, applicationId);
+        if (application == null || application.Applicant.CharacterId != session.CharacterId) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_unknown));
+            return;
+        }
+        if (!db.DeleteGuildApplication(applicationId)) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_unknown));
+            return;
+        }
+
+        session.Send(GuildPacket.CancelApplication(applicationId, application.Guild.Name));
     }
 
     private void HandleRespondApplication(GameSession session, IByteReader packet) {
+        static GuildMember CloneGuildMember(GuildMember member) {
+            return new GuildMember {
+                GuildId = member.GuildId,
+                Info = member.Info.Clone(),
+                Message = member.Message,
+                Rank = member.Rank,
+                WeeklyContribution = member.WeeklyContribution,
+                TotalContribution = member.TotalContribution,
+                DailyDonationCount = member.DailyDonationCount,
+                JoinTime = member.JoinTime,
+                CheckinTime = member.CheckinTime,
+                DonationTime = member.DonationTime,
+            };
+        }
+
         long applicationId = packet.ReadLong();
         bool accepted = packet.ReadBool();
+        if (session.Guild.Guild == null) {
+            return;
+        }
+        if (!session.Guild.HasPermission(session.CharacterId, GuildPermission.InviteMembers)) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_no_authority));
+            return;
+        }
+
+        using GameStorage.Request db = session.GameStorage.Context();
+        GuildApplication? application = db.GetGuildApplication(session.PlayerInfo, applicationId);
+        if (application == null || application.Guild.Id != session.Guild.Id) {
+            session.Send(GuildPacket.Error(GuildError.s_guild_err_unknown));
+            return;
+        }
+
+        if (accepted) {
+            GuildMember? newMember = db.CreateGuildMember(session.Guild.Id, application.Applicant);
+            if (newMember == null) {
+                session.Send(GuildPacket.Error(GuildError.s_guild_err_fail_addmember));
+                return;
+            }
+
+            if (!db.DeleteGuildApplication(applicationId)) {
+                session.Send(GuildPacket.Error(GuildError.s_guild_err_unknown));
+                return;
+            }
+
+            GuildMember[] currentMembers = session.Guild.Guild.Members.Values.ToArray();
+            session.Guild.Guild.Members.TryAdd(newMember.CharacterId, newMember);
+
+            // Refresh the guild master's member list immediately even if self session lookup fails.
+            session.Send(GuildPacket.Joined(session.PlayerName, CloneGuildMember(newMember)));
+
+            foreach (GuildMember member in currentMembers) {
+                if (member.CharacterId == session.CharacterId) {
+                    continue;
+                }
+                if (!session.FindSession(member.CharacterId, out GameSession? other)) {
+                    continue;
+                }
+
+                other.Guild.AddMember(session.PlayerName, CloneGuildMember(newMember));
+            }
+
+            if (session.FindSession(newMember.CharacterId, out GameSession? applicantSession)) {
+                if (applicantSession.Guild.Guild == null) {
+                    GuildInfoResponse guildInfo = applicantSession.World.GuildInfo(new GuildInfoRequest {
+                        GuildId = session.Guild.Id,
+                    });
+                    if (guildInfo.Guild != null) {
+                        applicantSession.Guild.SetGuild(guildInfo.Guild);
+                    }
+                }
+
+                if (applicantSession.Guild.Guild != null && applicantSession.Guild.GetMember(newMember.CharacterId) == null) {
+                    applicantSession.Guild.AddMember(session.PlayerName, CloneGuildMember(newMember));
+                }
+                applicantSession.Guild.Load();
+                applicantSession.Send(GuildPacket.ListAppliedGuilds(db.GetGuildApplicationsByApplicant(applicantSession.PlayerInfo, applicantSession.CharacterId)));
+            }
+
+            session.Send(GuildPacket.ListApplications(db.GetGuildApplications(session.PlayerInfo, session.Guild.Id)));
+        } else {
+            if (!db.DeleteGuildApplication(applicationId)) {
+                session.Send(GuildPacket.Error(GuildError.s_guild_err_unknown));
+                return;
+            }
+
+            session.Send(GuildPacket.ListApplications(db.GetGuildApplications(session.PlayerInfo, session.Guild.Id)));
+            if (session.FindSession(application.Applicant.CharacterId, out GameSession? applicantSession)) {
+                applicantSession.Send(GuildPacket.ListAppliedGuilds(db.GetGuildApplicationsByApplicant(applicantSession.PlayerInfo, applicantSession.CharacterId)));
+            }
+        }
+
+        session.Send(GuildPacket.RespondApplication(applicationId, application.Guild.Name, accepted));
     }
 
     private void HandleListApplications(GameSession session) {
+        using GameStorage.Request db = session.GameStorage.Context();
 
+        if (session.Guild.Guild == null) {
+            session.Send(GuildPacket.ListApplications(Array.Empty<GuildApplication>()));
+            return;
+        }
+
+        session.Send(GuildPacket.ListApplications(
+            db.GetGuildApplications(session.PlayerInfo, session.Guild.Id)
+        ));
     }
+    private void HandleListAppliedGuilds(GameSession session) {
+        using GameStorage.Request db = session.GameStorage.Context();
 
+        session.Send(GuildPacket.ListAppliedGuilds(
+            db.GetGuildApplicationsByApplicant(session.PlayerInfo, session.CharacterId)
+        ));
+    }
     private void HandleSearchGuilds(GameSession session, IByteReader packet) {
         var focus = packet.Read<GuildFocus>();
-        packet.ReadInt(); // 1
+        packet.ReadInt();
+
+        using GameStorage.Request db = session.GameStorage.Context();
+        session.Send(GuildPacket.ListGuilds(db.SearchGuilds(session.PlayerInfo, focus: focus)));
     }
 
     private void HandleSearchGuildName(GameSession session, IByteReader packet) {
         string guildName = packet.ReadUnicodeString();
+
+        using GameStorage.Request db = session.GameStorage.Context();
+        session.Send(GuildPacket.ListGuilds(db.SearchGuilds(session.PlayerInfo, guildName: guildName)));
     }
 
     private void HandleUseBuff(GameSession session, IByteReader packet) {
