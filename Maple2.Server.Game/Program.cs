@@ -106,6 +106,9 @@ builder.Services.AddSingleton<GameServer>(provider => new GameServer(
 ));
 builder.Services.AddHostedService<GameServer>(provider => provider.GetService<GameServer>()!);
 
+// Periodically persist online player state so restarts don't lose progress.
+builder.Services.AddHostedService<AutoSaveService>();
+
 builder.Services.AddGrpcHealthChecks();
 builder.Services.Configure<HealthCheckPublisherOptions>(options => {
     options.Delay = TimeSpan.Zero;
