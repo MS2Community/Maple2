@@ -39,7 +39,7 @@ public class ItemLockHandler : FieldPacketHandler {
                 HandleUnstage(session, packet);
                 return;
             case Command.Commit:
-                HandleCommit(session, packet, Constants);
+                HandleCommit(session, packet);
                 return;
         }
     }
@@ -77,7 +77,7 @@ public class ItemLockHandler : FieldPacketHandler {
         }
     }
 
-    private static void HandleCommit(GameSession session, IByteReader packet, ConstantsTable constants) {
+    private void HandleCommit(GameSession session, IByteReader packet) {
         bool unlock = packet.ReadBool(); // false - lock|true - unlock
 
         lock (session.Item) {
@@ -94,7 +94,7 @@ public class ItemLockHandler : FieldPacketHandler {
 
                 if (unlock && item.IsLocked) {
                     item.IsLocked = false;
-                    item.UnlockTime = DateTimeOffset.UtcNow.AddSeconds(constants.ItemUnLockTime).ToUnixTimeSeconds();
+                    item.UnlockTime = DateTimeOffset.UtcNow.AddSeconds(Constants.ItemUnLockTime).ToUnixTimeSeconds();
                     updatedItems.Add(item);
                 } else if (!unlock && !item.IsLocked) {
                     item.IsLocked = true;

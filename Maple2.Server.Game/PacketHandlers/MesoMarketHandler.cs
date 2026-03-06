@@ -39,7 +39,7 @@ public class MesoMarketHandler : FieldPacketHandler {
                 HandleLoad(session, Constants);
                 return;
             case Command.Create:
-                HandleCreate(session, packet, Constants);
+                HandleCreate(session, packet);
                 return;
             case Command.Cancel:
                 HandleCancel(session, packet);
@@ -62,11 +62,11 @@ public class MesoMarketHandler : FieldPacketHandler {
         session.Send(MesoMarketPacket.MyListings(myListings));
     }
 
-    private static void HandleCreate(GameSession session, IByteReader packet, ConstantsTable constants) {
+    private void HandleCreate(GameSession session, IByteReader packet) {
         long amount = packet.ReadLong();
         long price = packet.ReadLong();
 
-        if (amount != constants.MesoMarketBasePrice) {
+        if (amount != Constants.MesoMarketBasePrice) {
             session.Send(MesoMarketPacket.Error(s_mesoMarket_error_invalidSaleMoney));
             return;
         }
@@ -103,7 +103,7 @@ public class MesoMarketHandler : FieldPacketHandler {
         }
 
         session.Player.Value.Account.MesoMarketListed++;
-        session.Currency.Meso -= constants.MesoMarketBasePrice;
+        session.Currency.Meso -= Constants.MesoMarketBasePrice;
         session.Send(MesoMarketPacket.Create(listing));
         session.Send(MesoMarketPacket.Quota(session.Player.Value.Account.MesoMarketListed, session.Player.Value.Account.MesoMarketPurchased));
     }
