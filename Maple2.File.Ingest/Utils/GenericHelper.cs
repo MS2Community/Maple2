@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Reflection;
 
 namespace Maple2.File.Ingest.Utils;
+
 public static class GenericHelper {
     public static void SetValue(PropertyInfo prop, object? obj, object? value) {
         if (obj == null && value == null || value == null) return;
