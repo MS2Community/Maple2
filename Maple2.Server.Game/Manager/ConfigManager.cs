@@ -102,15 +102,16 @@ public class ConfigManager {
         skillPoints = load.SkillPoint ?? new SkillPoint();
         ExplorationProgress = load.ExplorationProgress;
 
-        statAttributes = new StatAttributes(new Dictionary<string, int>() {
+        statLimits = new Dictionary<string, int>() {
             { "StatPointLimit_str", Constants.StatPointLimit_str },
             { "StatPointLimit_dex", Constants.StatPointLimit_dex },
             { "StatPointLimit_int", Constants.StatPointLimit_int },
             { "StatPointLimit_luk", Constants.StatPointLimit_luk },
             { "StatPointLimit_hp", Constants.StatPointLimit_hp },
             { "StatPointLimit_cap", Constants.StatPointLimit_cap }
-        });
+        };
 
+        statAttributes = new StatAttributes(statLimits);
         if (load.StatPoints != null) {
             foreach ((AttributePointSource source, int amount) in load.StatPoints) {
                 if (source == AttributePointSource.Prestige) {
