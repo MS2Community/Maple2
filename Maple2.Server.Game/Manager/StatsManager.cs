@@ -140,6 +140,13 @@ public class StatsManager {
         AddBuffs(player);
         Values.Total();
         StatConversion(player);
+
+        // Stat rebuild via AddBase/AddTotal restores Current to Total,
+        // but a dead player must stay at 0 HP until revived.
+        if (player.IsDead) {
+            Values[BasicAttribute.Health].Current = 0;
+        }
+
         Actor.Field.Broadcast(StatsPacket.Init(player));
         Actor.Field.Broadcast(StatsPacket.Update(player), player.Session);
 
