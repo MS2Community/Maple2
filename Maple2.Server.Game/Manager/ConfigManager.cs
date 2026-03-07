@@ -18,6 +18,12 @@ public class ConfigManager {
 
     private readonly GameSession session;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     private readonly IDictionary<int, KeyBind> keyBinds;
     private short activeHotBar;
     private readonly List<HotBar> hotBars;
@@ -27,6 +33,8 @@ public class ConfigManager {
     private readonly IList<long> favoriteDesigners;
     private readonly IDictionary<LapenshardSlot, int> lapenshards;
     private readonly IDictionary<int, SkillCooldown> skillCooldowns;
+    private readonly IDictionary<string, int> statLimits;
+
     public long DeathPenaltyEndTick {
         get => session.Player.Value.Character.DeathTick;
         private set => session.Player.Value.Character.DeathTick = value;
@@ -94,7 +102,16 @@ public class ConfigManager {
         skillPoints = load.SkillPoint ?? new SkillPoint();
         ExplorationProgress = load.ExplorationProgress;
 
-        statAttributes = new StatAttributes();
+        statLimits = new Dictionary<string, int>() {
+            { "StatPointLimit_str", Constants.StatPointLimit_str },
+            { "StatPointLimit_dex", Constants.StatPointLimit_dex },
+            { "StatPointLimit_int", Constants.StatPointLimit_int },
+            { "StatPointLimit_luk", Constants.StatPointLimit_luk },
+            { "StatPointLimit_hp", Constants.StatPointLimit_hp },
+            { "StatPointLimit_cap", Constants.StatPointLimit_cap }
+        };
+
+        statAttributes = new StatAttributes(statLimits);
         if (load.StatPoints != null) {
             foreach ((AttributePointSource source, int amount) in load.StatPoints) {
                 if (source == AttributePointSource.Prestige) {
@@ -325,7 +342,7 @@ public class ConfigManager {
     /// <param name="endTick">The tick when the penalty ends, or 0 to reset</param>
     public void UpdateDeathPenalty(long endTick) {
         // Skip penalty for low level players
-        if (session.Player.Value.Character.Level < Constant.UserRevivalPaneltyMinLevel) {
+        if (session.Player.Value.Character.Level < Constants.UserRevivalPaneltyMinLevel) {
             return;
         }
 
@@ -422,7 +439,7 @@ public class ConfigManager {
     #region StatPoints
     public void AllocateStatPoint(BasicAttribute type) {
         // Invalid stat type.
-        if (StatAttributes.PointAllocation.StatLimit(type) <= 0) {
+        if (StatAttributes.PointAllocation.StatLimit(type, statLimits) <= 0) {
             return;
         }
 
@@ -432,7 +449,7 @@ public class ConfigManager {
         }
 
         // Reached limit for allocation.
-        if (session.Config.statAttributes.Allocation[type] >= StatAttributes.PointAllocation.StatLimit(type)) {
+        if (session.Config.statAttributes.Allocation[type] >= StatAttributes.PointAllocation.StatLimit(type, statLimits)) {
             session.Send(NoticePacket.Message("s_char_info_limit_stat_point"));
             return;
         }

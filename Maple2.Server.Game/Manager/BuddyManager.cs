@@ -17,6 +17,12 @@ namespace Maple2.Server.Game.Manager;
 public class BuddyManager : IDisposable {
     private readonly GameSession session;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     private readonly IDictionary<long, Buddy> buddies;
     private readonly IDictionary<long, Buddy> blocked;
 
@@ -87,7 +93,7 @@ public class BuddyManager : IDisposable {
             session.Send(BuddyPacket.Invite(error: s_buddy_err_my_id_ex));
             return;
         }
-        if (buddies.Count >= Constant.MaxBuddyCount) {
+        if (buddies.Count >= Constants.MaxBuddyCount) {
             session.Send(BuddyPacket.Invite(error: s_buddy_err_max_buddy));
             return;
         }
@@ -113,7 +119,7 @@ public class BuddyManager : IDisposable {
 
         try {
             db.BeginTransaction();
-            if (db.CountBuddy(receiverId) >= Constant.MaxBuddyCount) {
+            if (db.CountBuddy(receiverId) >= Constants.MaxBuddyCount) {
                 session.Send(BuddyPacket.Invite(name: name, error: s_buddy_err_target_full));
                 return;
             }
@@ -262,7 +268,7 @@ public class BuddyManager : IDisposable {
             session.Send(BuddyPacket.Block(error: s_buddy_err_unknown));
             return;
         }
-        if (blocked.Count >= Constant.MaxBlockCount) {
+        if (blocked.Count >= Constants.MaxBlockCount) {
             session.Send(BuddyPacket.Block(name: name, error: s_buddy_err_max_block));
             return;
         }

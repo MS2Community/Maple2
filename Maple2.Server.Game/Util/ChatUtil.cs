@@ -8,7 +8,7 @@ namespace Maple2.Server.Game.Util;
 
 public static class ChatUtil {
     public static void SendEnchantAnnouncement(GameSession session, Item item) {
-        if (Constant.enchantSuccessBroadcastingLevel > item.Enchant?.Enchants) {
+        if (session.ServerTableMetadata.ConstantsTable.enchantSuccessBroadcastingLevel > item.Enchant?.Enchants) {
             return;
         }
 

@@ -86,6 +86,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(autofac => {
         .OnActivated(e => {
             var channelLookup = e.Context.Resolve<ChannelClientLookup>();
             var playerInfoLookup = e.Context.Resolve<PlayerInfoLookup>();
+            var partyLookup = e.Context.Resolve<PartyLookup>();
             channelLookup.InjectDependencies(e.Instance, playerInfoLookup);
         })
         .SingleInstance();

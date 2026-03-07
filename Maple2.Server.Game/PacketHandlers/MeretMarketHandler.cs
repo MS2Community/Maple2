@@ -21,6 +21,8 @@ public class MeretMarketHandler : FieldPacketHandler {
     #region Autofac Autowired
     // ReSharper disable MemberCanBePrivate.Global
     public required TableMetadataStorage TableMetadata { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
 
@@ -151,10 +153,10 @@ public class MeretMarketHandler : FieldPacketHandler {
             Look = item.Template,
             Blueprint = item.Blueprint ?? new ItemBlueprint(),
             Status = UgcMarketListingStatus.Active,
-            PromotionEndTime = promote ? DateTime.Now.AddHours(Constant.UGCShopAdHour).ToEpochSeconds() : 0,
-            ListingEndTime = DateTime.Now.AddDays(Constant.UGCShopSaleDay).ToEpochSeconds(),
+            PromotionEndTime = promote ? DateTime.Now.AddHours(Constants.UGCShopAdHour).ToEpochSeconds() : 0,
+            ListingEndTime = DateTime.Now.AddDays(Constants.UGCShopSaleDay).ToEpochSeconds(),
             CreationTime = DateTime.Now.ToEpochSeconds(),
-            Price = Math.Clamp(price, Constant.UGCShopSellMinPrice, Constant.UGCShopSellMaxPrice),
+            Price = Math.Clamp(price, Constants.UGCShopSellMinPrice, Constants.UGCShopSellMaxPrice),
             TabId = tabId,
         };
 
@@ -198,8 +200,8 @@ public class MeretMarketHandler : FieldPacketHandler {
         }
 
         item.Price = price;
-        item.PromotionEndTime = promote ? DateTime.Now.AddHours(Constant.UGCShopAdHour).ToEpochSeconds() : 0;
-        item.ListingEndTime = DateTime.Now.AddDays(Constant.UGCShopSaleDay).ToEpochSeconds();
+        item.PromotionEndTime = promote ? DateTime.Now.AddHours(Constants.UGCShopAdHour).ToEpochSeconds() : 0;
+        item.ListingEndTime = DateTime.Now.AddDays(Constants.UGCShopSaleDay).ToEpochSeconds();
         item.Status = UgcMarketListingStatus.Active;
         item.Description = description;
         item.Tags = tags;

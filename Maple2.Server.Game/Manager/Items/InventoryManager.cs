@@ -20,6 +20,12 @@ public class InventoryManager {
 
     private readonly GameSession session;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     private readonly Dictionary<InventoryType, ItemCollection> tabs;
     private readonly List<Item> delete;
 
@@ -44,44 +50,44 @@ public class InventoryManager {
         }
     }
 
-    private static short BaseSize(InventoryType type) {
+    private short BaseSize(InventoryType type) {
         return type switch {
-            InventoryType.Gear => Constant.BagSlotTabGameCount,
-            InventoryType.Outfit => Constant.BagSlotTabSkinCount,
-            InventoryType.Mount => Constant.BagSlotTabSummonCount,
-            InventoryType.Catalyst => Constant.BagSlotTabMaterialCount,
-            InventoryType.FishingMusic => Constant.BagSlotTabLifeCount,
-            InventoryType.Quest => Constant.BagSlotTabQuestCount,
-            InventoryType.Gemstone => Constant.BagSlotTabGemCount,
-            InventoryType.Misc => Constant.BagSlotTabMiscCount,
-            InventoryType.LifeSkill => Constant.BagSlotTabMasteryCount,
-            InventoryType.Pets => Constant.BagSlotTabPetCount,
-            InventoryType.Consumable => Constant.BagSlotTabActiveSkillCount,
-            InventoryType.Currency => Constant.BagSlotTabCoinCount,
-            InventoryType.Badge => Constant.BagSlotTabBadgeCount,
-            InventoryType.Lapenshard => Constant.BagSlotTabLapenshardCount,
-            InventoryType.Fragment => Constant.BagSlotTabPieceCount,
+            InventoryType.Gear => Constants.bagSlotTabGameCount[0],
+            InventoryType.Outfit => Constants.bagSlotTabSkinCount[0],
+            InventoryType.Mount => Constants.bagSlotTabSummonCount[0],
+            InventoryType.Catalyst => Constants.bagSlotTabMaterialCount[0],
+            InventoryType.FishingMusic => Constants.bagSlotTabLifeCount[0],
+            InventoryType.Quest => Constants.bagSlotTabQuestCount[0],
+            InventoryType.Gemstone => Constants.bagSlotTabGemCount[0],
+            InventoryType.Misc => Constants.bagSlotTabMiscCount[0],
+            InventoryType.LifeSkill => Constants.bagSlotTabMasteryCount[0],
+            InventoryType.Pets => Constants.bagSlotTabPetCount[0],
+            InventoryType.Consumable => Constants.bagSlotTabActiveSkillCount[0],
+            InventoryType.Currency => Constants.bagSlotTabCoinCount[0],
+            InventoryType.Badge => Constants.bagSlotTabBadgeCount[0],
+            InventoryType.Lapenshard => Constants.bagSlotTabLapenShardCount[0],
+            InventoryType.Fragment => Constants.bagSlotTabPieceCount[0],
             _ => throw new ArgumentOutOfRangeException($"Invalid InventoryType: {type}"),
         };
     }
 
-    private static short MaxExpandSize(InventoryType type) {
+    private short MaxExpandSize(InventoryType type) {
         return type switch {
-            InventoryType.Gear => Constant.BagSlotTabGameCountMax,
-            InventoryType.Outfit => Constant.BagSlotTabSkinCountMax,
-            InventoryType.Mount => Constant.BagSlotTabSummonCountMax,
-            InventoryType.Catalyst => Constant.BagSlotTabMaterialCountMax,
-            InventoryType.FishingMusic => Constant.BagSlotTabLifeCountMax,
-            InventoryType.Quest => Constant.BagSlotTabQuestCountMax,
-            InventoryType.Gemstone => Constant.BagSlotTabGemCountMax,
-            InventoryType.Misc => Constant.BagSlotTabMiscCountMax,
-            InventoryType.LifeSkill => Constant.BagSlotTabMasteryCountMax,
-            InventoryType.Pets => Constant.BagSlotTabPetCountMax,
-            InventoryType.Consumable => Constant.BagSlotTabActiveSkillCountMax,
-            InventoryType.Currency => Constant.BagSlotTabCoinCountMax,
-            InventoryType.Badge => Constant.BagSlotTabBadgeCountMax,
-            InventoryType.Lapenshard => Constant.BagSlotTabLapenshardCountMax,
-            InventoryType.Fragment => Constant.BagSlotTabPieceCountMax,
+            InventoryType.Gear => Constants.bagSlotTabGameCount[1],
+            InventoryType.Outfit => Constants.bagSlotTabSkinCount[1],
+            InventoryType.Mount => Constants.bagSlotTabSummonCount[1],
+            InventoryType.Catalyst => Constants.bagSlotTabMaterialCount[1],
+            InventoryType.FishingMusic => Constants.bagSlotTabLifeCount[1],
+            InventoryType.Quest => Constants.bagSlotTabQuestCount[1],
+            InventoryType.Gemstone => Constants.bagSlotTabGemCount[1],
+            InventoryType.Misc => Constants.bagSlotTabMiscCount[1],
+            InventoryType.LifeSkill => Constants.bagSlotTabMasteryCount[1],
+            InventoryType.Pets => Constants.bagSlotTabPetCount[1],
+            InventoryType.Consumable => Constants.bagSlotTabActiveSkillCount[1],
+            InventoryType.Currency => Constants.bagSlotTabCoinCount[1],
+            InventoryType.Badge => Constants.bagSlotTabBadgeCount[1],
+            InventoryType.Lapenshard => Constants.bagSlotTabLapenShardCount[1],
+            InventoryType.Fragment => Constants.bagSlotTabPieceCount[1],
             _ => throw new ArgumentOutOfRangeException($"Invalid InventoryType: {type}"),
         };
     }
@@ -557,7 +563,7 @@ public class InventoryManager {
                 return false;
             }
 
-            if (session.Currency.Meret < Constant.InventoryExpandPrice1Row) {
+            if (session.Currency.Meret < Constants.InventoryExpandPrice1Row) {
                 session.Send(ItemInventoryPacket.Error(s_cannot_charge_merat));
                 return false;
             }
@@ -566,7 +572,7 @@ public class InventoryManager {
                 return false;
             }
 
-            session.Currency.Meret -= Constant.InventoryExpandPrice1Row;
+            session.Currency.Meret -= Constants.InventoryExpandPrice1Row;
             if (session.Player.Value.Unlock.Expand.ContainsKey(type)) {
                 session.Player.Value.Unlock.Expand[type] = newExpand;
             } else {

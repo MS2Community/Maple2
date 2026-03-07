@@ -7,6 +7,13 @@ namespace Maple2.Server.Game.Model;
 
 public class Tombstone : IByteSerializable {
     public readonly FieldPlayer Owner;
+
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => Owner.Session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     public int ObjectId => Owner.ObjectId;
     private byte hitsRemaining;
     public byte HitsRemaining {
@@ -26,7 +33,7 @@ public class Tombstone : IByteSerializable {
 
     public Tombstone(FieldPlayer owner, int totalDeaths) {
         Owner = owner;
-        TotalHitCount = (byte) Math.Min(totalDeaths * Constant.hitPerDeadCount, Constant.hitPerDeadCount * Constant.maxDeadCount);
+        TotalHitCount = (byte) Math.Min(totalDeaths * Constants.hitPerDeadCount, Constants.hitPerDeadCount * Constants.maxDeadCount);
         hitsRemaining = TotalHitCount;
     }
     public void WriteTo(IByteWriter writer) {

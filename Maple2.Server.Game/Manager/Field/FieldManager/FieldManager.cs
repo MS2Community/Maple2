@@ -55,6 +55,7 @@ public partial class FieldManager : IField {
     public TriggerCache TriggerCache { get; init; } = null!;
     public Factory FieldFactory { get; init; } = null!;
     public IGraphicsContext DebugGraphicsContext { get; init; } = null!;
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
 
@@ -71,6 +72,7 @@ public partial class FieldManager : IField {
     private readonly Thread thread;
     private readonly List<(FieldPacketHandler handler, GameSession session, ByteReader reader)> queuedPackets;
     private bool initialized;
+
     public bool Disposed { get; private set; }
 
     private readonly ILogger logger = Log.Logger.ForContext<FieldManager>();
@@ -364,7 +366,7 @@ public partial class FieldManager : IField {
             return;
         }
 
-        player.FallDamage(Constant.FallBoundingAddedDistance);
+        player.FallDamage(Constants.FallBoundingAddedDistance);
         player.MoveToPosition(player.LastGroundPosition.Align() + new Vector3(0, 0, 150f), default);
     }
 

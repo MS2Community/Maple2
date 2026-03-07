@@ -28,6 +28,8 @@ public class FishingManager {
     private FishingTile? selectedTile;
     private IDictionary<Vector3, FishingTile> tiles = new Dictionary<Vector3, FishingTile>();
 
+    private ConstantsTable Constants => serverTableMetadata.ConstantsTable;
+
     private readonly ILogger logger = Log.ForContext<FishingManager>();
 
     public FishingManager(GameSession session, TableMetadataStorage tableMetadata, ServerTableMetadataStorage serverTableMetadata) {
@@ -239,12 +241,12 @@ public class FishingManager {
 
         selectedFish = fishes.Get();
 
-        int fishingTick = Constant.FisherBoreDuration;
+        int fishingTick = Constants.fisherBoreDuration;
         bool hasAutoFish = session.Player.Buffs.HasBuff(BuffEventType.AutoFish);
 
         // Fishing Success
         if (Random.Shared.Next(0, 10000) < selectedFish.BaitProbability) {
-            if (!hasAutoFish && Random.Shared.Next(0, 10000) < Constant.FishFightingProp) {
+            if (!hasAutoFish && Random.Shared.Next(0, 10000) < Constants.fishFightingProp) {
                 fishFightGame = true;
             }
 

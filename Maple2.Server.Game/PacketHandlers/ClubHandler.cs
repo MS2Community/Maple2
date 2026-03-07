@@ -34,6 +34,8 @@ public class ClubHandler : FieldPacketHandler {
     // ReSharper disable MemberCanBePrivate.Global
     public required WorldClient World { private get; init; }
     public required BanWordStorage BanWordStorage { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
 
@@ -71,7 +73,7 @@ public class ClubHandler : FieldPacketHandler {
             session.Send(ClubPacket.Error(ClubError.s_club_err_name_value));
             return;
         }
-        if (clubName.Length is < Constant.ClubNameLengthMin or > Constant.ClubNameLengthMax) {
+        if (clubName.Length < Constants.ClubNameLengthMin || clubName.Length > Constants.ClubNameLengthMax) {
             session.Send(ClubPacket.Error(ClubError.s_club_err_name_value));
             return;
         }
@@ -243,7 +245,7 @@ public class ClubHandler : FieldPacketHandler {
             session.Send(ClubPacket.Error(ClubError.s_club_err_name_value));
             return;
         }
-        if (newName.Length is < Constant.ClubNameLengthMin or > Constant.ClubNameLengthMax) {
+        if (newName.Length < Constants.ClubNameLengthMin || newName.Length > Constants.ClubNameLengthMax) {
             session.Send(ClubPacket.Error(ClubError.s_club_err_name_value));
             return;
         }

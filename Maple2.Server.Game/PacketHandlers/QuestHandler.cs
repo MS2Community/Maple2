@@ -36,6 +36,8 @@ public class QuestHandler : FieldPacketHandler {
     #region Autofac Autowired
     // ReSharper disable MemberCanBePrivate.Global
     public required TableMetadataStorage TableMetadata { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
 
@@ -265,13 +267,13 @@ public class QuestHandler : FieldPacketHandler {
         session.Quest.CompleteFieldMission(mission);
     }
 
-    private static void HandleSkyFortressTeleport(GameSession session) {
-        if (!session.Quest.TryGetQuest(Constant.FameContentsRequireQuestID, out Quest? quest) || quest.State != QuestState.Completed) {
+    private void HandleSkyFortressTeleport(GameSession session) {
+        if (!session.Quest.TryGetQuest(Constants.FameContentsRequireQuestID, out Quest? quest) || quest.State != QuestState.Completed) {
             return;
         }
 
-        session.Send(session.PrepareField(Constant.FameContentsSkyFortressGotoMapID,
-            Constant.FameContentsSkyFortressGotoPortalID)
+        session.Send(session.PrepareField(Constants.FameContentsSkyFortressGotoMapID,
+            Constants.FameContentsSkyFortressGotoPortalID)
             ? FieldEnterPacket.Request(session.Player)
             : FieldEnterPacket.Error(MigrationError.s_move_err_default));
     }

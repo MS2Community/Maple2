@@ -29,6 +29,7 @@ public class ServerTableMetadataStorage {
     private readonly Lazy<CombineSpawnTable> combineSpawnTable;
     private readonly Lazy<EnchantOptionTable> enchantOptionTable;
     private readonly Lazy<UnlimitedEnchantOptionTable> unlimitedEnchantOptionTable;
+    private readonly Lazy<ConstantsTable> constantsTable;
 
     public InstanceFieldTable InstanceFieldTable => instanceFieldTable.Value;
     public ScriptConditionTable ScriptConditionTable => scriptConditionTable.Value;
@@ -53,6 +54,7 @@ public class ServerTableMetadataStorage {
     public CombineSpawnTable CombineSpawnTable => combineSpawnTable.Value;
     public EnchantOptionTable EnchantOptionTable => enchantOptionTable.Value;
     public UnlimitedEnchantOptionTable UnlimitedEnchantOptionTable => unlimitedEnchantOptionTable.Value;
+    public ConstantsTable ConstantsTable => constantsTable.Value;
 
     public ServerTableMetadataStorage(MetadataContext context) {
         instanceFieldTable = Retrieve<InstanceFieldTable>(context, ServerTableNames.INSTANCE_FIELD);
@@ -78,6 +80,7 @@ public class ServerTableMetadataStorage {
         combineSpawnTable = Retrieve<CombineSpawnTable>(context, ServerTableNames.COMBINE_SPAWN);
         enchantOptionTable = Retrieve<EnchantOptionTable>(context, ServerTableNames.ENCHANT_OPTION);
         unlimitedEnchantOptionTable = Retrieve<UnlimitedEnchantOptionTable>(context, ServerTableNames.UNLIMITED_ENCHANT_OPTION);
+        constantsTable = Retrieve<ConstantsTable>(context, ServerTableNames.CONSTANTS);
     }
 
     public IEnumerable<GameEvent> GetGameEvents() {

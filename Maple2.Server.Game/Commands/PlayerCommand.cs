@@ -116,6 +116,12 @@ public class PlayerCommand : GameCommand {
     private class LevelCommand : Command {
         private readonly GameSession session;
 
+        #region Autofac Autowired
+        // ReSharper disable MemberCanBePrivate.Global
+        private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+        // ReSharper restore All
+        #endregion
+
         public LevelCommand(GameSession session) : base("level", "Set player level.") {
             this.session = session;
 
@@ -127,8 +133,8 @@ public class PlayerCommand : GameCommand {
 
         private void Handle(InvocationContext ctx, short level) {
             try {
-                if (level is < 1 or > Constant.characterMaxLevel) {
-                    ctx.Console.Error.WriteLine($"Invalid level: {level}. Must be between 1 and {Constant.characterMaxLevel}.");
+                if (level < 1 || level > Constants.characterMaxLevel) {
+                    ctx.Console.Error.WriteLine($"Invalid level: {level}. Must be between 1 and {Constants.characterMaxLevel}.");
                     return;
                 }
 
@@ -181,6 +187,12 @@ public class PlayerCommand : GameCommand {
     private class PrestigeCommand : Command {
         private readonly GameSession session;
 
+        #region Autofac Autowired
+        // ReSharper disable MemberCanBePrivate.Global
+        private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+        // ReSharper restore All
+        #endregion
+
         public PrestigeCommand(GameSession session) : base("prestige", "Sets prestige level") {
             this.session = session;
 
@@ -191,8 +203,8 @@ public class PlayerCommand : GameCommand {
 
         private void Handle(InvocationContext ctx, int level) {
             try {
-                if (level is < 1 or > Constant.AdventureLevelLimit) {
-                    ctx.Console.Error.WriteLine($"Invalid level: {level}. Must be between 1 and {Constant.AdventureLevelLimit}.");
+                if (level < 1 || level > Constants.AdventureLevelLimit) {
+                    ctx.Console.Error.WriteLine($"Invalid level: {level}. Must be between 1 and {Constants.AdventureLevelLimit}.");
                     return;
                 }
 

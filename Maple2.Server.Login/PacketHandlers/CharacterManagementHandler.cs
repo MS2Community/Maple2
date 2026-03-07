@@ -45,6 +45,8 @@ public class CharacterManagementHandler : PacketHandler<LoginSession> {
     public required BanWordStorage BanWordStorage { private get; init; }
     public required ItemMetadataStorage ItemMetadata { private get; init; }
     public required TableMetadataStorage TableMetadata { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
 
@@ -218,8 +220,8 @@ public class CharacterManagementHandler : PacketHandler<LoginSession> {
             return;
         }
 
-        if (character.Level >= Constant.CharacterDestroyDivisionLevel) {
-            character.DeleteTime = DateTimeOffset.UtcNow.AddSeconds(Constant.CharacterDestroyWaitSecond).ToUnixTimeSeconds();
+        if (character.Level >= Constants.CharacterDestroyDivisionLevel) {
+            character.DeleteTime = DateTimeOffset.UtcNow.AddSeconds(Constants.CharacterDestroyWaitSecond).ToUnixTimeSeconds();
             if (db.UpdateDelete(session.AccountId, characterId, character.DeleteTime)) {
                 session.Send(CharacterListPacket.BeginDelete(characterId, character.DeleteTime));
             } else {

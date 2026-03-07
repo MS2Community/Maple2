@@ -1,10 +1,10 @@
-﻿using System.Globalization;
-using System.Xml;
-using Maple2.Database.Extensions;
+﻿using Maple2.Database.Extensions;
 using Maple2.File.Ingest.Utils;
 using Maple2.File.IO;
 using Maple2.File.Parser;
 using Maple2.File.Parser.Enum;
+using Maple2.File.Parser.Flat.Convert;
+using Maple2.File.Parser.Xml.Table;
 using Maple2.File.Parser.Xml.Table.Server;
 using Maple2.Model;
 using Maple2.Model.Common;
@@ -13,6 +13,11 @@ using Maple2.Model.Error;
 using Maple2.Model.Game;
 using Maple2.Model.Game.Shop;
 using Maple2.Model.Metadata;
+using Newtonsoft.Json.Linq;
+using System.Globalization;
+using System.Numerics;
+using System.Reflection;
+using System.Xml;
 using DayOfWeek = System.DayOfWeek;
 using ExpType = Maple2.Model.Enum.ExpType;
 using Fish = Maple2.File.Parser.Xml.Table.Server.Fish;
@@ -127,6 +132,10 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
         yield return new ServerTableMetadata {
             Name = ServerTableNames.UNLIMITED_ENCHANT_OPTION,
             Table = ParseUnlimitedEnchantOption(),
+        };
+        yield return new ServerTableMetadata {
+            Name = ServerTableNames.CONSTANTS,
+            Table = ParseConstants(),
         };
 
     }
@@ -2133,6 +2142,58 @@ public class ServerTableMapper : TypeMapper<ServerTableMetadata> {
             if (rate != 0) {
                 rates.Add(attribute, rate);
             }
+        }
+    }
+
+    private ConstantsTable ParseConstants() {
+        var constants = new ConstantsTable();
+        Dictionary<string, PropertyInfo> propertyLookup = typeof(ConstantsTable).GetProperties()
+            .ToDictionary(p => p.Name.Trim(), p => p, StringComparer.OrdinalIgnoreCase);
+        foreach ((string key, Constants.Key constant) in parser.ParseConstants()) {
+            string trimmedKey = key.Trim();
+            if (!propertyLookup.TryGetValue(trimmedKey, out PropertyInfo? property)) continue;
+            string cleanValue = CleanInput(constant.value.Trim(), trimmedKey, property.PropertyType);
+            GenericHelper.SetValue(property, constants, cleanValue);
+        }
+        return constants;
+
+        string CleanInput(string input, string propName, Type type) {
+            // check if string contains the ending 'f' for float designation, strip it if it does.
+            if (type == typeof(float) && input.Contains('f')) {
+                input = input.TrimEnd('f', 'F');
+            }
+            if (type == typeof(bool)) {
+                // 1 does not automatically equate to true during bool conversion
+                if (input == "1") {
+                    input = "true";
+                }
+                // 0 does not automatically equate to false during bool conversion
+                if (input == "0") {
+                    input = "false";
+                }
+            }
+            if (type == typeof(TimeSpan)) {
+                // Special case - dashes (-) are used instead of colons (:)
+                if (propName == "DailyTrophyResetDate") {
+                    input = input.Replace('-', ':');
+                }
+                // Stored as 0.1 for 100ms
+                if (propName == "GlobalCubeSkillIntervalTime") {
+                    input = $"0:0:{input}";
+                }
+                // Stored as an int value, convert to friendly input string for TimeSpan parsing
+                if (propName == "UgcHomeSaleWaitingTime") {
+                    int.TryParse(input, out int result);
+                    input = TimeSpan.FromSeconds(result).ToString(); // TODO: may not be correct conversion to TimeSpan
+                }
+            }
+            if (type == typeof(int)) {
+                // Remove prefix 0 on integers since they do not convert properly
+                if (input.Length > 1 && input[0] == '0') {
+                    input = input.Remove(0, 1);
+                }
+            }
+            return input;
         }
     }
 }

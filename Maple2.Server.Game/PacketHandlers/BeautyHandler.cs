@@ -25,7 +25,9 @@ public class BeautyHandler : FieldPacketHandler {
     // ReSharper disable MemberCanBePrivate.Global
     public required ItemMetadataStorage ItemMetadata { private get; init; }
     public required TableMetadataStorage TableMetadata { private get; init; }
-
+    public required NpcMetadataStorage NpcMetadata { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
 
@@ -46,12 +48,6 @@ public class BeautyHandler : FieldPacketHandler {
         GearDye = 22,
         Voucher = 23,
     }
-
-    #region Autofac Autowired
-    // ReSharper disable MemberCanBePrivate.Global
-    public required NpcMetadataStorage NpcMetadata { private get; init; }
-    // ReSharper restore All
-    #endregion
 
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
@@ -351,15 +347,15 @@ public class BeautyHandler : FieldPacketHandler {
     private void HandleWarp(GameSession session, IByteReader packet) {
         short type = packet.ReadShort();
         int mapId = type switch {
-            1 => Constant.BeautyHairShopGotoFieldID,
-            3 => Constant.BeautyFaceShopGotoFieldID,
-            5 => Constant.BeautyColorShopGotoFieldID,
+            1 => Constants.BeautyHairShopGotoFieldID,
+            3 => Constants.BeautyFaceShopGotoFieldID,
+            5 => Constants.BeautyColorShopGotoFieldID,
             _ => 0,
         };
         int portalId = type switch {
-            1 => Constant.BeautyHairShopGotoPortalID,
-            3 => Constant.BeautyFaceShopGotoPortalID,
-            5 => Constant.BeautyColorShopGotoPortalID,
+            1 => Constants.BeautyHairShopGotoPortalID,
+            3 => Constants.BeautyFaceShopGotoPortalID,
+            5 => Constants.BeautyColorShopGotoPortalID,
             _ => 0,
         };
 

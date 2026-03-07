@@ -31,6 +31,8 @@ public class TaxiHandler : FieldPacketHandler {
     public required MapMetadataStorage MapMetadata { private get; init; }
     public required MapEntityStorage EntityMetadata { private get; init; }
     public required WorldMapGraphStorage WorldMapGraph { private get; init; }
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
     // ReSharper restore All
     #endregion
 
@@ -136,12 +138,12 @@ public class TaxiHandler : FieldPacketHandler {
             return;
         }
 
-        if (session.Currency.Meret < Constant.MeretAirTaxiPrice) {
-            session.Send(NoticePacket.MessageBox(StringCode.s_err_lack_meso));
+        if (session.Currency.Meret < Constants.MeratAirTaxiPrice) {
+            session.Send(NoticePacket.MessageBox(StringCode.s_err_lack_merat));
             return;
         }
 
-        session.Currency.Meret -= Constant.MeretAirTaxiPrice;
+        session.Currency.Meret -= Constants.MeratAirTaxiPrice;
 
         session.Send(session.PrepareField(mapId)
             ? FieldEnterPacket.Request(session.Player)

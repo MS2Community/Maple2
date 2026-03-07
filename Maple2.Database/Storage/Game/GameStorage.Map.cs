@@ -111,11 +111,11 @@ public partial class GameStorage {
             return Context.TrySaveChanges() ? ToPlotInfo(model) : null;
         }
 
-        public PlotInfo? GetSoonestPlotFromExpire() {
+        public PlotInfo? GetSoonestPlotFromExpire(TimeSpan ugcHomeSaleWaitingTime) {
             IQueryable<UgcMap> maps = Context.UgcMap.Where(map => map.ExpiryTime > DateTimeOffset.MinValue && !map.Indoor);
             foreach (UgcMap map in maps) {
                 if (map.OwnerId == 0) {
-                    map.ExpiryTime = map.ExpiryTime.Add(Constant.UgcHomeSaleWaitingTime);
+                    map.ExpiryTime = map.ExpiryTime.Add(ugcHomeSaleWaitingTime);
                 }
             }
             UgcMap? model = maps.OrderBy(map => map.ExpiryTime).FirstOrDefault();

@@ -25,6 +25,13 @@ public class MesoMarketHandler : FieldPacketHandler {
         Purchase = 8,
     }
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
         switch (command) {
@@ -55,11 +62,11 @@ public class MesoMarketHandler : FieldPacketHandler {
         session.Send(MesoMarketPacket.MyListings(myListings));
     }
 
-    private static void HandleCreate(GameSession session, IByteReader packet) {
+    private void HandleCreate(GameSession session, IByteReader packet) {
         long amount = packet.ReadLong();
         long price = packet.ReadLong();
 
-        if (amount != Constant.MesoMarketBasePrice) {
+        if (amount != Constants.MesoMarketBasePrice) {
             session.Send(MesoMarketPacket.Error(s_mesoMarket_error_invalidSaleMoney));
             return;
         }
@@ -96,7 +103,7 @@ public class MesoMarketHandler : FieldPacketHandler {
         }
 
         session.Player.Value.Account.MesoMarketListed++;
-        session.Currency.Meso -= Constant.MesoMarketBasePrice;
+        session.Currency.Meso -= Constants.MesoMarketBasePrice;
         session.Send(MesoMarketPacket.Create(listing));
         session.Send(MesoMarketPacket.Quota(session.Player.Value.Account.MesoMarketListed, session.Player.Value.Account.MesoMarketPurchased));
     }

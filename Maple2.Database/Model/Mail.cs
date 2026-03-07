@@ -55,7 +55,7 @@ internal class Mail {
 
     [return: NotNullIfNotNull(nameof(other))]
     public static implicit operator Maple2.Model.Game.Mail?(Mail? other) {
-        return other == null ? null : new Maple2.Model.Game.Mail {
+        return other == null ? null : new Maple2.Model.Game.Mail() {
             ReceiverId = other.ReceiverId,
             Id = other.Id,
             SenderId = other.SenderId,

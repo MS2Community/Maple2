@@ -15,6 +15,13 @@ public sealed class StorageManager : IDisposable {
     private const int BATCH_SIZE = 10;
 
     private readonly GameSession session;
+
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     private readonly ItemCollection items;
     private long mesos;
     private short expand;
@@ -189,11 +196,11 @@ public sealed class StorageManager : IDisposable {
     public void Expand() {
         lock (session.Item) {
             short newSize = (short) (items.Size + Constant.InventoryExpandRowCount);
-            if (newSize > Constant.StoreExpandMaxSlotCount) {
+            if (newSize > Constants.StoreExpandMaxSlotCount) {
                 session.Send(StorageInventoryPacket.Error(s_store_err_expand_max));
                 return;
             }
-            if (session.Currency.Meret < Constant.StoreExpandPrice1Row) {
+            if (session.Currency.Meret < Constants.StoreExpandPrice1Row) {
                 session.Send(StorageInventoryPacket.Error(s_cannot_charge_merat));
                 return;
             }
@@ -203,7 +210,7 @@ public sealed class StorageManager : IDisposable {
                 return;
             }
 
-            session.Currency.Meret -= Constant.StoreExpandPrice1Row;
+            session.Currency.Meret -= Constants.StoreExpandPrice1Row;
             expand += Constant.InventoryExpandRowCount;
 
             Load();

@@ -14,6 +14,12 @@ public sealed class ItemMergeManager {
 
     private readonly GameSession session;
 
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    private ConstantsTable Constants => session.ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
+
     private readonly ILogger logger = Log.Logger.ForContext<ItemMergeManager>();
 
     private Item? upgradeItem;
@@ -86,7 +92,7 @@ public sealed class ItemMergeManager {
         session.Send(ItemMergePacket.Select(mergeSlot, ItemMerge.CostMultiplier(upgradeItem.Rarity)));
 
         if (!session.ScriptMetadata.TryGet(Constant.EmpowermentNpc, out ScriptMetadata? script) ||
-            !script.States.TryGetValue(Constant.MergeSmithScriptID, out ScriptState? state)) {
+            !script.States.TryGetValue(Constants.MergeSmithScriptID, out ScriptState? state)) {
             return;
         }
 

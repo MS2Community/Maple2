@@ -1,6 +1,7 @@
-﻿using System.Numerics;
-using Maple2.Model.Metadata;
+﻿using Maple2.Model.Metadata;
+using Maple2.Server.Core.Network;
 using Maple2.Server.Game.Model.Enum;
+using System.Numerics;
 using static Maple2.Server.Game.Model.ActorStateComponent.TaskState;
 
 namespace Maple2.Server.Game.Model.ActorStateComponent;
@@ -10,6 +11,13 @@ public partial class MovementState {
         private readonly MovementState movement;
         private readonly FieldPlayer player;
         private readonly Vector3? lastPosition;
+
+        #region Autofac Autowired
+        // ReSharper disable MemberCanBePrivate.Global
+        private ConstantsTable Constants => player.Session.ServerTableMetadata.ConstantsTable;
+        // ReSharper restore All
+        #endregion
+
         public override bool CancelOnInterrupt => false;
 
         public NpcCleanupPatrolDataTask(FieldPlayer player, TaskState taskState, MovementState movement) : base(taskState, NpcTaskPriority.Cleanup) {
@@ -33,7 +41,7 @@ public partial class MovementState {
                 return;
             }
 
-            const float maxDistance = Constant.TalkableDistance * Constant.TalkableDistance;
+            float maxDistance = Constants.TalkableDistance * Constants.TalkableDistance;
 
             // find nearest npc
             FieldNpc? closestNpc = player.Field.Npcs.Values

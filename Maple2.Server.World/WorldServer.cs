@@ -18,6 +18,7 @@ using LoginClient = Maple2.Server.Login.Service.Login.LoginClient;
 namespace Maple2.Server.World;
 
 public class WorldServer {
+    #region Autofac Autowired
     private readonly GameStorage gameStorage;
     private readonly ChannelClientLookup channelClients;
     private readonly ServerTableMetadataStorage serverTableMetadata;
@@ -25,6 +26,9 @@ public class WorldServer {
     private readonly GlobalPortalLookup globalPortalLookup;
     private readonly WorldBossLookup worldBossLookup;
     private readonly PlayerInfoLookup playerInfoLookup;
+    private ConstantsTable Constants => serverTableMetadata.ConstantsTable;
+    #endregion
+
     private readonly Thread thread;
     private readonly Thread heartbeatThread;
     private readonly EventQueue scheduler;
@@ -422,7 +426,7 @@ public class WorldServer {
                         SetPlotAsPending(db, plot);
                         forfeit = true;
                         // mark as open when 3 days has passed since the expiry time
-                    } else if (plot.OwnerId == 0 && plot.ExpiryTime + Constant.UgcHomeSaleWaitingTime.TotalSeconds < DateTimeOffset.UtcNow.ToUnixTimeSeconds()) {
+                    } else if (plot.OwnerId == 0 && plot.ExpiryTime + Constants.UgcHomeSaleWaitingTime.TotalSeconds < DateTimeOffset.UtcNow.ToUnixTimeSeconds()) {
                         logger.Information("Marking plot {PlotId} as open (no owner)", plot.Id);
                         db.SetPlotOpen(plot.Id); // Mark as open
                     } else {
@@ -449,7 +453,7 @@ public class WorldServer {
         }
 
         // Schedule next check for the next soonest expiry
-        PlotInfo? nextPlot = db.GetSoonestPlotFromExpire();
+        PlotInfo? nextPlot = db.GetSoonestPlotFromExpire(Constants.UgcHomeSaleWaitingTime);
         TimeSpan delay;
         if (nextPlot is not null) {
             DateTimeOffset nextExpiry = DateTimeOffset.FromUnixTimeSeconds(nextPlot.ExpiryTime);

@@ -1,4 +1,5 @@
-﻿using Maple2.Model.Game;
+﻿using Maple2.Database.Storage;
+using Maple2.Model.Game;
 using Maple2.Model.Metadata;
 using Maple2.PacketLib.Tools;
 using Maple2.Server.Core.Constants;
@@ -17,6 +18,13 @@ public class ItemLockHandler : FieldPacketHandler {
         Unstage = 2,
         Commit = 3,
     }
+
+    #region Autofac Autowired
+    // ReSharper disable MemberCanBePrivate.Global
+    public required ServerTableMetadataStorage ServerTableMetadata { private get; init; }
+    private ConstantsTable Constants => ServerTableMetadata.ConstantsTable;
+    // ReSharper restore All
+    #endregion
 
     public override void Handle(GameSession session, IByteReader packet) {
         var command = packet.Read<Command>();
@@ -69,7 +77,7 @@ public class ItemLockHandler : FieldPacketHandler {
         }
     }
 
-    private static void HandleCommit(GameSession session, IByteReader packet) {
+    private void HandleCommit(GameSession session, IByteReader packet) {
         bool unlock = packet.ReadBool(); // false - lock|true - unlock
 
         lock (session.Item) {
@@ -86,7 +94,7 @@ public class ItemLockHandler : FieldPacketHandler {
 
                 if (unlock && item.IsLocked) {
                     item.IsLocked = false;
-                    item.UnlockTime = DateTimeOffset.UtcNow.AddSeconds(Constant.ItemUnLockTime).ToUnixTimeSeconds();
+                    item.UnlockTime = DateTimeOffset.UtcNow.AddSeconds(Constants.ItemUnLockTime).ToUnixTimeSeconds();
                     updatedItems.Add(item);
                 } else if (!unlock && !item.IsLocked) {
                     item.IsLocked = true;
