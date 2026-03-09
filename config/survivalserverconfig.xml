@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ms2>
+  <survivalPassServer activationItemId="0" activationItemCount="1" monsterKillExp="1" eliteKillExp="1" bossKillExp="1" allowDirectActivateWithoutItem="true" />
+</ms2>

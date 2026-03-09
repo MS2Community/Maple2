@@ -519,6 +519,7 @@ public class FieldNpc : Actor<Npc> {
 
                 DropIndividualLoot(player);
                 GiveExp(player);
+                player.Session.Survival.AddPassExp(player.Session.Survival.GetPassExpForNpc(this));
 
                 player.Session.ConditionUpdate(ConditionType.npc, codeLong: Value.Id, targetLong: Field.MapId);
                 foreach (string tag in Value.Metadata.Basic.MainTags) {
@@ -541,6 +542,7 @@ public class FieldNpc : Actor<Npc> {
                 }
 
                 GiveExp(player);
+                player.Session.Survival.AddPassExp(player.Session.Survival.GetPassExpForNpc(this));
 
                 player.Session.ConditionUpdate(ConditionType.npc, codeLong: Value.Id, targetLong: Field.MapId);
                 foreach (string tag in Value.Metadata.Basic.MainTags) {

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ms2>
+  <survivalPassServer seasonId="2026_04" seasonName="March Pass" activationItemId="20000620" activationItemCount="1" monsterKillExp="10" eliteKillExp="100" bossKillExp="500" allowDirectActivateWithoutItem="false" resetGoldPassOnSeasonChange="true" />
+</ms2>

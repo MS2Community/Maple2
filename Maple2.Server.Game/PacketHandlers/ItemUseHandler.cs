@@ -44,6 +44,18 @@ public class ItemUseHandler : FieldPacketHandler {
             return;
         }
 
+        if (session.Survival.TryUseGoldPassActivationItem(item)) {
+            return;
+        }
+
+        if (session.Survival.TryUsePassExpItem(item)) {
+            return;
+        }
+
+        if (session.Survival.TryUseSkinItem(item)) {
+            return;
+        }
+
         switch (item.Metadata.Function?.Type) {
             case ItemFunction.BlueprintImport:
                 HandleBlueprintImport(session, item);
