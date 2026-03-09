@@ -31,19 +31,25 @@ public static class GenericHelper {
             string[] segments = ((string) value).Split(',');
             Array destinationArray = Array.CreateInstance(elementType, segments.Length);
             for (int i = 0; i < segments.Length; i++) {
-                TryParseObject(elementType, segments[i].Trim(), out object? parseResult);
-                destinationArray.SetValue(parseResult ?? default, i);
+                if (TryParseObject(elementType, segments[i].Trim(), out object? parseResult)) {
+                    destinationArray.SetValue(parseResult ?? default, i);
+                }else {
+                    destinationArray.SetValue(elementType.IsValueType ? Activator.CreateInstance(elementType) : null, i);
+                }
             }
             value = destinationArray;
         }
         // Handle Vector3 type
         if (prop.PropertyType == typeof(Vector3)) {
             string[] parts = ((string) value).Split(',');
-            if (parts.Length != 3) return value;
-            float.TryParse(parts[0], CultureInfo.InvariantCulture, out float x);
-            float.TryParse(parts[1], CultureInfo.InvariantCulture, out float y);
-            float.TryParse(parts[2], CultureInfo.InvariantCulture, out float z);
-            value = new Vector3(x, y, z);
+            bool parseXSuccess = float.TryParse(parts[0], CultureInfo.InvariantCulture, out float x);
+            bool parseYSuccess = float.TryParse(parts[1], CultureInfo.InvariantCulture, out float y);
+            bool parseZSuccess = float.TryParse(parts[2], CultureInfo.InvariantCulture, out float z);
+            if (parts.Length != 3 || parseXSuccess && parseYSuccess && parseZSuccess) {
+                value = Vector3.Zero;
+            } else {
+                value = new Vector3(x, y, z);
+            }
         }
         return value;
     }
@@ -78,7 +84,7 @@ public static class GenericHelper {
             return success;
         }
 
-        // Fallback without CulturueInfo provided, in case the type does not have a CultureInfo overload.
+        // Fallback without CultureInfo provided, in case the type does not have a CultureInfo overload.
         Type[] simpleArgs = { typeof(string), elementType.MakeByRefType() };
         method = elementType.GetMethod("TryParse",
             BindingFlags.Public | BindingFlags.Static,
