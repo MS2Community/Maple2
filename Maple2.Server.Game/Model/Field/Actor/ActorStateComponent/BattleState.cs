@@ -231,7 +231,9 @@ public class BattleState {
 
         return friendlyType;
     }
-
+    public void ForceTarget(IActor? target) {
+        Target = target;
+    }
     private void FindNewTarget() {
         int friendlyType = GetTargetType();
         float sightSquared = actor.Value.Metadata.Distance.Sight;

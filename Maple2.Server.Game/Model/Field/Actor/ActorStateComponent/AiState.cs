@@ -6,6 +6,7 @@ using Maple2.Tools;
 using Serilog;
 using static Maple2.Model.Metadata.AiMetadata;
 using static Maple2.Server.Game.Model.ActorStateComponent.TaskState;
+using System;
 
 namespace Maple2.Server.Game.Model.ActorStateComponent;
 
@@ -107,18 +108,30 @@ public class AiState {
         }
 
         bool isInBattle = actor.BattleState.InBattle;
-
         if (!isInBattle) {
+            actor.AiExtraData["__battle_start_tick"] = 0;
+
+            bool suppressBattleEnd = actor.AiExtraData.GetValueOrDefault("__suppress_battle_end", 0) != 0;
+            long currentHp = actor.Stats.Values[BasicAttribute.Health].Current;
+            bool isActuallyDead = currentHp <= 0;
+
             if (currentTree == DecisionTreeType.Battle) {
                 aiStack.Clear();
 
-                currentTree = battleEnd is not null ? DecisionTreeType.BattleEnd : DecisionTreeType.None;
+                if (suppressBattleEnd) {
+                    actor.AiExtraData["__suppress_battle_end"] = 0;
+                    currentTree = DecisionTreeType.None;
+                } else {
+                    currentTree = isActuallyDead && battleEnd is not null
+                        ? DecisionTreeType.BattleEnd
+                        : DecisionTreeType.None;
+                }
             } else if (currentTree == DecisionTreeType.BattleEnd && aiStack.Count == 0) {
                 currentTree = DecisionTreeType.None;
             }
 
             return;
-        } else if (currentTree == DecisionTreeType.BattleEnd) {
+    } else if (currentTree == DecisionTreeType.BattleEnd) {
             aiStack.Clear();
 
             currentTree = DecisionTreeType.None;
@@ -234,6 +247,109 @@ public class AiState {
         }
 
         return skill;
+    }
+    private NpcMetadata? ResolveSummonMetadata(SummonNode node) {
+        if (node.NpcId >= 20000000 && actor.Field.NpcMetadata.TryGet(node.NpcId, out NpcMetadata? direct)) {
+            return direct;
+        }
+
+        string currentAiPath = actor.Value.Metadata.AiPath ?? string.Empty;
+        string normalizedCurrent = currentAiPath.Replace('\\', '/');
+        int preferredDifficulty = actor.Value.Metadata.Basic.Difficulty;
+        int preferredId = actor.Value.Id;
+
+        NpcMetadata? FindPreferred(string aiPath) => actor.Field.NpcMetadata.FindByAiPath(aiPath, preferredDifficulty, preferredId);
+        if (actor.Value.Id == 23200081 && node.NpcId == 3) {
+    if (actor.Field.NpcMetadata.TryGet(23200082, out NpcMetadata? kanduraChaosNext)) {
+        return kanduraChaosNext;
+    }
+}
+
+if (actor.Value.Id == 23000081 && node.NpcId == 3) {
+    if (actor.Field.NpcMetadata.TryGet(23000082, out NpcMetadata? kanduraRaidNext)) {
+        return kanduraRaidNext;
+    }
+}
+        // 超链接之树 / Kandura
+        if (normalizedCurrent.Contains("BossDungeon/KanduraBigBurster", StringComparison.OrdinalIgnoreCase)) {
+            bool chaos = normalizedCurrent.Contains("Chaos", StringComparison.OrdinalIgnoreCase);
+
+            return node.NpcId switch {
+                1 => FindPreferred("BossDungeon/KanduraBigBurster/AI_SoldierPhysicalBlueSummon.xml"),
+                2 => FindPreferred("BossDungeon/KanduraBigBurster/AI_SoldierPhysicalRedSummon.xml"),
+                3 => FindPreferred(
+                    chaos
+                        ? "BossDungeon/KanduraBigBurster/AI_KanduraBigBurster_Chaos.xml"
+                        : "BossDungeon/KanduraBigBurster/AI_KanduraBigBurster.xml"
+                ),
+                4 => FindPreferred("BossDungeon/KanduraBigBurster/AI_SoldierPhysicalHandArmorSummon.xml"),
+                _ => actor.Field.NpcMetadata.FindByRelativeAiAlias(currentAiPath, node.NpcId)
+            };
+        }
+
+        // 月光船长要塞 / 船长默克
+        if (normalizedCurrent.Contains("BossDungeon/CaptainHookFish01", StringComparison.OrdinalIgnoreCase)) {
+            return node.NpcId switch {
+                1 => FindPreferred("BossDungeon/CaptainHookFish01/AI_MermanSmallBlue.xml"),
+                2 => FindPreferred("BossDungeon/CaptainHookFish01/AI_MermanFatBlue.xml"),
+                3 => FindPreferred("BossDungeon/CaptainHookFish01/AI_PirateSkullCannonSummonLeft.xml")
+                     ?? FindPreferred("BossDungeon/CaptainHookFish01/AI_PirateSkullCannonSummon.xml"),
+                4 => FindPreferred("BossDungeon/CaptainHookFish01/AI_PirateSkullDaggerSummon.xml"),
+                5 => FindPreferred("BossDungeon/CaptainHookFish01/AI_PirateSkullCannonSummonRight.xml")
+                     ?? FindPreferred("BossDungeon/CaptainHookFish01/AI_PirateSkullVikingSickleSummon.xml"),
+                _ => actor.Field.NpcMetadata.FindByRelativeAiAlias(currentAiPath, node.NpcId)
+            };
+        }
+
+        // 路贝里斯克 / BarkhantBlue
+        if (normalizedCurrent.Contains("BossDungeon/BarkhantBlue", StringComparison.OrdinalIgnoreCase)) {
+            bool chaos = normalizedCurrent.Contains("/Chaos/", StringComparison.OrdinalIgnoreCase);
+            return node.NpcId switch {
+                1 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_KnightHollowArmorPurple_ThrowWheel.xml" : "BossDungeon/BarkhantBlue/AI_KnightHollowArmorPurple_ThrowWheel_TypeA.xml"),
+                2 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_CerberosTallPurple.xml" : "BossDungeon/BarkhantBlue/AI_CerberosTallPurple_TypeA.xml"),
+                3 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_CrowDevilWhite_Close.xml" : "BossDungeon/BarkhantBlue/AI_CrowDevilWhite_TypeA.xml"),
+                4 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_CerberosTallPurple.xml" : "BossDungeon/BarkhantBlue/AI_CerberosTallPurple_TypeB.xml"),
+                5 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_DragonDevilBigHeadBlue.xml" : "BossDungeon/BarkhantBlue/AI_DragonDevilBigHeadBlueSummon_TypeA.xml"),
+                6 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_BarkhantRedSummon_Chaos.xml" : "BossDungeon/BarkhantBlue/AI_BarkhantRedSummon.xml"),
+                7 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_BarkhantWhiteSummon_Chaos.xml" : "BossDungeon/BarkhantBlue/AI_BarkhantWhiteSummon.xml"),
+                8 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_CrowDevilWhite_Close.xml" : "BossDungeon/BarkhantBlue/AI_DragonDevilBigHeadBlueSummon_TypeB.xml"),
+                9 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_CerberosTallPurple.xml" : "BossDungeon/BarkhantBlue/AI_CerberosTallPurple_TypeC.xml"),
+                10 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_DragonDevilBigHeadBlueSummon_TypeC.xml" : "BossDungeon/BarkhantBlue/AI_DragonDevilBigHeadBlueSummon_TypeC.xml"),
+                11 => FindPreferred(chaos ? "BossDungeon/BarkhantBlue/Chaos/AI_CrowDevilWhite_Long.xml" : "BossDungeon/BarkhantBlue/AI_KnightHollowArmorPurple_ThrowWheel_TypeB.xml"),
+                _ => actor.Field.NpcMetadata.FindByRelativeAiAlias(currentAiPath, node.NpcId)
+            };
+        }
+        if (normalizedCurrent.EndsWith("AI_BarkhantBlue_Quest.xml", StringComparison.OrdinalIgnoreCase)) {
+            return node.NpcId switch {
+                6 => actor.Field.NpcMetadata.TryGet(29000204, out NpcMetadata? red6) ? red6 : null,
+                7 => actor.Field.NpcMetadata.TryGet(29000205, out NpcMetadata? white7) ? white7 : null,
+                8 => actor.Field.NpcMetadata.TryGet(29000204, out NpcMetadata? red8) ? red8 : null,
+                9 => actor.Field.NpcMetadata.TryGet(29000205, out NpcMetadata? white9) ? white9 : null,
+                10 => actor.Field.NpcMetadata.TryGet(21402237, out NpcMetadata? p3Mob) ? p3Mob : null,
+                _ => actor.Field.NpcMetadata.FindByRelativeAiAlias(currentAiPath, node.NpcId)
+            };
+        }
+        // 不灭神殿 / Balrog
+        if (normalizedCurrent.Contains("BossDungeon/Balrog", StringComparison.OrdinalIgnoreCase) ||
+            normalizedCurrent.Contains("BossDungeon/DungeonOS03", StringComparison.OrdinalIgnoreCase)) {
+            if (normalizedCurrent.EndsWith("AI_Balrog.xml", StringComparison.OrdinalIgnoreCase)) {
+                return node.NpcId switch {
+                    1 => FindPreferred("BossDungeon/Balrog/AI_DragonDevilBigHeadRedSummonTypeA.xml"),
+                    2 => FindPreferred("BossDungeon/Balrog/AI_Tristan_Chaos.xml"),
+                    _ => actor.Field.NpcMetadata.FindByRelativeAiAlias(currentAiPath, node.NpcId)
+                };
+            }
+
+            if (normalizedCurrent.EndsWith("AI_Balrog_Chaos.xml", StringComparison.OrdinalIgnoreCase)) {
+                return node.NpcId switch {
+                    1 => FindPreferred("BossDungeon/Balrog/AI_Tristan_Chaos.xml"),
+                    2 => FindPreferred("BossDungeon/Balrog/AI_DragonDevilBigHeadRedSummonTypeB.xml"),
+                    _ => actor.Field.NpcMetadata.FindByRelativeAiAlias(currentAiPath, node.NpcId)
+                };
+            }
+        }
+
+        return actor.Field.NpcMetadata.FindByRelativeAiAlias(currentAiPath, node.NpcId);
     }
 
     private void Push(Entry entry) {
@@ -357,19 +473,18 @@ public class AiState {
 
     private void ProcessNode(TeleportNode node) {
         actor.Position = node.Pos;
+        actor.SendControl = true;
 
-        if (node.FacePos == new Vector3(0, 0, 0)) {
-            return;
+        if (node.FacePos != Vector3.Zero) {
+            Vector3 offset = node.FacePos - actor.Position;
+            float squareDistance = offset.LengthSquared();
+
+            if (squareDistance > 1e-5f) {
+                actor.Transform.LookTo((1 / MathF.Sqrt(squareDistance)) * offset);
+            }
         }
 
-        Vector3 offset = node.FacePos - actor.Position;
-        float squareDistance = offset.LengthSquared();
-
-        if (MathF.Abs(squareDistance) < 1e-5f) {
-            return;
-        }
-
-        actor.Transform.LookTo((1 / MathF.Sqrt(squareDistance)) * offset);
+        actor.Field.Broadcast(ProxyObjectPacket.UpdateNpc(actor));
     }
 
     private void ProcessNode(StandbyNode node) {
@@ -429,7 +544,26 @@ public class AiState {
         Push(passed);
     }
 
-    private void ProcessNode(JumpNode node) { }
+    private void ProcessNode(JumpNode node) {
+        NpcTask? task = null;
+        if (node.HeightMultiplier > 0) {
+            task = actor.MovementState.TryFlyTo(node.Pos, true, speed: node.Speed, lookAt: true);
+        } else {
+            task = actor.MovementState.TryMoveTo(node.Pos, true, speed: node.Speed, lookAt: true);
+        }
+
+        if (task is not null) {
+            SetNodeTask(task, 0);
+        } else {
+            actor.Position = node.Pos;
+            actor.SendControl = true;
+            actor.Field.Broadcast(ProxyObjectPacket.UpdateNpc(actor));
+        }
+
+        if (node.IsKeepBattle) {
+            actor.BattleState.KeepBattle = true;
+        }
+    }
 
     private void ProcessNode(SelectNode node) {
         var weightedEntries = new WeightedSet<(Entry, int)>();
@@ -464,17 +598,215 @@ public class AiState {
         SetNodeTask(task, node.Limit);
     }
 
-    private void ProcessNode(SummonNode node) { }
+    private void ProcessNode(SummonNode node) {
+        NpcMetadata? npcData = ResolveSummonMetadata(node);
+        if (npcData is null) {
+            return;
+        }
+        Logger.Warning("[AISummon] actorId:{ActorId}, actorAi:{ActorAi}, alias:{Alias} -> npcId:{NpcId}, npcAi:{NpcAi}",
+            actor.Value.Id,
+            actor.Value.Metadata.AiPath,
+            node.NpcId,
+            npcData.Id,
+            npcData.AiPath);
 
-    private void ProcessNode(TriggerSetUserValueNode node) {
-        actor.Field.UserValues[node.Key] = node.Value;
+        int count = node.NpcCount > 0
+            ? node.NpcCount
+            : (node.NpcCountMax > 0 ? Random.Shared.Next(1, node.NpcCountMax + 1) : 1);
+
+        bool detachFromMaster = node.Master == NodeSummonMaster.None;
+        string path = actor.Value.Metadata.AiPath?.Replace('\\', '/') ?? "";
+        bool replacementBoss = detachFromMaster && path.Contains("KanduraBigBurster", StringComparison.OrdinalIgnoreCase) && node.NpcId == 3;
+
+        void SpawnOne() {
+            Vector3 position = node.SummonPos + node.SummonPosOffset;
+            if (position == Vector3.Zero) {
+                position = actor.Position;
+            }
+
+            if (node.SummonRadius != Vector3.Zero) {
+                float rx = node.SummonRadius.X == 0 ? 0 : (float) (Random.Shared.NextDouble() * 2 - 1) * node.SummonRadius.X;
+                float ry = node.SummonRadius.Y == 0 ? 0 : (float) (Random.Shared.NextDouble() * 2 - 1) * node.SummonRadius.Y;
+                float rz = node.SummonRadius.Z == 0 ? 0 : (float) (Random.Shared.NextDouble() * 2 - 1) * node.SummonRadius.Z;
+                position += new Vector3(rx, ry, rz);
+            }
+
+            FieldNpc? summoned = actor.Field.SpawnNpc(
+                npcData,
+                position,
+                node.SummonRot == Vector3.Zero ? actor.Rotation : node.SummonRot
+            );
+
+            if (summoned is null) {
+                return;
+            }
+
+            if (!detachFromMaster) {
+                summoned.AiExtraData["__master_oid"] = actor.ObjectId;
+            }
+
+            summoned.AiExtraData["__summon_group"] = node.Group;
+
+            if (detachFromMaster) {
+                summoned.SpawnPointId = actor.SpawnPointId;
+                summoned.BattleState.TargetNode = actor.BattleState.TargetNode;
+                summoned.BattleState.KeepBattle = actor.BattleState.InBattle || node.IsKeepBattle;
+
+                if (actor.BattleState.Target is not null) {
+                    summoned.BattleState.ForceTarget(actor.BattleState.Target);
+                }
+
+                if (actor.BattleState.GrabbedUser is not null) {
+                    summoned.BattleState.GrabbedUser = actor.BattleState.GrabbedUser;
+                }
+
+                int inheritedBattleStart = actor.AiExtraData.GetValueOrDefault("__battle_start_tick", 0);
+                if (inheritedBattleStart != 0) {
+                    summoned.AiExtraData["__battle_start_tick"] = inheritedBattleStart;
+                }
+            }
+
+            if (replacementBoss) {
+                summoned.AiExtraData["__replacement_spawn"] = 1;
+                actor.AiExtraData["__replacement_remove"] = 1;
+
+                // 超链接之树变身期间，先把旧的清关键清掉，避免旧Boss流程污染
+                actor.Field.UserValues["KanduraNormalDead"] = 0;
+                actor.Field.UserValues["ThirdPhaseEnd"] = 0;
+
+                // 让新Boss明确知道自己已经是二阶段接力，不是独立开场
+                summoned.AiExtraData["SecondPhaseStart"] = 1;
+            }
+            bool inheritMasterHp =
+                node.Option.Contains(NodeSummonOption.MasterHp) || node.Option.Contains(NodeSummonOption.LinkHp);
+
+            if (inheritMasterHp) {
+                Stat masterHp = actor.Stats.Values[BasicAttribute.Health];
+                Stat summonHp = summoned.Stats.Values[BasicAttribute.Health];
+
+                if (masterHp.Total > 0 && summonHp.Total > 0) {
+                    double ratio = Math.Clamp((double) masterHp.Current / masterHp.Total, 0d, 1d);
+                    summonHp.Current = Math.Clamp((long) Math.Round(summonHp.Total * ratio), 1, summonHp.Total);
+                }
+            }
+
+            actor.Field.Broadcast(FieldPacket.AddNpc(summoned));
+            actor.Field.Broadcast(ProxyObjectPacket.AddNpc(summoned));
+        }
+
+        for (int i = 0; i < count; i++) {
+            if (node.DelayTick > 0) {
+                actor.Field.Scheduler.Schedule(SpawnOne, TimeSpan.FromMilliseconds(node.DelayTick));
+            } else {
+                SpawnOne();
+            }
+        }
+
+        if (node.IsKeepBattle) {
+            actor.BattleState.KeepBattle = true;
+        }
     }
 
+    private void ProcessNode(TriggerSetUserValueNode node) {
+        long hp = actor.Stats.Values[BasicAttribute.Health].Current;
+        bool isDead = actor.IsDead;
+
+        // 超链接之树：23200082 只允许“真正死亡后”再写 ThirdPhaseEnd
+        if (node.Key == "ThirdPhaseEnd" && actor.Value.Id == 23200082) {
+            if (!isDead && hp > 0) {
+                Logger.Warning(
+                    "[AISuppressUserValue] actorId:{ActorId}, key:{Key}, value:{Value}, hp:{Hp}, dead:{Dead}",
+                    actor.Value.Id, node.Key, node.Value, hp, isDead
+                );
+                return;
+            }
+        }
+
+        // 超链接之树：23200081 正在变身替换时，不允许把自己算成 KanduraNormalDead
+        if (node.Key == "KanduraNormalDead" && actor.Value.Id == 23200081) {
+            if (actor.AiExtraData.GetValueOrDefault("__replacement_remove", 0) != 0) {
+                Logger.Warning(
+                    "[AISuppressUserValue] actorId:{ActorId}, key:{Key}, value:{Value}, replacementRemove=1",
+                    actor.Value.Id, node.Key, node.Value
+                );
+                return;
+            }
+        }
+
+        Logger.Warning(
+            "[AIUserValue] actorId:{ActorId}, key:{Key}, value:{Value}, hp:{Hp}, dead:{Dead}",
+            actor.Value.Id, node.Key, node.Value, hp, isDead
+        );
+
+        actor.Field.UserValues[node.Key] = node.Value;
+    }
     private void ProcessNode(RideNode node) { }
 
-    private void ProcessNode(SetSlaveValueNode node) { }
+    private void ProcessNode(SetSlaveValueNode node) {
+        List<FieldNpc> slaves = new();
 
-    private void ProcessNode(SetMasterValueNode node) { }
+        foreach (FieldNpc npc in actor.Field.EnumerateNpcs()) {
+            if (npc.ObjectId == actor.ObjectId || npc.IsDead) {
+                continue;
+            }
+
+            if (npc.AiExtraData.GetValueOrDefault("__master_oid", 0) != actor.ObjectId) {
+                continue;
+            }
+
+            slaves.Add(npc);
+        }
+
+        if (slaves.Count == 0) {
+            return;
+        }
+
+        void Apply(FieldNpc target) {
+            int value = node.IsRandom && node.Value > 0 ? Random.Shared.Next(0, node.Value + 1) : node.Value;
+
+            if (node.IsModify) {
+                target.AiExtraData[node.Key] = target.AiExtraData.GetValueOrDefault(node.Key, 0) + value;
+            } else {
+                target.AiExtraData[node.Key] = value;
+            }
+
+            if (node.IsKeepBattle) {
+                target.BattleState.KeepBattle = true;
+            }
+        }
+
+        if (node.IsRandom) {
+            Apply(slaves[Random.Shared.Next(slaves.Count)]);
+            return;
+        }
+
+        foreach (FieldNpc slave in slaves) {
+            Apply(slave);
+        }
+    }
+
+    private void ProcessNode(SetMasterValueNode node) {
+        int masterOid = actor.AiExtraData.GetValueOrDefault("__master_oid", 0);
+        if (masterOid == 0) {
+            return;
+        }
+
+        if (!actor.Field.TryGetActor(masterOid, out IActor? masterActor) || masterActor is not FieldNpc masterNpc || masterNpc.IsDead) {
+            return;
+        }
+
+        int value = node.IsRandom && node.Value > 0 ? Random.Shared.Next(0, node.Value + 1) : node.Value;
+
+        if (node.IsModify) {
+            masterNpc.AiExtraData[node.Key] = masterNpc.AiExtraData.GetValueOrDefault(node.Key, 0) + value;
+        } else {
+            masterNpc.AiExtraData[node.Key] = value;
+        }
+
+        if (node.IsKeepBattle) {
+            masterNpc.BattleState.KeepBattle = true;
+        }
+    }
 
     private void ProcessNode(RunawayNode node) {
         if (!actor.Field.TryGetActor(actor.BattleState.TargetId, out IActor? target)) {
@@ -570,11 +902,11 @@ public class AiState {
 
             if (node.IsModify) {
                 if (npc.AiExtraData.TryGetValue(node.Key, out int oldValue)) {
-                    actor.AiExtraData[node.Key] = oldValue + node.Value;
+                    npc.AiExtraData[node.Key] = oldValue + node.Value;
                     continue;
                 }
             }
-            actor.AiExtraData[node.Key] = node.Value;
+            npc.AiExtraData[node.Key] = node.Value;
         }
     }
 
@@ -590,14 +922,51 @@ public class AiState {
         actor.Field.UserValues[node.Key] = node.Value;
     }
 
-    private void ProcessNode(RemoveSlavesNode node) { }
+    private void ProcessNode(RemoveSlavesNode node) {
+        List<int> removeIds = new();
+
+        foreach (FieldNpc npc in actor.Field.EnumerateNpcs()) {
+            if (npc.ObjectId == actor.ObjectId) {
+                continue;
+            }
+
+            if (npc.AiExtraData.GetValueOrDefault("__master_oid", 0) != actor.ObjectId) {
+                continue;
+            }
+
+            if (node.IsKeepBattle) {
+                npc.BattleState.KeepBattle = true;
+            }
+
+            removeIds.Add(npc.ObjectId);
+        }
+
+        foreach (int objectId in removeIds) {
+            actor.Field.RemoveNpc(objectId, TimeSpan.FromMilliseconds(100));
+        }
+    }
 
     private void ProcessNode(CreateRandomRoomNode node) { }
 
     private void ProcessNode(CreateInteractObjectNode node) { }
 
     private void ProcessNode(RemoveMeNode node) {
-        actor.Field.RemoveNpc(actor.ObjectId);
+     Logger.Warning(
+    "[AIRemoveMe] actorId:{ActorId}, hp:{Hp}, dead:{Dead}, replacementRemove:{ReplacementRemove}",
+    actor.Value.Id,
+    actor.Stats.Values[BasicAttribute.Health].Current,
+    actor.IsDead,
+    actor.AiExtraData.GetValueOrDefault("__replacement_remove", 0)
+);
+        bool replacementRemove = actor.AiExtraData.GetValueOrDefault("__replacement_remove", 0) != 0;
+
+        if (replacementRemove) {
+            actor.AiExtraData["__suppress_battle_end"] = 1;
+            actor.AiExtraData["__replacement_remove"] = 0;
+        }
+
+        actor.BattleState.KeepBattle = false;
+        actor.Field.RemoveNpc(actor.ObjectId, TimeSpan.FromMilliseconds(100));
     }
 
     private void ProcessNode(SuicideNode node) {
@@ -606,13 +975,9 @@ public class AiState {
 
 
     private bool ProcessCondition(DistanceOverCondition node) {
-        if (actor.BattleState.Target is null) {
-            return false;
-        }
-
-        float targetDistance = (actor.BattleState.Target.Position - actor.Position).LengthSquared();
-
-        return node.Value * node.Value > (int) targetDistance;
+        if (actor.BattleState.Target == null) return false;
+        float dist = (actor.BattleState.Target.Position - actor.Position).LengthSquared();
+        return dist > node.Value * node.Value;
     }
 
     private bool ProcessCondition(CombatTimeCondition node) {
@@ -620,13 +985,9 @@ public class AiState {
     }
 
     private bool ProcessCondition(DistanceLessCondition node) {
-        if (actor.BattleState.Target is null) {
-            return false;
-        }
-
-        float targetDistance = (actor.BattleState.Target.Position - actor.Position).LengthSquared();
-
-        return node.Value * node.Value < (int) targetDistance;
+        if (actor.BattleState.Target == null) return false;
+        float dist = (actor.BattleState.Target.Position - actor.Position).LengthSquared();
+        return dist < node.Value * node.Value;
     }
 
     private bool ProcessCondition(SkillRangeCondition node) {
@@ -663,11 +1024,43 @@ public class AiState {
     }
 
     private bool ProcessCondition(SlaveCountCondition node) {
-        return false;
+        int count = 0;
+
+        foreach (FieldNpc npc in actor.Field.EnumerateNpcs()) {
+            if (npc.ObjectId == actor.ObjectId || npc.IsDead) {
+                continue;
+            }
+
+            if (npc.AiExtraData.GetValueOrDefault("__master_oid", 0) != actor.ObjectId) {
+                continue;
+            }
+
+            if (node.UseSummonGroup && npc.AiExtraData.GetValueOrDefault("__summon_group", 0) != node.SummonGroup) {
+                continue;
+            }
+
+            count++;
+        }
+
+        return count == node.Count;
     }
 
     private bool ProcessCondition(SlaveCountOpCondition node) {
-        return false;
+        int count = 0;
+
+        foreach (FieldNpc npc in actor.Field.EnumerateNpcs()) {
+            if (npc.ObjectId == actor.ObjectId || npc.IsDead) {
+                continue;
+            }
+
+            if (npc.AiExtraData.GetValueOrDefault("__master_oid", 0) != actor.ObjectId) {
+                continue;
+            }
+
+            count++;
+        }
+
+        return PerformOperation(node.SlaveCountOp, node.SlaveCount, count);
     }
 
     private bool ProcessCondition(HpOverCondition node) {
