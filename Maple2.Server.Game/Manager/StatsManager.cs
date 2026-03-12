@@ -182,6 +182,9 @@ public class StatsManager {
                 foreach (KeyValuePair<BasicAttribute, BasicOption> kvp in item.LimitBreak.BasicOptions) {
                     Values[kvp.Key].AddTotal(kvp.Value);
                 }
+                foreach (KeyValuePair<SpecialAttribute, SpecialOption> kvp in item.LimitBreak.SpecialOptions) {
+                    Values[kvp.Key].AddTotal(kvp.Value);
+                }
             }
 
             if (item.Socket != null) {

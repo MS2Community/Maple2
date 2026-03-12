@@ -77,7 +77,8 @@ public class SkillHandler : FieldPacketHandler {
         long skillUid = packet.ReadLong();
         int serverTick = packet.ReadInt();
         int skillId = packet.ReadInt();
-        short level = packet.ReadShort();
+        short clientLevel = packet.ReadShort();
+        short level = session.Config.Skill.ResolveSkillLevel(skillId, clientLevel);
 
         if (session.HeldLiftup != null) {
             if (session.HeldLiftup.SkillId == skillId && session.HeldLiftup.Level == level) {

@@ -52,7 +52,10 @@ public class SkillBookHandler : FieldPacketHandler {
 
         // Switching Active Tab
         if (savedSkillTab == 0) {
-            session.Config.Skill.SaveSkillTab(activeSkillTab, ranksToSave);
+            if (session.Config.Skill.SaveSkillTab(activeSkillTab, ranksToSave)) {
+                session.Config.UpdateHotbarSkills();
+                session.Config.Skill.UpdatePassiveBuffs();
+            }
             return;
         }
 
@@ -61,7 +64,10 @@ public class SkillBookHandler : FieldPacketHandler {
             var skillTab = packet.ReadClass<SkillTab>();
             if (skillTab.Id != savedSkillTab) continue;
 
-            session.Config.Skill.SaveSkillTab(activeSkillTab, ranksToSave, skillTab);
+            if (session.Config.Skill.SaveSkillTab(activeSkillTab, ranksToSave, skillTab)) {
+                session.Config.UpdateHotbarSkills();
+                session.Config.Skill.UpdatePassiveBuffs();
+            }
             return;
         }
     }

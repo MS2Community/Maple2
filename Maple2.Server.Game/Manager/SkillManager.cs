@@ -31,13 +31,17 @@ public class SkillManager {
         session.Send(SkillBookPacket.Load(SkillBook));
     }
 
-    public void UpdatePassiveBuffs(bool notifyField = true) {
-        // TODO: Only remove buffs that have been unlearned.
-        /*foreach (Buff buff in session.Player.Buffs.Buffs.Values) {
-            if (buff.StartTick == buff.EndTick) {
-                buff.Remove();
-            }
-        }*/
+    public short ResolveSkillLevel(int skillId, short requestedLevel = 1) {
+        SkillInfo.Skill? learnedSkill = SkillInfo.GetSkill(skillId);
+        if (learnedSkill is { Level: > 0 }) {
+            return learnedSkill.Level;
+        }
+
+        return requestedLevel > 0 ? requestedLevel : (short) 1;
+    }
+
+    public void UpdatePassiveBuffs(bool notifyField = true, bool refreshStats = true) {
+        RemovePassiveBuffs();
 
         // Add job passive skills to Player.
         foreach (SkillInfo.Skill skill in session.Config.Skill.SkillInfo.GetSkills(SkillType.Passive, SkillRank.Both)) {
@@ -52,12 +56,44 @@ public class SkillManager {
 
             logger.Information("Applying passive skill {Name}: {SkillId},{Level}", metadata.Name, metadata.Id, metadata.Level);
             foreach (SkillEffectMetadata effect in metadata.Data.Skills) {
-                if (effect.Condition is not { Target: SkillTargetType.Owner }) {
+                if (effect.Condition == null) {
+                    continue;
+                }
+
+                if (effect.Condition.Target is not (SkillTargetType.Owner or SkillTargetType.Caster or SkillTargetType.PetOwner or SkillTargetType.None)) {
                     continue;
                 }
 
                 session.Player.ApplyEffect(session.Player, session.Player, effect, session.Player.Field.FieldTick, EventConditionType.Activate, skillId: metadata.Id, notifyField: notifyField);
             }
+        }
+
+        if (refreshStats) {
+            session.Stats.Refresh();
+        }
+    }
+
+    private void RemovePassiveBuffs() {
+        var passiveBuffIds = new HashSet<int>();
+
+        foreach (SkillInfo.Skill skill in SkillInfo.GetSkills(SkillType.Passive, SkillRank.Both)) {
+            if (skill.Level <= 0) {
+                continue;
+            }
+
+            if (!session.SkillMetadata.TryGet(skill.Id, skill.Level, out SkillMetadata? metadata)) {
+                continue;
+            }
+
+            foreach (SkillEffectMetadata effect in metadata.Data.Skills) {
+                foreach (SkillEffectMetadata.Skill effectSkill in effect.Skills) {
+                    passiveBuffIds.Add(effectSkill.Id);
+                }
+            }
+        }
+
+        foreach (int buffId in passiveBuffIds) {
+            session.Player.Buffs.Remove(buffId, session.Player.ObjectId);
         }
     }
 
@@ -109,6 +145,11 @@ public class SkillManager {
             }
         }
 
+        SkillTab? refreshedActiveTab = GetActiveTab();
+        if (refreshedActiveTab != null) {
+            SkillInfo.SetTab(refreshedActiveTab);
+        }
+
         session.Send(SkillBookPacket.Save(SkillBook, tab.Id, ranks));
         return true;
     }
@@ -144,6 +185,10 @@ public class SkillManager {
         }
 
         SkillBook.SkillTabs.Add(createdSkillTab);
+        SkillTab? activeTab = GetActiveTab();
+        if (activeTab != null) {
+            SkillInfo.SetTab(activeTab);
+        }
         return true;
     }
     #endregion

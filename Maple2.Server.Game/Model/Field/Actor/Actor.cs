@@ -304,6 +304,7 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             SkillTargetType.Owner => owner,
             SkillTargetType.Target => target,
             SkillTargetType.Caster => caster,
+            SkillTargetType.PetOwner => owner,
             SkillTargetType.None => this, // Should be on self/inherit
             SkillTargetType.Attacker => target,
             _ => throw new NotImplementedException(),
@@ -315,6 +316,7 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
             SkillTargetType.Owner => owner,
             SkillTargetType.Target => owner,
             SkillTargetType.Caster => caster,
+            SkillTargetType.PetOwner => owner,
             SkillTargetType.None => this, // Should be on self/inherit
             SkillTargetType.Attacker => target,
             _ => throw new NotImplementedException(),
@@ -406,6 +408,10 @@ public abstract class Actor<T> : IActor<T>, IDisposable {
     public virtual void KeyframeEvent(string keyName) { }
 
     public virtual SkillRecord? CastSkill(int id, short level, long uid, int castTick, in Vector3 position = default, in Vector3 direction = default, in Vector3 rotation = default, float rotateZ = 0f, byte motionPoint = 0) {
+        if (this is FieldPlayer player) {
+            level = player.Session.Config.Skill.ResolveSkillLevel(id, level);
+        }
+
         if (!Field.SkillMetadata.TryGet(id, level, out SkillMetadata? metadata)) {
             Logger.Error("Invalid skill use: {SkillId},{Level}", id, level);
             return null;

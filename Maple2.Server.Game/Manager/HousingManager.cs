@@ -582,12 +582,28 @@ public class HousingManager {
             return false;
         }
 
+        session.FunctionCubeMetadata.TryGet(itemMetadata.Install.ObjectCubeId, out FunctionCubeMetadata? functionCubeMetadata);
+
         bool isSolidCube = itemMetadata.Install!.IsSolidCube;
         bool isOnGround = Math.Abs(position.Z - groundHeight) < 0.1;
         bool allowWaterOnGround = itemMetadata.Install.MapAttribute is MapAttribute.water && Constant.AllowWaterOnGround;
+        bool allowInteractiveFurnitureOnGround = functionCubeMetadata is {
+            ControlType: InteractCubeControlType.Switch or
+                         InteractCubeControlType.Skill or
+                         InteractCubeControlType.Ride or
+                         InteractCubeControlType.SpawnNPC or
+                         InteractCubeControlType.Sensor or
+                         InteractCubeControlType.FunctionUI or
+                         InteractCubeControlType.Notice or
+                         InteractCubeControlType.InstallNPC or
+                         InteractCubeControlType.Portal or
+                         InteractCubeControlType.SpawnPoint or
+                         InteractCubeControlType.PVP
+        };
 
-        // If the cube is not a solid cube and it's replacing ground, it's not allowed.
-        if ((!isSolidCube && isOnGround) && !allowWaterOnGround) {
+        // Some interactive furnishings (fans, traps, switches, NPC furnishings) are authored as non-solid cubes.
+        // Allow them to be placed on the ground instead of rejecting them as floor replacements.
+        if ((!isSolidCube && isOnGround) && !allowWaterOnGround && !allowInteractiveFurnitureOnGround) {
             session.Send(CubePacket.Error(UgcMapError.s_ugcmap_cant_create_on_place));
             return false;
         }
@@ -612,8 +628,6 @@ public class HousingManager {
             session.Send(CubePacket.Error(UgcMapError.s_ugcmap_area_limit));
             return false;
         }
-
-        session.FunctionCubeMetadata.TryGet(itemMetadata.Install.ObjectCubeId, out FunctionCubeMetadata? functionCubeMetadata);
 
         if (plot.IsPlanner) {
             if (shopEntry is null && cube.Id == 0) {

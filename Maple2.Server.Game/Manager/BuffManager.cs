@@ -40,7 +40,7 @@ public class BuffManager : IUpdatable {
     public void Initialize() {
         // Load buffs that are not broadcasted to the field
         if (Actor is FieldPlayer player) {
-            player.Session.Config.Skill.UpdatePassiveBuffs(false);
+            player.Session.Config.Skill.UpdatePassiveBuffs(false, false);
             player.Stats.Refresh();
         }
     }

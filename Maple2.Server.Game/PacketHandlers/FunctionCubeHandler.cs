@@ -1,4 +1,5 @@
-﻿using Maple2.Database.Storage;
+﻿using System.Numerics;
+using Maple2.Database.Storage;
 using Maple2.Model.Enum;
 using Maple2.Model.Game;
 using Maple2.Model.Metadata;
@@ -65,6 +66,10 @@ public class FunctionCubeHandler : FieldPacketHandler {
                     session.Mastery.Gather(fieldFunctionInteract);
                 }
                 break;
+            case InteractCubeControlType.SpawnNPC:
+            case InteractCubeControlType.InstallNPC:
+                HandleSpawnNpcFurniture(session, fieldInteract);
+                break;
             default:
                 if (fieldInteract.InteractCube.State is InteractCubeState.InUse && fieldInteract.InteractCube.InteractingCharacterId != session.CharacterId) {
                     return;
@@ -77,6 +82,83 @@ public class FunctionCubeHandler : FieldPacketHandler {
                 session.Field?.Broadcast(FunctionCubePacket.UseFurniture(session.CharacterId, fieldInteract.InteractCube));
                 break;
         }
+    }
+
+    private static readonly IReadOnlyDictionary<int, int> FurnitureNpcByItemId = new Dictionary<int, int> {
+        // Add custom mappings here when a furniture item should summon a specific NPC.
+        // Example: [50000000] = 11000001,
+    };
+
+    private void HandleSpawnNpcFurniture(GameSession session, FieldFunctionInteract fieldInteract) {
+        if (session.Field is null) {
+            return;
+        }
+
+        FieldFunctionInteract? currentInteract = session.Field.TryGetFieldFunctionInteract(fieldInteract.InteractCube.Id);
+        if (currentInteract == null) {
+            return;
+        }
+
+        if (currentInteract.InteractCube.State is InteractCubeState.InUse && currentInteract.InteractCube.InteractingCharacterId != session.CharacterId) {
+            return;
+        }
+
+        currentInteract.InteractCube.State = InteractCubeState.InUse;
+        currentInteract.InteractCube.InteractingCharacterId = session.CharacterId;
+
+        int npcId = ResolveFurnitureNpcId(session, currentInteract);
+        if (npcId <= 0 || !session.NpcMetadata.TryGet(npcId, out NpcMetadata? npcMetadata)) {
+            currentInteract.InteractCube.State = currentInteract.InteractCube.Metadata.DefaultState;
+            currentInteract.InteractCube.InteractingCharacterId = 0;
+            session.Field.Broadcast(FunctionCubePacket.UpdateFunctionCube(currentInteract.InteractCube));
+            Logger.Warning("Furniture cube {InteractId} ({ControlType}) does not resolve to a valid NPC. RecipeId={RecipeId}", currentInteract.InteractCube.Id, currentInteract.Value.ControlType, currentInteract.Value.RecipeId);
+            return;
+        }
+
+        Vector3 spawnPosition = currentInteract.Position + RotateOffset(currentInteract.Rotation.Z, new Vector3(0, 60, 0));
+        Vector3 spawnRotation = new Vector3(0, 0, currentInteract.Rotation.Z);
+        FieldNpc? fieldNpc = session.Field.SpawnNpc(npcMetadata, spawnPosition, spawnRotation, disableAi: true);
+        if (fieldNpc == null) {
+            currentInteract.InteractCube.State = currentInteract.InteractCube.Metadata.DefaultState;
+            currentInteract.InteractCube.InteractingCharacterId = 0;
+            session.Field.Broadcast(FunctionCubePacket.UpdateFunctionCube(currentInteract.InteractCube));
+            return;
+        }
+
+        session.Field.Broadcast(FieldPacket.AddNpc(fieldNpc));
+        session.Field.Broadcast(ProxyObjectPacket.AddNpc(fieldNpc));
+
+        TimeSpan lifetime = currentInteract.Value.AutoStateChangeTime > 0
+            ? TimeSpan.FromMilliseconds(currentInteract.Value.AutoStateChangeTime)
+            : TimeSpan.FromMinutes(5);
+        session.Field.RemoveNpc(fieldNpc.ObjectId, lifetime);
+
+        session.Field.Broadcast(FunctionCubePacket.UpdateFunctionCube(currentInteract.InteractCube));
+        session.Field.Broadcast(FunctionCubePacket.UseFurniture(session.CharacterId, currentInteract.InteractCube));
+    }
+
+    private static int ResolveFurnitureNpcId(GameSession session, FieldFunctionInteract fieldInteract) {
+        PlotCube? plotCube = session.Housing.GetFieldPlot()?.Cubes.Values.FirstOrDefault(cube => cube.Id == fieldInteract.CubeId);
+        if (plotCube != null && FurnitureNpcByItemId.TryGetValue(plotCube.ItemId, out int mappedNpcId)) {
+            return mappedNpcId;
+        }
+
+        if (fieldInteract.Value.RecipeId > 0 && session.NpcMetadata.TryGet(fieldInteract.Value.RecipeId, out _)) {
+            return fieldInteract.Value.RecipeId;
+        }
+
+        return 0;
+    }
+
+    private static Vector3 RotateOffset(float rotationDegrees, Vector3 offset) {
+        float radians = MathF.PI * rotationDegrees / 180f;
+        float cos = MathF.Cos(radians);
+        float sin = MathF.Sin(radians);
+        return new Vector3(
+            offset.X * cos - offset.Y * sin,
+            offset.X * sin + offset.Y * cos,
+            offset.Z
+        );
     }
 
     private void HandleNurturing(GameSession session, FieldFunctionInteract fieldCube) {

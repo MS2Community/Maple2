@@ -192,6 +192,29 @@ public class SkillInfo : IByteSerializable {
         return null;
     }
 
+    public Skill? GetSkill(int skillId, SkillRank rank = SkillRank.Both) {
+        Skill? mainSkill = GetMainSkill(skillId, rank);
+        if (mainSkill != null) {
+            return mainSkill;
+        }
+
+        for (int i = 0; i < SKILL_TYPES; i++) {
+            if (rank is SkillRank.Basic or SkillRank.Both) {
+                if (SubSkills[i, (int) SkillRank.Basic].TryGetValue(skillId, out Skill? skill)) {
+                    return skill;
+                }
+            }
+
+            if (rank is SkillRank.Awakening or SkillRank.Both) {
+                if (SubSkills[i, (int) SkillRank.Awakening].TryGetValue(skillId, out Skill? skill)) {
+                    return skill;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public void WriteTo(IByteWriter writer) {
         writer.WriteInt((int) Job);
         writer.WriteByte(1); // Count
