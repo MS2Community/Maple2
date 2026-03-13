@@ -286,7 +286,7 @@ public class WebController : ControllerBase {
     #endregion
 
     #region Ranking
-    public ByteWriter Trophy(string userName) {
+    private ByteWriter Trophy(string userName) {
         string cacheKey = $"Trophy_{userName ?? "all"}";
 
         if (!cache.TryGetValue(cacheKey, out byte[]? cachedData)) {
@@ -312,7 +312,7 @@ public class WebController : ControllerBase {
         return result;
     }
 
-    public ByteWriter PersonalTrophy(long characterId) {
+    private ByteWriter PersonalTrophy(long characterId) {
         string cacheKey = $"PersonalTrophy_{characterId}";
 
         if (!cache.TryGetValue(cacheKey, out byte[]? cachedData)) {
@@ -328,7 +328,7 @@ public class WebController : ControllerBase {
         return result;
     }
 
-    public ByteWriter GuildTrophy(string userName) {
+    private ByteWriter GuildTrophy(string userName) {
         if (!string.IsNullOrEmpty(userName)) {
             string cacheKey = $"GuildTrophy_{userName}";
 
@@ -359,7 +359,7 @@ public class WebController : ControllerBase {
         return InGameRankPacket.GuildTrophy(GetCachedGuildTrophyRankings());
     }
 
-    public ByteWriter PersonalGuildTrophy(long characterId) {
+    private ByteWriter PersonalGuildTrophy(long characterId) {
         string cacheKey = $"PersonalGuildTrophy_{characterId}";
 
         if (!cache.TryGetValue(cacheKey, out byte[]? cachedData)) {
@@ -397,7 +397,7 @@ public class WebController : ControllerBase {
     }
     #endregion
 
-    public ByteWriter MenteeList(long accountId, long characterId) {
+    private ByteWriter MenteeList(long accountId, long characterId) {
         using GameStorage.Request db = gameStorage.Context();
         IList<long> list = db.GetMentorList(accountId, characterId);
 
