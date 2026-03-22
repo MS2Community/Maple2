@@ -11,10 +11,13 @@ using Maple2.Server.Game.Model;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
 using Maple2.Server.Game.Util;
+using Serilog;
 
 namespace Maple2.Server.Game.PacketHandlers;
 
 public class HomeActionHandler : FieldPacketHandler {
+    private static readonly ILogger HomeActionLogger = Log.Logger.ForContext<HomeActionHandler>();
+
     public override RecvOp OpCode => RecvOp.HomeAction;
 
     private enum Command : byte {
@@ -184,11 +187,11 @@ public class HomeActionHandler : FieldPacketHandler {
         cube.Interact.NoticeSettings.Notice = packet.ReadUnicodeString();
         cube.Interact.NoticeSettings.Distance = packet.ReadByte();
 
+        session.Field?.Broadcast(HomeActionPacket.SendCubeNoticeSettings(cube, editing: false));
+
         if (HousingFunctionFurnitureRegistry.IsSmartComputer(cube)) {
             string result = HousingFunctionFurnitureRegistry.ApplyComputerScript(session, cube);
             session.Send(HomeActionPacket.HostAlarm(result));
-        } else {
-            session.Field?.Broadcast(HomeActionPacket.SendCubeNoticeSettings(cube, editing: false));
         }
 
         session.Housing.SaveHome();
@@ -206,6 +209,9 @@ public class HomeActionHandler : FieldPacketHandler {
             Logger.Warning("Cube not found at {0}", coord);
             return;
         }
+
+        HomeActionLogger.Information("HomeAction.SendConfigurableSettings coord={Coord} cubeId={CubeId} itemId={ItemId} hasNotice={HasNotice} hasPortal={HasPortal} isSmartComputer={IsSmartComputer}",
+            coord, cube.Id, cube.ItemId, cube.Interact?.NoticeSettings is not null, cube.Interact?.PortalSettings is not null, HousingFunctionFurnitureRegistry.IsSmartComputer(cube));
 
         if (HousingFunctionFurnitureRegistry.IsSmartComputer(cube)) {
             if (!HousingFunctionFurnitureRegistry.OpenSmartComputerEditor(session, cube)) {

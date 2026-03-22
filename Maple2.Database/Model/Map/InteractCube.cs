@@ -16,12 +16,16 @@ internal record InteractCube(
             other.Id,
             other.ObjectCode,
             other.PortalSettings,
-            other.NoticeSettings);
+            other.NoticeSettings ?? (other.TriggerSettings == null ? null : new Maple2.Model.Game.CubeNoticeSettings {
+                Notice = other.TriggerSettings.ScriptXml,
+                Distance = other.TriggerSettings.Distance,
+            }));
     }
 
     // Use explicit Convert() here because we need metadata to construct InteractCube.
     public Maple2.Model.Game.InteractCube Convert(FunctionCubeMetadata metadata, CubeNoticeSettings? noticeSettings, CubePortalSettings? portalSettings) {
-        return new Maple2.Model.Game.InteractCube(Id, metadata, portalSettings, noticeSettings);
+        Maple2.Model.Game.InteractCube result = new Maple2.Model.Game.InteractCube(Id, metadata, portalSettings, noticeSettings);
+        return result;
     }
 }
 

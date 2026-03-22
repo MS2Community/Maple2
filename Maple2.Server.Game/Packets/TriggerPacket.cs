@@ -147,7 +147,7 @@ public static class TriggerPacket {
     public static ByteWriter ResetScript(bool error = false) {
         var pWriter = Packet.Of(SendOp.Trigger);
         pWriter.Write<Command>(Command.ResetScript);
-        pWriter.WriteBool(error); // no error=>s_user_trigger_msg_rollback
+        pWriter.WriteInt(error ? 1 : 0); // no error=>s_user_trigger_msg_rollback
 
         return pWriter;
     }
@@ -176,11 +176,9 @@ public static class TriggerPacket {
         return pWriter;
     }
 
-    public static ByteWriter Unknown24(int cubeCoordKey, int unknown = 0) {
+    public static ByteWriter Unknown24() {
         var pWriter = Packet.Of(SendOp.Trigger);
         pWriter.Write<Command>(Command.Unknown24);
-        pWriter.WriteInt(cubeCoordKey);
-        pWriter.WriteInt(unknown);
 
         return pWriter;
     }

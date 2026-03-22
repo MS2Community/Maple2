@@ -16,6 +16,7 @@ public class InteractCube : IByteSerializable {
     public Nurturing? Nurturing { get; set; }
     public CubePortalSettings? PortalSettings { get; set; }
     public CubeNoticeSettings? NoticeSettings { get; set; }
+    public CubeTriggerSettings? TriggerSettings { get; set; }
 
     public long InteractingCharacterId { get; set; }
     // Runtime-only helper used by housing function furniture that materializes NPCs.
@@ -45,6 +46,7 @@ public class InteractCube : IByteSerializable {
         State = metadata.DefaultState;
         PortalSettings = portalSettings;
         NoticeSettings = noticeSettings;
+        TriggerSettings = null;
     }
 
     public void WriteTo(IByteWriter writer) {

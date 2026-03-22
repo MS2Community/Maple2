@@ -12,10 +12,13 @@ using Maple2.Server.Game.Model;
 using Maple2.Server.Game.Packets;
 using Maple2.Server.Game.Session;
 using Maple2.Server.Game.Util;
+using Serilog;
 
 namespace Maple2.Server.Game.PacketHandlers;
 
 public class FunctionCubeHandler : FieldPacketHandler {
+    private static readonly ILogger FunctionCubeLogger = Log.Logger.ForContext<FunctionCubeHandler>();
+
 
     #region Autofac Autowired
     // ReSharper disable MemberCanBePrivate.Global
@@ -57,7 +60,11 @@ public class FunctionCubeHandler : FieldPacketHandler {
             .SelectMany(plot => plot.Cubes.Values)
             .FirstOrDefault(cube => cube.Id == fieldInteract.CubeId);
 
+        FunctionCubeLogger.Information("FunctionCube.Use interactId={InteractId} unk={Unk} cubeId={CubeId} objectCode={ObjectCode} controlType={ControlType} state={State} plotItemId={PlotItemId}",
+            interactId, unk, fieldInteract.CubeId, fieldInteract.InteractCube.Metadata.Id, fieldInteract.Value.ControlType, fieldInteract.InteractCube.State, plotCube?.ItemId ?? 0);
+
         if (plotCube is not null && HousingFunctionFurnitureRegistry.TryHandleUse(session, plotCube, fieldInteract)) {
+            FunctionCubeLogger.Information("Housing furniture registry handled interactId={InteractId} plotItemId={PlotItemId}", interactId, plotCube.ItemId);
             return;
         }
 

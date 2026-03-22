@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
@@ -22,7 +22,6 @@ internal static class HousingFunctionFurnitureRegistry {
     private static readonly HashSet<int> SmartComputerItemIds = new() {
         50400005,
         50400178,
-        50400179,
     };
 
     internal enum FurnitureBehavior {
@@ -58,8 +57,7 @@ internal static class HousingFunctionFurnitureRegistry {
         [50300014] = new(50300014, FurnitureBehavior.InstallNpc, NpcId: 52000005, AutoStateChangeTime: 1500, DebugName: "51000001_DamageMeter_puppet_A01_"),
         [50300015] = new(50300015, FurnitureBehavior.InstallNpc, NpcId: 52000006, AutoStateChangeTime: 1500, DebugName: "52000006_DamageMeter_snowman_A01_"),
         [50400005] = new(50400005, FurnitureBehavior.FunctionUi, AutoStateChangeTime: 1000, DebugName: "co_functobj_pc_B01_"),
-        [50400178] = new(50400178, FurnitureBehavior.FunctionUi, AutoStateChangeTime: 1000, DebugName: "co_functobj_pc_B01_"),
-        [50400179] = new(50400179, FurnitureBehavior.FunctionUi, AutoStateChangeTime: 1000, DebugName: "co_functobj_pc_B01_"),
+        [50400178] = new(50400178, FurnitureBehavior.FunctionUi, AutoStateChangeTime: 1000, DebugName: "co_functobj_editor_A01_"),
     };
 
     // Exact charm/trophy item -> buff mappings resolved from item descriptions and client additional-effect strings.
@@ -273,7 +271,7 @@ internal static class HousingFunctionFurnitureRegistry {
         EnsureConfigurableNotice(cube);
         EnsureSmartComputerTemplate(cube);
 
-        if (cube.Interact is null) {
+        if (cube.Interact?.NoticeSettings is null) {
             return false;
         }
 
@@ -283,10 +281,10 @@ internal static class HousingFunctionFurnitureRegistry {
         session.Field.Broadcast(FunctionCubePacket.UseFurniture(session.CharacterId, cube.Interact));
 
         session.EditingSmartComputerCubeId = cube.Id;
-        // TriggerTool expects command 24 followed by two Int32 values.
-        // The first one is the cube position key; the second one is still unknown,
-        // but the client clearly tries to Decode4 again right after the first Int32.
-        session.Send(TriggerPacket.Unknown24(cube.Position.ConvertToInt(), 0));
+        cube.Interact.NoticeSettings.Notice = GetSmartComputerScript(session);
+        cube.Interact.NoticeSettings.Distance = 1;
+
+        session.Send(HomeActionPacket.SendCubeNoticeSettings(cube, editing: true));
         return true;
     }
 
@@ -476,7 +474,15 @@ internal static class HousingFunctionFurnitureRegistry {
         cube.Interact.NoticeSettings = new CubeNoticeSettings();
     }
 
-    private const string DefaultSmartComputerScript = "<ms2><state name=\"newState1\"></state></ms2>";
+    private const string DefaultSmartComputerScript =
+        "# 简易智能电脑脚本\n" +
+        "# 每行一个命令，保存后立即应用\n" +
+        "# toggle x y z\n" +
+        "# state x y z available|inuse|none\n" +
+        "# respawn x y z\n" +
+        "# despawn x y z\n" +
+        "# portal x y z 传送门名 move 目标\n" +
+        "# note x y z 1 文本内容\n";
 
     private static void EnsureSmartComputerTemplate(PlotCube cube) {
         if (!IsSmartComputer(cube) || cube.Interact?.NoticeSettings is null || !string.IsNullOrWhiteSpace(cube.Interact.NoticeSettings.Notice)) {
@@ -502,19 +508,12 @@ internal static class HousingFunctionFurnitureRegistry {
 
         EnsureInteract(cube, session.FunctionCubeMetadata);
         EnsureConfigurableNotice(cube);
-        cube.Interact!.NoticeSettings!.Notice = string.IsNullOrWhiteSpace(xml) ? DefaultSmartComputerScript : xml;
+        cube.Interact!.NoticeSettings!.Notice = SanitizeSmartComputerScript(xml);
         cube.Interact.NoticeSettings.Distance = 1;
 
-        try {
-            Trigger.Helpers.Trigger parsed = TriggerCache.ParseXml(session.Field.Metadata.XBlock, GetComputerTriggerName(cube), cube.Interact.NoticeSettings.Notice);
-            session.Field.AddTrigger(new TriggerModel(0, GetComputerTriggerName(cube), cube.Position, new Vector3(0, 0, cube.Rotation)), parsed);
-            session.Housing.SaveHome();
-            message = "智能电脑脚本已保存。";
-            return true;
-        } catch (Exception ex) {
-            message = $"智能电脑脚本保存失败：{ex.Message}";
-            return false;
-        }
+        session.Housing.SaveHome();
+        message = ApplyComputerScript(session, cube);
+        return true;
     }
 
     internal static string GetSmartComputerScript(GameSession session) {
@@ -523,7 +522,18 @@ internal static class HousingFunctionFurnitureRegistry {
         }
 
         PlotCube? cube = plot.Cubes.Values.FirstOrDefault(x => x.Id == session.EditingSmartComputerCubeId && IsSmartComputer(x));
-        return cube?.Interact?.NoticeSettings?.Notice ?? DefaultSmartComputerScript;
+        return SanitizeSmartComputerScript(cube?.Interact?.NoticeSettings?.Notice);
+    }
+
+    private static string SanitizeSmartComputerScript(string? script) {
+        if (string.IsNullOrWhiteSpace(script)) {
+            return DefaultSmartComputerScript;
+        }
+
+        return script
+            .TrimStart('\ufeff')
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("\r", "\n", StringComparison.Ordinal);
     }
 
     private static string GetComputerTriggerName(PlotCube cube) => $"home_user_trigger_{cube.Id}";
@@ -533,17 +543,8 @@ internal static class HousingFunctionFurnitureRegistry {
             return;
         }
 
-        string xml = cube.Interact.NoticeSettings.Notice;
-        if (string.IsNullOrWhiteSpace(xml)) {
-            return;
-        }
-
-        try {
-            Trigger.Helpers.Trigger parsed = TriggerCache.ParseXml(field.Metadata.XBlock, GetComputerTriggerName(cube), xml);
-            field.AddTrigger(new TriggerModel(0, GetComputerTriggerName(cube), cube.Position, new Vector3(0, 0, cube.Rotation)), parsed);
-        } catch {
-            // Keep the saved XML so the player can reopen and fix it in the visual editor.
-        }
+        // 简易电脑版不再尝试加载原版 TriggerTool XML。
+        // 脚本在玩家保存时即时应用，并以纯文本形式保存在 NoticeSettings 中。
     }
 
     private static bool ShouldSpawnTrapVisual(FurnitureDefinition definition) => definition.ItemId is 50300007 or 50300008 or 50300009 or 50300010;

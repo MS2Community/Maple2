@@ -39,3 +39,14 @@ public class CubeNoticeSettings : IByteSerializable {
         writer.WriteByte(Distance);
     }
 }
+
+
+public class CubeTriggerSettings : IByteSerializable {
+    public string ScriptXml { get; set; } = string.Empty;
+    public byte Distance { get; set; } = 1;
+
+    public void WriteTo(IByteWriter writer) {
+        writer.WriteUnicodeString(ScriptXml);
+        writer.WriteByte(Distance);
+    }
+}
