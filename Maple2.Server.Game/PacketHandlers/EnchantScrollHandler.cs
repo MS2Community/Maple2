@@ -65,7 +65,8 @@ public class EnchantScrollHandler : FieldPacketHandler {
         Dictionary<BasicAttribute, BasicOption> minOptions;
         Dictionary<BasicAttribute, BasicOption> maxOptions;
         if (metadata.Type == EnchantScrollType.Random) {
-            minOptions = GetCumulativeEnchant(session, item, metadata.Enchants.Min()).BasicOptions;
+            int minRoll = Math.Max(metadata.Enchants.Min(), item.Enchant?.Enchants ?? 0);
+            minOptions = GetCumulativeEnchant(session, item, minRoll).BasicOptions;
             maxOptions = GetCumulativeEnchant(session, item, metadata.Enchants.Max()).BasicOptions;
         } else {
             minOptions = GetCumulativeEnchant(session, item, metadata.Enchants.Max()).BasicOptions;
@@ -107,7 +108,12 @@ public class EnchantScrollHandler : FieldPacketHandler {
             // Ensure that you cannot randomize an enchant lower than current item.
             item.Enchant ??= new ItemEnchant();
             if (enchantLevel > item.Enchant.Enchants) {
-                item.Enchant = GetCumulativeEnchant(session, item, enchantLevel);
+                ItemEnchant computed = GetCumulativeEnchant(session, item, enchantLevel);
+                item.Enchant.Enchants = computed.Enchants;
+                item.Enchant.BasicOptions.Clear();
+                foreach ((BasicAttribute attribute, BasicOption option) in computed.BasicOptions) {
+                    item.Enchant.BasicOptions[attribute] = option;
+                }
             }
 
             session.Send(EnchantScrollPacket.Enchant(item));
