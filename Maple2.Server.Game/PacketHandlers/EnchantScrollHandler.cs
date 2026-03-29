@@ -62,31 +62,16 @@ public class EnchantScrollHandler : FieldPacketHandler {
             return;
         }
 
-        int minEnchant = Math.Min(item.Enchant?.Enchants ?? 0, metadata.Enchants.Min());
-        int maxEnchant = metadata.Enchants.Max();
-        Dictionary<BasicAttribute, BasicOption> minOptions = [];
-        Dictionary<BasicAttribute, BasicOption> maxOptions = [];
-        for (int i = minEnchant; i < maxEnchant; i++) {
-            // add to dictionaries
-            int targetEnchant = i - 1;
-            ItemEnchant result = ItemEnchantManager.GetEnchant(session, item, i + 1);
-            foreach ((BasicAttribute attribute, BasicOption option) in result.BasicOptions) {
-                if (minOptions.TryGetValue(attribute, out BasicOption currentOption)) {
-                    minOptions[attribute] = currentOption + option;
-                } else {
-                    minOptions[attribute] = option;
-                }
-            }
-
-            result = ItemEnchantManager.GetEnchant(session, item, i - 1);
-            foreach ((BasicAttribute attribute, BasicOption option) in result.BasicOptions) {
-                if (maxOptions.TryGetValue(attribute, out BasicOption currentOption)) {
-                    maxOptions[attribute] = currentOption + option;
-                } else {
-                    maxOptions[attribute] = option;
-                }
-            }
+        Dictionary<BasicAttribute, BasicOption> minOptions;
+        Dictionary<BasicAttribute, BasicOption> maxOptions;
+        if (metadata.Type == EnchantScrollType.Random) {
+            minOptions = GetCumulativeEnchant(session, item, metadata.Enchants.Min()).BasicOptions;
+            maxOptions = GetCumulativeEnchant(session, item, metadata.Enchants.Max()).BasicOptions;
+        } else {
+            minOptions = GetCumulativeEnchant(session, item, metadata.Enchants.Max()).BasicOptions;
+            maxOptions = minOptions;
         }
+
         session.Send(EnchantScrollPacket.Preview(item, metadata.Type, minOptions, maxOptions));
     }
 
@@ -122,8 +107,7 @@ public class EnchantScrollHandler : FieldPacketHandler {
             // Ensure that you cannot randomize an enchant lower than current item.
             item.Enchant ??= new ItemEnchant();
             if (enchantLevel > item.Enchant.Enchants) {
-                item.Enchant = ItemEnchantManager.GetEnchant(session, item, enchantLevel);
-                item.Enchant.Enchants = enchantLevel;
+                item.Enchant = GetCumulativeEnchant(session, item, enchantLevel);
             }
 
             session.Send(EnchantScrollPacket.Enchant(item));
@@ -149,6 +133,22 @@ public class EnchantScrollHandler : FieldPacketHandler {
         }
 
         return s_enchantscroll_ok;
+    }
+
+    private static ItemEnchant GetCumulativeEnchant(GameSession session, Item item, int targetLevel) {
+        var cumulative = new ItemEnchant();
+        for (int i = 1; i <= targetLevel; i++) {
+            ItemEnchant levelEnchant = ItemEnchantManager.GetEnchant(session, item, i);
+            foreach ((BasicAttribute attribute, BasicOption option) in levelEnchant.BasicOptions) {
+                if (cumulative.BasicOptions.TryGetValue(attribute, out BasicOption existing)) {
+                    cumulative.BasicOptions[attribute] = existing + option;
+                } else {
+                    cumulative.BasicOptions[attribute] = option;
+                }
+            }
+        }
+        cumulative.Enchants = targetLevel;
+        return cumulative;
     }
 
     private bool TryGetMetadata(GameSession session, long scrollUid, [NotNullWhen(true)] out EnchantScrollMetadata? metadata) {
