@@ -1,9 +1,23 @@
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/MS2Community/Maple2)
 
-# MapleStory2 Server Emulator
 
-This is an open source MapleStory2 server emulation project created in C#. It is being developed completely for educational purposes only. This software is being provided "as-is", completely for free. As a result, we, nor anybody who chooses to contribute, are not responsible for any damages or other liability as a result of this software.
+# [개인 연구용] MapleStory2 Server Emulator
 
-Setup Guide: [https://github.com/MS2Community/Maple2/wiki/Prerequisites](https://github.com/MS2Community/Maple2/wiki/Prerequisites)
+<br>
 
-Join the [community discord](https://discord.gg/r78CXkUmuj)! - Updated as of 9/28/2024
+이 페이지는 AngeloTadeucci 외 여러 개발자들이 함께 개발한 Maple2 프로젝트에 기반하여, **개인 연구 및 학습 목적으로 클론한 샌드박스**입니다.
+
+이곳의 코드는 실험용으로, 안정성 및 실행 여부를 보장하지 않습니다. 
+
+<br> 
+
+This repository is a **sandbox forked for personal research and learning purposes**, based on the Maple2 project developed by AngeloTadeucci and other developers.
+
+The code here is experimental, so stability and successful execution are not guaranteed.
+
+<br>
+
+ **** 
+<br>
+
+Original Repository ▽ <br>
+[AngeloTadeucci/Maple2] https://github.com/MS2Community/Maple2
