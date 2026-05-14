@@ -33,7 +33,7 @@ public static class GenericHelper {
             for (int i = 0; i < segments.Length; i++) {
                 if (TryParseObject(elementType, segments[i].Trim(), out object? parseResult)) {
                     destinationArray.SetValue(parseResult ?? default, i);
-                }else {
+                } else {
                     destinationArray.SetValue(elementType.IsValueType ? Activator.CreateInstance(elementType) : null, i);
                 }
             }
