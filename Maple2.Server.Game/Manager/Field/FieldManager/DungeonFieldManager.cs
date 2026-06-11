@@ -64,6 +64,8 @@ public class DungeonFieldManager : FieldManager {
                 }
 
                 player.Session.Dungeon.CompleteDungeon(clearTimestamp);
+                player.Session.ConditionUpdate(ConditionType.dungeon_clear,
+                    codeLong: DungeonId);
 
             }
         }
