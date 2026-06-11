@@ -247,22 +247,24 @@ public partial class TriggerContext {
                     continue;
                 }
 
-                switch (questStates[0]) {
-                    case 1: // Started
-                        if (quest.State == QuestState.Started) {
-                            return !negate;
-                        }
-                        break;
-                    case 2: // Started and Can Complete
-                        if (quest.State == QuestState.Started && player.Session.Quest.CanComplete(quest)) {
-                            return !negate;
-                        }
-                        break;
-                    case 3: // Completed
-                        if (quest.State == QuestState.Completed) {
-                            return !negate;
-                        }
-                        break;
+                foreach (int questState in questStates) {
+                    switch (questState) {
+                        case 1: // Started (but NOT ready to complete)
+                            if (quest.State == QuestState.Started && !player.Session.Quest.CanComplete(quest)) {
+                                return !negate;
+                            }
+                            break;
+                        case 2: // Started and Can Complete
+                            if (quest.State == QuestState.Started && player.Session.Quest.CanComplete(quest)) {
+                                return !negate;
+                            }
+                            break;
+                        case 3: // Completed
+                            if (quest.State == QuestState.Completed) {
+                                return !negate;
+                            }
+                            break;
+                    }
                 }
             }
         }
